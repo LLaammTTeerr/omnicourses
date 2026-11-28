@@ -4,6 +4,7 @@ import type { App as VueApp } from 'vue';
 import { createMemoryHistory, type Router } from 'vue-router';
 import { createOmniCourseApp } from './app.js';
 import { course as auditCourse, degreeAudit, group as auditGroup } from './audit/testing/fixtures.js';
+import { calendar, event, REGISTRATION } from './calendar/testing/fixtures.js';
 import { SESSION_STORAGE_KEY } from './auth/store.js';
 import { authResult, session } from './auth/testing/fixtures.js';
 import { createAppRouter } from './router.js';
@@ -12,8 +13,6 @@ import { onboarding } from './onboarding/testing/fixtures.js';
 import { mockApi, sentBody } from './testing/fetch.js';
 import { HEALTHY } from './testing/health.js';
 
-// The new screens in Chromium: the layout at a phone's width, the native dialog, and the sign-in round trip.
-
 const LONG = 'Mônhọcthửcótênrấtdàikhôngcóchỗngắtdòngnàocảđểthửbềrộng';
 const ROWS = [
   { courseCode: 'ZZ101', courseName: LONG, credits: 4, result: 'graded', grade: 8.5, term: { year: 2024, number: 1 } },
@@ -21,6 +20,9 @@ const ROWS = [
 ];
 const LONG_GROUP = 'Nhóm thử có tên rất dài để xem tiêu đề nhóm xuống dòng thế nào trên điện thoại';
 const course = (code: string, nameVi: string) => ({ code, nameVi, nameEn: null, credits: 4, theoryPeriods: 45, labPeriods: 30, exercisePeriods: null, projectPeriods: null });
+const SHEET_MARGIN_X = 6;
+const ABOVE_THE_SHEET = { x: 20, y: -200 };
+
 const CURRICULUM = {
   id: '00000000-0000-4000-8000-0000000000c1',
   code: 'APCS2024',
@@ -36,7 +38,6 @@ const CURRICULUM = {
   ],
 };
 const PROGRAMS = { programs: [{ code: 'APCS', nameVi: 'Chương trình Tiên tiến thử', nameEn: null, faculty: null, cohortYears: [2024, 2025] }] };
-// The widest the audit gets: a long group name, a long course name, and the synthetic fixture's every section.
 const BASE_AUDIT = degreeAudit();
 const LONG_GROUP_ID = '00000000-0000-4000-8000-000000000a09';
 const AUDIT = degreeAudit({
@@ -46,7 +47,6 @@ const AUDIT = degreeAudit({
       courses: [auditCourse('ZZ777', { nameVi: LONG, countsTowardTotal: false, countsTowardGpa: false, status: 'counted_in_other_group', countedInGroupId: BASE_AUDIT.groups[0]!.id })],
     }),
   ],
-  // The long group has a minimum of its own, so the API lists it as a condition: its chip and missing line are drawn.
   graduation: {
     ...BASE_AUDIT.graduation,
     unmet: [{ id: `group:${LONG_GROUP_ID}`, description: `Requirement group "${LONG_GROUP}"`, citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.b', status: 'not_met' }, ...BASE_AUDIT.graduation.unmet],
@@ -86,7 +86,6 @@ async function open(path: string, { signedIn = true, routes = {} as Record<strin
     'GET /programs': PROGRAMS,
     'GET /programs/APCS/curricula/2024': CURRICULUM,
     'GET /users/me/audit': AUDIT,
-    // No administration grant: the navigation is the student's (ADR 0011).
     'GET /admin/grants': { userId: authResult().user.id, programs: [], permissions: [] },
     ...routes,
   });
@@ -117,6 +116,7 @@ describe('the new screens at a phone width and on a desktop', () => {
     ['/explorer', true, 'Chương trình đào tạo'],
     ['/dashboard', true, 'Tổng quan'],
     ['/audit', true, 'Xét tốt nghiệp'],
+    ['/calendar', true, 'Lịch', { 'GET /academic-calendar': calendar([REGISTRATION, event({ id: 'zz-long', kind: 'other', startsOn: '2026-11-11', title: LONG })]) }],
     ['/onboarding', true, 'Bạn đang học chương trình nào?', { 'GET /users/me/onboarding': NOT_STARTED }],
   ];
 
@@ -128,16 +128,14 @@ describe('the new screens at a phone width and on a desktop', () => {
         await open(path, { signedIn, routes });
         await expect.element(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
         if (path === '/dashboard' || path === '/audit') {
-          // The heading is drawn before the audit loads: wait for the groups, long names and all, before measuring.
           await expect.poll(() => document.querySelectorAll('[data-test="group"]').length).toBe(AUDIT.groups.length);
           expect(document.body.textContent).toContain(LONG_GROUP);
         }
+        if (path === '/calendar') await expect.poll(() => document.querySelector('[data-test="week"]')).toBeTruthy();
         if (path === '/transcript') {
-          // An invalid row, with its reasons spelled out, is the widest the table gets.
           await page.getByRole('button', { name: 'Thêm dòng' }).click();
           await expect.poll(() => document.querySelector('[data-test="rows"]')?.textContent).toContain('Cần sửa:');
           expect([...document.querySelectorAll('input')].some((input) => input.value === LONG)).toBe(true);
-          // Every column fits the card, beside the sidebar too: nothing is cut off or hidden behind a scroll.
           const wrap = document.querySelector('.review-card .table-wrap')!;
           expect(wrap.scrollWidth, `the review table at ${width} px`).toBeLessThanOrEqual(wrap.clientWidth);
         }
@@ -157,7 +155,6 @@ describe('the new screens at a phone width and on a desktop', () => {
     await page.viewport(400, 800);
     await open('/settings');
     const tabs = page.getByRole('navigation', { name: 'Điều hướng nhanh' });
-    // Four pages and More, side by side at 400 px; Settings is under More, which shows as the current tab.
     await expect.element(tabs.getByRole('button', { name: 'Thêm' })).toHaveClass(/router-link-active/);
     const items = [...(tabs.element() as HTMLElement).children] as HTMLElement[];
     expect(items.map((item) => item.textContent?.trim())).toEqual(['Tổng quan', 'Lộ trình', 'Tốt nghiệp', 'Chương trình', 'Thêm']);
@@ -165,8 +162,6 @@ describe('the new screens at a phone width and on a desktop', () => {
     await expect.element(page.getByRole('complementary')).not.toBeInTheDocument();
   });
 
-  // English has long words that cannot wrap ("Curriculum"), Vietnamese has long labels that can ("Chương trình").
-  // Every label stays inside its tab; the audit's, shortened to "Tốt nghiệp" for the tab, stays on one line.
   it.each([
     ['vi', 'Điều hướng nhanh'],
     ['en', 'Quick navigation'],
@@ -201,11 +196,9 @@ describe('the new screens at a phone width and on a desktop', () => {
     const dialog = sheet.element() as HTMLDialogElement;
     const list = dialog.querySelector('.more-list')!.getBoundingClientRect();
     const box = dialog.getBoundingClientRect();
-    // 6 px in from the sheet's left edge, level with the middle of the links: inside the sheet, beside its content.
-    await sheet.click({ position: { x: 6, y: Math.round(list.top - box.top + list.height / 2) } });
+    await sheet.click({ position: { x: SHEET_MARGIN_X, y: Math.round(list.top - box.top + list.height / 2) } });
     expect(dialog.open).toBe(true);
-    // A tap above the sheet, on the backdrop, still closes it.
-    await sheet.click({ position: { x: 20, y: -200 } });
+    await sheet.click({ position: ABOVE_THE_SHEET });
     await expect.poll(() => dialog.open).toBe(false);
   });
 
@@ -233,7 +226,6 @@ describe('the new screens at a phone width and on a desktop', () => {
     const dialog = sheet.element() as HTMLDialogElement;
     expect(dialog.matches(':modal')).toBe(true);
     expect(dialog.contains(document.activeElement)).toBe(true);
-    // The page behind is inert: a tab there cannot take focus.
     const behind = document.querySelector<HTMLElement>('.tabbar a')!;
     behind.focus();
     expect(dialog.contains(document.activeElement)).toBe(true);
@@ -246,7 +238,6 @@ describe('the new screens at a phone width and on a desktop', () => {
     await expect.element(button).toHaveAttribute('aria-expanded', 'false');
     expect(document.activeElement).toBe(button.element());
 
-    // A link in the sheet opens its page and closes the sheet.
     await button.click();
     await sheet.getByRole('link', { name: 'Hướng dẫn' }).click();
     await expect.element(page.getByRole('heading', { level: 1, name: 'Hướng dẫn thủ tục' })).toBeVisible();

@@ -4,17 +4,11 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { bootApp } from './support/app.js';
 
-// Every route needs a signed-in user unless it is listed here (ADR 0002, ADR 0010).
-// A new public route fails this test until it is added to the list, so the
-// change shows up in the pull request for reviewers.
 const PUBLIC_ROUTES = [
   'GET /api/health',
-  // Guides hold only what the school publishes, so anyone may read them (ADR 0010).
   'GET /api/guides',
   'GET /api/guides/{id}',
-  // A shared plan opens from its link's token, read-only (UC-09, ADR 0010).
   'GET /api/shared-plans/{token}',
-  // The only public writes: they must stay open, or nobody can get in.
   'POST /api/auth/sign-up',
   'POST /api/auth/sign-in',
 ];
@@ -23,18 +17,14 @@ const PUBLIC_WRITES = ['POST /api/auth/sign-up', 'POST /api/auth/sign-in'];
 const METHODS = ['get', 'put', 'post', 'delete', 'patch'] as const;
 type Method = (typeof METHODS)[number];
 
-// Any well-formed value works: the auth guard runs before pipes parse the path.
 const PATH_PARAM = '00000000-0000-4000-8000-000000000000';
 
-// SwaggerModule.setup serves the docs pages itself, outside any controller and
-// outside the document: /api/docs, /api/docs/..., /api/docs-json, /api/docs-yaml.
 const isDocsPage = (path: string) => path === '/api/docs' || path.startsWith('/api/docs/') || path.startsWith('/api/docs-');
 
 interface ExpressApp {
   router: { stack: { route?: { path: string; methods: Record<string, boolean> } }[] };
 }
 
-/** Every route Express serves, as `METHOD /path` with `{param}` like the document. */
 function servedRoutes(app: INestApplication): string[] {
   const { router } = app.getHttpAdapter().getInstance() as ExpressApp;
   return router.stack.flatMap(({ route }) =>
@@ -60,12 +50,9 @@ describe('Public routes (e2e)', () => {
     await app?.close();
   });
 
-  // A route hidden with @ApiExcludeEndpoint or @ApiExcludeController is missing
-  // from the document, so the checks below would never call it.
   it('documents every route the app serves, except the docs pages', () => {
     const keys = routes.map((r) => r.key);
     const served = servedRoutes(app);
-    // Guards against an empty list, for example if Express moves router.stack.
     expect(served).toContain('GET /api/users/me');
     const hidden = served.filter((key) => !isDocsPage(key.slice(key.indexOf(' ') + 1)) && !keys.includes(key));
     expect(hidden).toEqual([]);
@@ -77,24 +64,26 @@ describe('Public routes (e2e)', () => {
   });
 
   it('answers 401 without a token on every route that is not listed', async () => {
-    // Guards against a document that holds only the public routes, which would check nothing.
     expect(routes.map((r) => r.key)).toContain('GET /api/users/me');
     const open: string[] = [];
     for (const { method, path, key } of routes.filter((r) => !PUBLIC_ROUTES.includes(r.key))) {
-      const res = await call(method, path);
-      if (res.status !== 401) open.push(`${key} answered ${res.status}`);
+      const response = await call(method, path);
+      if (response.status !== 401) open.push(`${key} answered ${response.status}`);
     }
     expect(open).toEqual([]);
   });
 
   it('keeps the listed public routes open', async () => {
     for (const { method, path, key } of routes.filter((r) => PUBLIC_ROUTES.includes(r.key))) {
-      // Sign-up and sign-in answer 400 to an empty body, which is not a 401.
       expect((await call(method, path)).status, key).not.toBe(401);
     }
   });
 
-  it('lets a signed-out caller write only to sign-up and sign-in', () => {
-    expect(PUBLIC_ROUTES.filter((key) => !key.startsWith('GET ') && !PUBLIC_WRITES.includes(key))).toEqual([]);
+  it('lets a signed-out caller write only to sign-up and sign-in', async () => {
+    const open: string[] = [];
+    for (const { method, path, key } of routes.filter((r) => r.method !== 'get')) {
+      if ((await call(method, path)).status !== 401) open.push(key);
+    }
+    expect(open.sort()).toEqual([...PUBLIC_WRITES].sort());
   });
 });

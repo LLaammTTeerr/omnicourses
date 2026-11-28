@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { RouterLink, type RouteLocationRaw } from 'vue-router';
 
-// The logo: four rounded squares in four group colours, then the name.
 defineProps<{ to: RouteLocationRaw }>();
 </script>
 
@@ -17,8 +16,8 @@ defineProps<{ to: RouteLocationRaw }>();
   </RouterLink>
 </template>
 
-<style>
+<style scoped>
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; min-width: 0; }
-.brand .name { font-weight: 700; font-size: 17px; letter-spacing: -0.02em; white-space: nowrap; }
+.name { font-weight: 700; font-size: 17px; letter-spacing: -0.02em; white-space: nowrap; }
 .logo { width: 28px; height: 28px; flex: none; }
 </style>

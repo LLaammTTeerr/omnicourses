@@ -1,9 +1,10 @@
 import type { Type } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
-import { CreateCohortDto, CreateProgramDto, UpdateCohortDto, UpdateProgramDto } from './program-admin.dto.js';
-import { flattenErrors, validateStrict } from './strict-body.js';
+import { flattenErrors, validateStrict } from '../common/api-requests.js';
+import { CURRICULUM_SEEDS } from '../curriculum/seeds/index.js';
+import { MAX_INTEGER } from './curriculum-admin.dto.js';
+import { ADMIN_CODE_PATTERN, canonicalAdminCode, CreateCohortDto, CreateProgramDto, UpdateCohortDto, UpdateProgramDto } from './program-admin.dto.js';
 
-// The DTOs under the validation of @StrictBody(): what a route accepts, and the words of its 400.
 const errorsOf = async (dto: Type<object>, body: unknown): Promise<string[]> => {
   const checked = await validateStrict(dto, body);
   return checked.errors ? flattenErrors(checked.errors) : [];
@@ -39,9 +40,18 @@ describe('CreateProgramDto', () => {
     expect(await errorsOf(CreateProgramDto, { ...PROGRAM, faculty: 'x'.repeat(100) })).toEqual([]);
   });
 
-  // No decision says who may enter a training type through F12 (it sets the credit caps, ADR 0012).
-  it('refuses a training type, a grant and any other undeclared field', async () => {
-    for (const field of ['trainingType', 'id', 'grantTo', 'curricula', 'updatedAt']) {
+  it('accepts each training type of ADR 0012, or null', async () => {
+    for (const trainingType of ['advanced', 'joint', 'high_quality', 'standard', null]) expect(await valueOf(CreateProgramDto, { ...PROGRAM, trainingType })).toEqual({ ...PROGRAM, trainingType });
+  });
+
+  it('refuses a training type outside ADR 0012', async () => {
+    for (const trainingType of ['Advanced', 'dai_tra', '', 3]) {
+      expect([trainingType, await errorsOf(CreateProgramDto, { ...PROGRAM, trainingType })]).toEqual([trainingType, ['trainingType must be one of the following values: advanced, joint, high_quality, standard']]);
+    }
+  });
+
+  it('refuses a grant and any other undeclared field', async () => {
+    for (const field of ['id', 'grantTo', 'curricula', 'updatedAt']) {
       expect(await errorsOf(CreateProgramDto, { ...PROGRAM, [field]: 'standard' })).toEqual([`${field}: property ${field} should not exist`]);
     }
   });
@@ -72,7 +82,6 @@ describe('CreateCohortDto', () => {
     expect(await valueOf(CreateCohortDto, { ...COHORT, code: ' zz-prog-2024', nameEn: ' Trial 2024 ', language: ' en ' })).toEqual({ ...COHORT, nameEn: 'Trial 2024', language: 'en' });
   });
 
-  // ck_curriculums_cohort_year_range: BETWEEN 2000 AND 2100.
   it("holds the cohort year to the schema's bound, as a whole number", async () => {
     for (const cohortYear of [2000, 2100]) expect(await errorsOf(CreateCohortDto, { ...COHORT, cohortYear })).toEqual([]);
     for (const cohortYear of [1999, 2101, 2024.5, '2024', null, undefined, -2024]) {
@@ -80,9 +89,18 @@ describe('CreateCohortDto', () => {
     }
   });
 
-  // ADR 0011: "Before that handoff, those fields are rejected with 400 validation_failed".
-  it('refuses the gated credit total, a program ID and any other undeclared field', async () => {
-    for (const [field, value] of [['totalCreditsMin', 120], ['totalCreditsMin', null], ['programId', '1b0d2a4c-0000-4000-8000-000000000000'], ['copyFrom', 2024], ['requirementGroups', []]] as const) {
+  it('accepts a credit total of a whole number from 0, or null', async () => {
+    for (const totalCreditsMin of [0, 120, MAX_INTEGER, null]) expect(await valueOf(CreateCohortDto, { ...COHORT, totalCreditsMin })).toEqual({ ...COHORT, totalCreditsMin });
+  });
+
+  it('refuses a credit total that is negative, a fraction, text or above what the database stores', async () => {
+    for (const totalCreditsMin of [-1, 120.5, '120', MAX_INTEGER + 1]) {
+      expect([totalCreditsMin, (await errorsOf(CreateCohortDto, { ...COHORT, totalCreditsMin })).some((e) => e.startsWith('totalCreditsMin'))]).toEqual([totalCreditsMin, true]);
+    }
+  });
+
+  it('refuses a program ID and any other undeclared field', async () => {
+    for (const [field, value] of [['programId', '1b0d2a4c-0000-4000-8000-000000000000'], ['copyFrom', 2024], ['requirementGroups', []]] as const) {
       expect(await errorsOf(CreateCohortDto, { ...COHORT, [field]: value })).toEqual([`${field}: property ${field} should not exist`]);
     }
   });
@@ -94,20 +112,26 @@ describe('CreateCohortDto', () => {
 });
 
 describe('UpdateCohortDto', () => {
-  it('accepts any subset of the details and an empty body', async () => {
+  it('accepts any subset of the details, the credit total included, and an empty body', async () => {
     expect(await valueOf(UpdateCohortDto, {})).toEqual({});
     expect(await valueOf(UpdateCohortDto, { nameVi: ' Khóa thử ', nameEn: null, language: 'vi' })).toEqual({ nameVi: 'Khóa thử', nameEn: null, language: 'vi' });
+    expect(await valueOf(UpdateCohortDto, { totalCreditsMin: 163 })).toEqual({ totalCreditsMin: 163 });
+    expect(await valueOf(UpdateCohortDto, { totalCreditsMin: null })).toEqual({ totalCreditsMin: null });
   });
 
-  it('refuses each identifier and the gated credit total, instead of ignoring them', async () => {
-    for (const [field, value] of [['cohortYear', 2025], ['programId', '1b0d2a4c-0000-4000-8000-000000000000'], ['code', 'ZZ-PROG-2025'], ['id', 'x'], ['totalCreditsMin', 120], ['totalCreditsMin', null]] as const) {
+  it('refuses a credit total that is not a whole number from 0', async () => {
+    for (const totalCreditsMin of [-1, 1.5, '163', MAX_INTEGER + 1]) {
+      expect([totalCreditsMin, (await errorsOf(UpdateCohortDto, { totalCreditsMin })).some((e) => e.startsWith('totalCreditsMin'))]).toEqual([totalCreditsMin, true]);
+    }
+  });
+
+  it('refuses each identifier instead of ignoring it', async () => {
+    for (const [field, value] of [['cohortYear', 2025], ['programId', '1b0d2a4c-0000-4000-8000-000000000000'], ['code', 'ZZ-PROG-2025'], ['id', 'x']] as const) {
       expect(await errorsOf(UpdateCohortDto, { nameVi: 'Khóa thử', [field]: value })).toEqual([`${field}: property ${field} should not exist`]);
     }
   });
 });
 
-// PostgreSQL counts a varchar's length in code points and refuses U+0000 in any text. Each text
-// field checks both, so a value the route accepts never makes the insert fail with a 500.
 describe('the text fields of the program and cohort DTOs', () => {
   const FIELDS: [Type<object>, object, string, number][] = [
     [CreateProgramDto, PROGRAM, 'nameVi', 255],
@@ -135,7 +159,6 @@ describe('the text fields of the program and cohort DTOs', () => {
   it('counts the length in code points, as PostgreSQL does', async () => {
     for (const [dto, base, field, max] of FIELDS) {
       const refused = [
-        // MaxLength alone counts this as max: it skips a variation selector after a character.
         'x'.repeat(max - 1) + '\u2764\uFE0F',
         'x'.repeat(max + 1),
         '\u{1F600}'.repeat(max + 1),
@@ -143,10 +166,29 @@ describe('the text fields of the program and cohort DTOs', () => {
       for (const value of refused) {
         expect([dto.name, field, [...value].length, await errorsOf(dto, { ...base, [field]: value })]).toEqual([dto.name, field, max + 1, [`${field} must be shorter than or equal to ${max} characters`]]);
       }
-      // An emoji is one code point but two UTF-16 units: max of them fit.
       for (const value of ['x'.repeat(max), '\u{1F600}'.repeat(max), 'x'.repeat(max - 2) + '\u2764\uFE0F']) {
         expect([dto.name, field, await errorsOf(dto, { ...base, [field]: value })]).toEqual([dto.name, field, []]);
       }
     }
+  });
+});
+
+describe('ADMIN_CODE_PATTERN', () => {
+  it('accepts every program code and curriculum code the seeds store', () => {
+    const codes = CURRICULUM_SEEDS.flatMap((s) => [s.program.code, s.curriculum.code]);
+    expect(codes).toEqual(expect.arrayContaining(['APCS', 'APCS2024', 'CNTT-TCTA-KHMT', 'CNTT-TCTA-KHMT-2025']));
+    for (const code of codes) expect([code, ADMIN_CODE_PATTERN.test(code)]).toEqual([code, true]);
+  });
+
+  it('refuses what a URL path or a reader could confuse', () => {
+    for (const code of ['', ' ', 'zz', 'ZZ 1', 'ZZ_1', 'ZZ/1', 'ZZ.1', '-ZZ', 'ZZ-', 'ZZ--1', 'ZZ%20', 'ZZ\n', 'ĐH1']) expect([code, ADMIN_CODE_PATTERN.test(code)]).toEqual([code, false]);
+  });
+});
+
+describe('canonicalAdminCode', () => {
+  it('trims and upper-cases text, and leaves anything else for the validators', () => {
+    expect(canonicalAdminCode('  zz-prog-2024 ')).toBe('ZZ-PROG-2024');
+    expect(canonicalAdminCode('zz prog')).toBe('ZZ PROG');
+    for (const value of [null, undefined, 7, ['ZZ']]) expect(canonicalAdminCode(value)).toBe(value);
   });
 });

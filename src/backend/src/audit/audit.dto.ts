@@ -1,10 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.js';
-import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
+import { Type } from 'class-transformer';
+import { IsIn, IsInt, Max, Min, ValidateIf } from 'class-validator';
+import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind, TRAINING_TYPES, type TrainingType } from '../curriculum/curriculum-rules.js';
 import {
+  AUDIT_UNAVAILABLE_CODES,
   AUDIT_WARNING_CODES,
   CONDITION_STATUSES,
   COURSE_STATUSES,
+  GRADUATION_STATUSES,
+  type GraduationVerdict,
   type AuditWarning,
   type AuditWarningCode,
   type CombinedMinimumCoverage,
@@ -17,18 +21,41 @@ import {
   type GraduationCondition,
   type GraduationStatus,
   type GroupCoverage,
+  type TermAttempt,
   type TermSummary,
   type UnmatchedCourse,
-} from '../rules/audit-types.js';
-import { CAP_RULES, TERM_KINDS, type CapRule, type CapViolation, type CreditCaps, type TermKind } from '../rules/credit-caps.js';
-import { CLASSIFICATIONS, type Classification } from '../rules/grades.js';
+} from '../rules/types.js';
+import { CAP_RULES, TERM_KINDS, type CapRule, type CapViolation, type TermKind } from '../rules/credit-caps.js';
+import { CLASSIFICATIONS, type Classification, YEAR_LEVELS } from '../rules/grades.js';
 import { TermDto } from '../terms/term.dto.js';
+import { CreditCapsDto } from '../plans/plan-issues.dto.js';
+import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR, TERM_NUMBERS, type TermNumber } from '../terms/term.js';
 import { TRANSCRIPT_RESULTS, type TranscriptResult } from '../transcript/transcript-entry.js';
 
-// The degree audit response (F3, ADR 0013). Each class implements the rule engine's result type,
-// so this contract cannot drift from what the engine returns.
+const asOfSent = (query: AuditQueryDto) => query.asOfYear !== undefined || query.asOfNumber !== undefined;
 
-export class CourseCoverageDto implements CourseCoverage {
+export class AuditQueryDto {
+  @ApiProperty({
+    required: false,
+    type: 'integer',
+    example: 2025,
+    description: 'With asOfNumber: the audit as it stood at the end of this term (UC-03 A2), from the transcript rows up to that term. ADR 0009: 2025 is 2025–2026. Send both or neither.',
+  })
+  @ValidateIf(asOfSent)
+  @Type(() => Number)
+  @IsInt()
+  @Min(MIN_ACADEMIC_YEAR)
+  @Max(MAX_ACADEMIC_YEAR)
+  asOfYear?: number;
+
+  @ApiProperty({ required: false, type: Number, enum: TERM_NUMBERS, example: 1, description: 'With asOfYear: the term of that academic year, 1, 2 or 3' })
+  @ValidateIf(asOfSent)
+  @Type(() => Number)
+  @IsIn(TERM_NUMBERS)
+  asOfNumber?: TermNumber;
+}
+
+class CourseCoverageDto implements CourseCoverage {
   @ApiProperty({ example: 'CS160' })
   code!: string;
 
@@ -64,7 +91,7 @@ export class CourseCoverageDto implements CourseCoverage {
   countedInGroupId!: string | null;
 }
 
-export class GroupCoverageDto implements GroupCoverage {
+class GroupCoverageDto implements GroupCoverage {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 
@@ -102,7 +129,7 @@ export class GroupCoverageDto implements GroupCoverage {
   courses!: CourseCoverageDto[];
 }
 
-export class CombinedMinimumCoverageDto implements CombinedMinimumCoverage {
+class CombinedMinimumCoverageDto implements CombinedMinimumCoverage {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 
@@ -131,7 +158,7 @@ export class CombinedMinimumCoverageDto implements CombinedMinimumCoverage {
   met!: boolean;
 }
 
-export class UnmatchedCourseDto implements UnmatchedCourse {
+class UnmatchedCourseDto implements UnmatchedCourse {
   @ApiProperty({ example: 'ZZ101' })
   code!: string;
 
@@ -154,7 +181,7 @@ export class UnmatchedCourseDto implements UnmatchedCourse {
   inProgress!: boolean;
 }
 
-export class CreditSummaryDto implements CreditSummary {
+class CreditSummaryDto implements CreditSummary {
   @ApiProperty({ description: 'Credits of every passed course of the curriculum, GDTC and GDQP-AN included (Điều 11.4)' })
   accumulated!: number;
 
@@ -170,11 +197,11 @@ export class CreditSummaryDto implements CreditSummary {
   @ApiProperty({ type: Number, nullable: true })
   remaining!: number | null;
 
-  @ApiProperty({ enum: [1, 2, 3, 4], description: 'Year of study from the accumulated credits (Điều 15.3)' })
-  yearLevel!: 1 | 2 | 3 | 4;
+  @ApiProperty({ enum: YEAR_LEVELS, description: 'Year of study from the accumulated credits (Điều 15.3)' })
+  yearLevel!: (typeof YEAR_LEVELS)[number];
 }
 
-export class GpaSummaryDto implements GpaSummary {
+class GpaSummaryDto implements GpaSummary {
   @ApiProperty({ type: Number, nullable: true, description: 'Điểm trung bình (Điều 15.1.a): every course studied, by its official grade, 10-point scale' })
   average!: number | null;
 
@@ -191,15 +218,7 @@ export class GpaSummaryDto implements GpaSummary {
   gradedCredits!: number;
 }
 
-export class CreditCapsDto implements CreditCaps {
-  @ApiProperty({ type: Number, nullable: true })
-  min!: number | null;
-
-  @ApiProperty()
-  max!: number;
-}
-
-export class CapViolationDto implements CapViolation {
+class CapViolationDto implements CapViolation {
   @ApiProperty({ enum: CAP_RULES })
   rule!: CapRule;
 
@@ -216,7 +235,33 @@ export class CapViolationDto implements CapViolation {
   petition!: string;
 }
 
-export class TermSummaryDto implements TermSummary {
+class TermAttemptDto implements TermAttempt {
+  @ApiProperty({ example: 'CS160' })
+  code!: string;
+
+  @ApiProperty({ description: 'As the transcript names it' })
+  name!: string;
+
+  @ApiProperty({ description: 'As the transcript gives them; they add up to the term credits' })
+  credits!: number;
+
+  @ApiProperty({ enum: TRANSCRIPT_RESULTS })
+  result!: TranscriptResult;
+
+  @ApiProperty({ type: Number, nullable: true, example: 8.5 })
+  grade!: number | null;
+
+  @ApiProperty({ description: 'This sitting passed: a grade of 5.0 or more, exempt or pass (Điều 11.4, 13)' })
+  passed!: boolean;
+
+  @ApiProperty({ description: 'The sitting has no result yet' })
+  inProgress!: boolean;
+
+  @ApiProperty({ type: String, format: 'uuid', nullable: true, description: 'The requirement group the course counts in; null when no group lists it' })
+  requirementGroupId!: string | null;
+}
+
+class TermSummaryDto implements TermSummary {
   @ApiProperty({ type: TermDto })
   term!: TermDto;
 
@@ -238,6 +283,30 @@ export class TermSummaryDto implements TermSummary {
   @ApiProperty({ type: Number, nullable: true, description: 'Điểm trung bình tích lũy from the start to the end of this term' })
   cumulativeAccumulatedAverage!: number | null;
 
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    example: 0.12,
+    description: "cumulativeAccumulatedAverage minus the previous term's, in points of the 10-point scale; null for the first term or when either is null",
+  })
+  cumulativeAccumulatedAverageChange!: number | null;
+
+  @ApiProperty({ description: 'CreditSummary.accumulated as it stood at the end of this term' })
+  cumulativeAccumulatedCredits!: number;
+
+  @ApiProperty({ description: 'CreditSummary.towardTotal as it stood at the end of this term' })
+  cumulativeTowardTotal!: number;
+
+  @ApiProperty({ enum: YEAR_LEVELS, description: 'CreditSummary.yearLevel as it stood at the end of this term (Điều 15.3)' })
+  cumulativeYearLevel!: (typeof YEAR_LEVELS)[number];
+
+  @ApiProperty({
+    enum: CLASSIFICATIONS,
+    nullable: true,
+    description: 'Điều 15.2.b, from cumulativeAccumulatedAverage: the classification as it stood at the end of this term. A term is never classified by its own average (Project Lead, 27 November 2026)',
+  })
+  cumulativeClassification!: Classification | null;
+
   @ApiProperty({ type: [String] })
   failedCourseCodes!: string[];
 
@@ -249,9 +318,12 @@ export class TermSummaryDto implements TermSummary {
 
   @ApiProperty({ type: [CapViolationDto] })
   capViolations!: CapViolationDto[];
+
+  @ApiProperty({ type: [TermAttemptDto], description: 'Every transcript row of the term, failed and retaken sittings included, by course code' })
+  attempts!: TermAttemptDto[];
 }
 
-export class GraduationConditionDto implements GraduationCondition {
+class GraduationConditionDto implements GraduationCondition {
   @ApiProperty({ example: 'total_credits' })
   id!: string;
 
@@ -265,9 +337,9 @@ export class GraduationConditionDto implements GraduationCondition {
   status!: ConditionStatus;
 }
 
-export class GraduationStatusDto implements GraduationStatus {
-  @ApiProperty({ enum: ['done', 'not_yet'], description: 'done: every condition the data can check is met; the notChecked ones still need the school' })
-  status!: 'done' | 'not_yet';
+class GraduationStatusDto implements GraduationStatus {
+  @ApiProperty({ enum: GRADUATION_STATUSES, description: 'done: every condition the data can check is met; the notChecked ones still need the school' })
+  status!: GraduationVerdict;
 
   @ApiProperty({ type: [GraduationConditionDto] })
   met!: GraduationConditionDto[];
@@ -279,7 +351,7 @@ export class GraduationStatusDto implements GraduationStatus {
   notChecked!: GraduationConditionDto[];
 }
 
-export class AuditWarningDto implements AuditWarning {
+class AuditWarningDto implements AuditWarning {
   @ApiProperty({ enum: AUDIT_WARNING_CODES })
   code!: AuditWarningCode;
 
@@ -309,6 +381,9 @@ export class DegreeAuditDto implements DegreeAudit {
   @ApiProperty({ example: 'APCS2024' })
   curriculumCode!: string;
 
+  @ApiProperty({ type: TermDto, nullable: true, description: 'The term the audit stands at the end of (asOfYear, asOfNumber); null: today, the whole transcript' })
+  asOfTerm!: TermDto | null;
+
   @ApiProperty({ type: CreditSummaryDto })
   credits!: CreditSummaryDto;
 
@@ -334,13 +409,12 @@ export class DegreeAuditDto implements DegreeAudit {
   warnings!: AuditWarningDto[];
 }
 
-/** 409: the audit has no program and cohort to work from. */
 export class AuditUnavailableDto {
   @ApiProperty({ example: 409 })
   statusCode!: number;
 
-  @ApiProperty({ enum: ['onboarding_required', 'curriculum_not_found'] })
-  code!: 'onboarding_required' | 'curriculum_not_found';
+  @ApiProperty({ enum: AUDIT_UNAVAILABLE_CODES })
+  code!: (typeof AUDIT_UNAVAILABLE_CODES)[number];
 
   @ApiProperty()
   message!: string;

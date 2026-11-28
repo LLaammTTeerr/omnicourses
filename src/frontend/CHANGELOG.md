@@ -1,5 +1,54 @@
 # @omnicourse/frontend
 
+## 0.6.0
+
+### Minor Changes
+
+- [#204](https://github.com/LLaammTTeerr/omnicourses/pull/204) [`7b25fc6`](https://github.com/LLaammTTeerr/omnicourses/commit/7b25fc69d2d966d581ca582efcb0aadda80d55f5) Thanks [@rakun68](https://github.com/rakun68)! - Add the notification inbox page and the bell with the unread count (F10, UC-12).
+
+### Patch Changes
+
+- [#201](https://github.com/LLaammTTeerr/omnicourses/pull/201) [`159d90b`](https://github.com/LLaammTTeerr/omnicourses/commit/159d90bbf53021b1c2e9ab97a5b8fabaac308dfa) Thanks [@rakun68](https://github.com/rakun68)! - Shell: each route carries its own menu entry; the sidebar, phone bar and public header read them from the router. No visible change.
+
+## 0.5.4
+
+### Patch Changes
+
+- [#196](https://github.com/LLaammTTeerr/omnicourses/pull/196) [`ee3c730`](https://github.com/LLaammTTeerr/omnicourses/commit/ee3c730fa44c4d48cec52c7344df08a1f9208dc8) Thanks [@rakun68](https://github.com/rakun68)! - Calendar: screen readers hear the weekday in words ("thứ Sáu", not "T6") in the week and month headers and the detail card.
+
+- [#197](https://github.com/LLaammTTeerr/omnicourses/pull/197) [`f1ca8c1`](https://github.com/LLaammTTeerr/omnicourses/commit/f1ca8c1590fa01a1404b2eb8a4487d0d4cc3be8a) Thanks [@rakun68](https://github.com/rakun68)! - Planner: a violating drop shakes once its landing glide (440 ms) ends, instead of 20 ms before.
+
+## 0.5.3
+
+### Patch Changes
+
+- [#125](https://github.com/LLaammTTeerr/omnicourses/pull/125) [`eef63e2`](https://github.com/LLaammTTeerr/omnicourses/commit/eef63e266ca0cef11f8d90313461bb16d36d4847) Thanks [@rakun68](https://github.com/rakun68)! - Calendar: a failed load now says so (no more "no school dates yet" on a 404); Week and Month are pressed buttons with a visible focus ring; "+N" and each day number in the month have a spoken name with the weekday in words; on a phone the week opens scrolled to today, and Previous and Next scroll it too.
+
+## 0.5.2
+
+### Patch Changes
+
+- [#184](https://github.com/LLaammTTeerr/omnicourses/pull/184) [`0677b33`](https://github.com/LLaammTTeerr/omnicourses/commit/0677b33e9c58fdc897c79b204dba2945e000eb5a) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Fix display and privacy defects found by the survey:
+  
+  - When a requirement group cannot be deleted because saved plans use it, the administration screen now says how many saved plans use it, in Vietnamese and English, instead of showing the API's English sentence.
+  - The sign-up display name, a plan name and a transcript course name are now counted in characters, as the API counts them. A name with emoji is no longer refused early or cut off while you type.
+  - The onboarding page has one main landmark, so the skip link and screen readers find one main area.
+  - The course drawer in the curriculum explorer shows the offering terms that are recorded for a course. It says "not recorded" only when none are recorded.
+  - Signing out now removes the last opened plan and the plan locks that this browser kept, so the next account on the same browser does not get them.
+  - A new transcript row and the year choices now follow the date in Vietnam, not the time zone of the browser.
+
+## 0.5.1
+
+No changes in this release.
+
+## 0.5.0
+
+### Minor Changes
+
+- [#165](https://github.com/LLaammTTeerr/omnicourses/pull/165) [`e7bd617`](https://github.com/LLaammTTeerr/omnicourses/commit/e7bd61715c048906ceb6467e6e4baee8af990b36) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - The administration screens can now import catalog courses or a cohort's group links from a CSV file, with a preview to confirm or cancel, and let access managers add programs and program administrators edit their program and add or edit its cohorts.
+
+- [#148](https://github.com/LLaammTTeerr/omnicourses/pull/148) [`684f148`](https://github.com/LLaammTTeerr/omnicourses/commit/684f1486a93b0840c40332922ce51bd9959bc7d5) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Add the administration screens: a program administrator edits a cohort's requirement groups, courses, prerequisites and offering terms, a catalog maintainer maintains the shared course catalog, an access manager grants and revokes permissions by user ID, and Settings shows your user ID to copy.
+
 ## 0.4.0
 
 ### Minor Changes

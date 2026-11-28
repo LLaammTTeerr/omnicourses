@@ -7,12 +7,16 @@
     "src/frontend"
   ],
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.12.0",
+    "npm": ">=11.0.0"
   },
   "scripts": {
+    "lint": "node scripts/lint.mjs && node --test scripts/lint.test.mjs",
+    "verify": "npm run lint && npm run typecheck && npm test && npm run build",
     "build": "npm run build --workspaces",
     "typecheck": "npm run typecheck --workspaces",
     "test": "npm run test --workspaces",
+    "test:e2e": "npm run test:e2e -w src/backend",
     "test:browser": "npm run test:browser -w src/frontend",
     "db:up": "podman compose up -d db || docker compose up -d db",
     "db:seed": "npm run db:seed -w src/backend",

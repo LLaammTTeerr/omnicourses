@@ -1,29 +1,21 @@
-import { randomUUID } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { CatalogAdminService } from '../src/curriculum-admin/catalog-admin.service.js';
 import { CsvImportService } from '../src/curriculum-admin/csv-import.service.js';
-import { CurriculumAdminService } from '../src/curriculum-admin/curriculum-admin.service.js';
-import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/database/seeds/index.js';
-import { seedCurricula } from '../src/database/seeds/seed-curricula.js';
+import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/curriculum/seeds/index.js';
+import { seedCurricula } from '../src/curriculum/seed-curricula.js';
+import { type Account, authed, grantGlobal, grantProgram, runSuffix } from './support/admin.js';
 import { bootApp } from './support/app.js';
+import { withInsertRefused } from './support/faults.js';
 import { signedInUser } from './support/users.js';
-
-// TC-B2-ADM-07 (ADR 0011, "Verification required with implementation"; UC-11 A9): the CSV
-// import of catalog courses and of group links. Synthetic courses, groups and accounts only
-// (AGENTS.md hard rule 3), unique per run and removed in afterAll, because e2e files share one
-// database with the seeded curricula. Each describe boots its own app: the rate limit counts
-// 120 requests a minute per app.
 
 const COURSES_HEADER = 'code,name_vi,name_en,credits,theory_periods,lab_periods,exercise_periods,project_periods';
 const LINKS_HEADER = 'requirement_group_name,course_code';
 const CATALOG = '/api/admin/catalog/imports';
 const MIB = 1024 * 1024;
 
-type Account = { token: string; userId: string };
 interface Fixture {
   app: INestApplication;
   db: DataSource;
@@ -33,13 +25,12 @@ interface Fixture {
   clc: string;
   clcCurriculum: string;
   users: Account[];
-  as: (account: Account) => { post: (path: string, body: object | string) => request.Test; put: (path: string, body?: object) => request.Test; patch: (path: string, body: object) => request.Test; delete: (path: string) => request.Test; get: (path: string) => request.Test };
+  as: ReturnType<typeof authed>;
   account: (grant?: 'catalog_maintainer' | { program: string }) => Promise<Account>;
   group: (curriculumId: string, name: string) => Promise<string>;
   close: () => Promise<void>;
 }
 
-/** The app on the seeded curricula, with helpers that set a fixture up in SQL, off the request budget. */
 async function fixture(groupPrefix: string, coursePrefix: string): Promise<Fixture> {
   const app = await bootApp();
   const db = app.get(DataSource);
@@ -48,7 +39,6 @@ async function fixture(groupPrefix: string, coursePrefix: string): Promise<Fixtu
   const apcs = await id(`SELECT id FROM programs WHERE code = 'APCS'`);
   const clc = await id(`SELECT id FROM programs WHERE code LIKE 'CNTT-TCTA-%' ORDER BY code LIMIT 1`);
   const users: Account[] = [];
-  const http = () => request(app.getHttpServer());
   return {
     app,
     db,
@@ -58,22 +48,12 @@ async function fixture(groupPrefix: string, coursePrefix: string): Promise<Fixtu
     apcs2025: await id('SELECT id FROM curriculums WHERE program_id = $1 AND cohort_year = 2025', [apcs]),
     clcCurriculum: await id('SELECT id FROM curriculums WHERE program_id = $1', [clc]),
     users,
-    as: ({ token }) => {
-      const auth = (test: request.Test) => test.set('Authorization', `Bearer ${token}`);
-      return {
-        // A string is sent as it is, so a test controls the exact JSON bytes.
-        post: (path, body) => auth(http().post(path)).set('Content-Type', 'application/json').send(body),
-        put: (path, body = {}) => auth(http().put(path)).send(body),
-        patch: (path, body) => auth(http().patch(path)).send(body),
-        delete: (path) => auth(http().delete(path)),
-        get: (path) => auth(http().get(path)),
-      };
-    },
+    as: authed(() => app),
     account: async (grant) => {
       const account = await signedInUser(app);
       users.push(account);
-      if (grant === 'catalog_maintainer') await db.query(`INSERT INTO global_admin_grants (user_id, permission) VALUES ($1, 'catalog_maintainer')`, [account.userId]);
-      else if (grant) await db.query('INSERT INTO program_admin_grants (user_id, program_id) VALUES ($1, $2)', [account.userId, grant.program]);
+      if (grant === 'catalog_maintainer') await grantGlobal(db, account.userId, 'catalog_maintainer');
+      else if (grant) await grantProgram(db, account.userId, grant.program);
       return account;
     },
     group: (curriculumId, name) => id(`INSERT INTO requirement_groups (curriculum_id, name, kind) VALUES ($1, $2, 'elective') RETURNING id`, [curriculumId, name]),
@@ -88,11 +68,10 @@ async function fixture(groupPrefix: string, coursePrefix: string): Promise<Fixtu
   };
 }
 
-const run = () => randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
 const cohortImports = (program: string, curriculum: string) => `/api/admin/programs/${program}/cohorts/${curriculum}/imports`;
 
 describe('CSV import of catalog courses (e2e)', () => {
-  const suffix = run();
+  const suffix = runSuffix();
   const P = `ZC${suffix}`;
   const groupName = `zz-import ${suffix}`;
   let f: Fixture;
@@ -101,7 +80,6 @@ describe('CSV import of catalog courses (e2e)', () => {
   let stranger: Account;
   let group2025: string;
 
-  /** Everything the catalog stores for this run's courses, with the time of the last write. */
   const savedCourses = () =>
     f.db.query(
       'SELECT code, name_vi, name_en, credits, theory_periods, lab_periods, exercise_periods, project_periods, updated_at FROM courses WHERE code LIKE $1 ORDER BY code',
@@ -111,8 +89,6 @@ describe('CSV import of catalog courses (e2e)', () => {
   const preview = (csv: string, account = maintainer) => f.as(account).post(`${CATALOG}/preview`, { csv });
   const confirm = (csv: string, reviewVersion: string, account = maintainer) => f.as(account).post(`${CATALOG}/confirm`, { csv, reviewVersion });
 
-  // Quoted commas, a quoted line break, doubled quotes, a BOM, CRLF and LF, a code to canonicalize,
-  // a blank line and an empty record: two new courses, two changed ones, one unchanged.
   const FILE = [
     `\uFEFF${COURSES_HEADER}\r\n`,
     ` ${P.toLowerCase()}n1 ,"Giải tích, phần 1","Calculus ""A""\nsecond line",4,45,,,\r\n`,
@@ -128,7 +104,6 @@ describe('CSV import of catalog courses (e2e)', () => {
     f = await fixture('zz-import', P);
     [maintainer, admin, stranger] = [await f.account('catalog_maintainer'), await f.account({ program: f.apcs }), await f.account()];
     await f.db.query(
-      // A blank period is NULL, as an empty cell of FILE saves it (#164).
       `INSERT INTO courses (code, name_vi, name_en, credits, theory_periods, lab_periods, exercise_periods, project_periods) VALUES
        ($1, 'Shared course', NULL, 4, NULL, NULL, NULL, NULL), ($2, 'Unlinked course', NULL, 4, NULL, NULL, NULL, NULL),
        ($3, 'Kept course', 'Kept', 2, 30, 0, NULL, NULL), ($4, 'Omitted course', NULL, 1, 0, 0, 0, 0)`,
@@ -156,12 +131,10 @@ describe('CSV import of catalog courses (e2e)', () => {
   });
 
   it('needs the catalog grant: a program administrator and a user without a grant get 403 on preview and confirm', async () => {
-    // The grant is checked before the file is read: without it, a file that is malformed, has
-    // another header or too many records gets the same 403 as a valid one, not a 400 or a 413.
     const files = [FILE, `${COURSES_HEADER}\n${P}N2,"Tên" x,,3,,,,`, 'not,the,header\n1,2,3', `${COURSES_HEADER}\n${'x\n'.repeat(1001)}`];
     for (const account of [admin, stranger]) {
       for (const csv of files) {
-        for (const res of [await preview(csv, account), await confirm(csv, 'x', account)]) expect([res.status, res.body.code, res.body.permission]).toEqual([403, 'permission_required', 'catalog_maintainer']);
+        for (const response of [await preview(csv, account), await confirm(csv, 'x', account)]) expect([response.status, response.body.code, response.body.permission]).toEqual([403, 'permission_required', 'catalog_maintainer']);
       }
     }
     expect(await course(`${P}N2`)).toBeUndefined();
@@ -180,7 +153,6 @@ describe('CSV import of catalog courses (e2e)', () => {
     expect(body).toEqual({
       fileType: 'catalog_courses',
       rows: [
-        // Record 2 takes two lines of the file: its English name holds a line break.
         { record: 2, action: 'insert', code: `${P}N1`, nameVi: 'Giải tích, phần 1', nameEn: 'Calculus "A"\nsecond line', credits: 4, ...periods, theoryPeriods: 45, changedFields: [], current: null, affectedCurricula: [] },
         { record: 3, action: 'insert', code: `${P}N2`, nameVi: 'Học phần mới', nameEn: null, credits: 3, ...periods, changedFields: [], current: null, affectedCurricula: [] },
         {
@@ -216,7 +188,6 @@ describe('CSV import of catalog courses (e2e)', () => {
       reviewVersion: expect.any(String),
     });
     reviewed = body.reviewVersion;
-    // The same file on the same data is the same review.
     expect((await preview(FILE).expect(200)).body.reviewVersion).toBe(reviewed);
     expect(await savedCourses()).toEqual(before);
   });
@@ -237,11 +208,9 @@ describe('CSV import of catalog courses (e2e)', () => {
     expect(body.errors).toEqual([
       { record: 2, field: 'name_vi', message: 'should not be empty' },
       { record: 3, field: 'code', message: '"zz.bad" is not a course code (letters A-Z and digits, 2 to 20)' },
-      // A value that is not a whole number: the two messages of manual entry.
       { record: 4, field: 'credits', message: 'must not be less than 1; must be an integer number' },
       { record: 5, field: 'credits', message: 'must not be less than 1; must be an integer number' },
       { record: 5, field: 'theory_periods', message: 'must not be less than 0; must be an integer number' },
-      // Identical to record 6 once the code is canonical: still an error.
       { record: 7, field: 'code', message: `${P}E5 is in record 6 already; a file names a course once` },
       { record: 8, field: null, message: 'has 7 fields; the template has 8' },
       { record: 9, field: 'credits', message: 'must not be less than 1; must be an integer number' },
@@ -252,7 +221,6 @@ describe('CSV import of catalog courses (e2e)', () => {
     const refused = await confirm(bad, reviewed).expect(400);
     expect(refused.body).toMatchObject({ code: 'validation_failed', errors: body.errors });
 
-    // One bad row blocks the three good ones.
     const oneBad = [COURSES_HEADER, `${P}G1,Tên,,3,,,,`, `${P}G2,Tên,,3,,,,`, `${P}G3,Tên,,0,,,,`, `${P}G4,Tên,,3,,,,`].join('\n');
     const one = await preview(oneBad).expect(200);
     expect([one.body.errors, one.body.reviewVersion, one.body.summary]).toEqual([[{ record: 4, field: 'credits', message: 'must not be less than 1' }], null, { inserts: 3, updates: 0, noOps: 0 }]);
@@ -263,14 +231,14 @@ describe('CSV import of catalog courses (e2e)', () => {
   it('refuses another header, malformed quoting and unknown body fields with 400, on preview and on confirm', async () => {
     const row = `${P}H1,Tên,,3,,,,`;
     const files = [
-      `${COURSES_HEADER},program_id\n${row},${f.clc}`, // a scope column
+      `${COURSES_HEADER},program_id\n${row},${f.clc}`,
       `${COURSES_HEADER.replace('name_vi', 'name')}\n${row}`,
-      `${LINKS_HEADER}\n${groupName},${P}S`, // the other template
-      `${COURSES_HEADER}\n${P}H1,"Tên" x,,3,,,,`, // text after a closing quote
+      `${LINKS_HEADER}\n${groupName},${P}S`,
+      `${COURSES_HEADER}\n${P}H1,"Tên" x,,3,,,,`,
     ];
     for (const csv of files) {
-      for (const res of [await preview(csv), await confirm(csv, reviewed)]) {
-        expect([res.status, res.body.code, res.body.errors]).toEqual([400, 'validation_failed', [expect.objectContaining({ field: null })]]);
+      for (const response of [await preview(csv), await confirm(csv, reviewed)]) {
+        expect([response.status, response.body.code, response.body.errors]).toEqual([400, 'validation_failed', [expect.objectContaining({ field: null })]]);
       }
     }
     const m = f.as(maintainer);
@@ -297,9 +265,7 @@ describe('CSV import of catalog courses (e2e)', () => {
       [`${P}S`, 'Shared course renamed', null, 3, null],
       [`${P}U`, 'Unlinked course', null, 4, 10],
     ]);
-    // The unchanged and the omitted course were not written at all.
     for (const code of [`${P}K`, `${P}O`]) expect(after.find((c) => c.code === code)).toEqual(before.find((c) => c.code === code));
-    // Both cohorts that link the shared course read its new values.
     for (const year of [2024, 2025]) {
       const { body } = await f.as(stranger).get(`/api/programs/APCS/curricula/${year}`).expect(200);
       const group = (body.requirementGroups as { name: string; courses: { code: string; credits: number }[] }[]).find((g) => g.name === groupName)!;
@@ -320,24 +286,21 @@ describe('CSV import of catalog courses (e2e)', () => {
   it('answers 409 and writes nothing when the file, a saved value, the impact or the catalog changed since the preview', async () => {
     const file = (rows: string[]) => [COURSES_HEADER, ...rows].join('\n');
     const stale = async (csv: string, version: string) => {
-      const res = await confirm(csv, version);
-      expect([res.status, res.body.code]).toEqual([409, 'impact_changed']);
+      const response = await confirm(csv, version);
+      expect([response.status, response.body.code]).toEqual([409, 'impact_changed']);
     };
 
-    // The input changed: one credit value differs from the reviewed file.
     const first = await preview(file([`${P}T1,Tên,,3,,,,`])).expect(200);
     await stale(file([`${P}T1,Tên,,4,,,,`]), first.body.reviewVersion);
     await stale(file([`${P}T1,Tên,,3,,,,`]), 'not-a-review-version');
     expect(await course(`${P}T1`)).toBeUndefined();
 
-    // A saved value changed: another maintainer edited the course by hand in between.
     const edit = file([`${P}U,Unlinked course,,5,10,,,`]);
     const beforeEdit = await preview(edit).expect(200);
     await f.as(maintainer).patch(`/api/admin/catalog/courses/${P}U`, { nameEn: 'Edited by hand' }).expect(200);
     await stale(edit, beforeEdit.body.reviewVersion);
     expect(await course(`${P}U`)).toMatchObject({ credits: 4, name_en: 'Edited by hand' });
 
-    // The impact changed: a cohort unlinked the shared course in between.
     const shared = file([`${P}S,Shared course renamed,,5,,,,`]);
     const beforeUnlink = await preview(shared).expect(200);
     expect(beforeUnlink.body.affectedCurricula.map((c: { curriculumCode: string }) => c.curriculumCode)).toEqual(['APCS2024', 'APCS2025']);
@@ -349,7 +312,6 @@ describe('CSV import of catalog courses (e2e)', () => {
     await confirm(shared, afterUnlink.body.reviewVersion).expect(200);
     expect(await course(`${P}S`)).toMatchObject({ credits: 5 });
 
-    // The catalog changed: the course a row would insert was created by hand in between.
     const created = file([`${P}T2,Tên,,3,,,,`]);
     const beforeCreate = await preview(created).expect(200);
     await f.as(maintainer).post('/api/admin/catalog/courses', { code: `${P}T2`, nameVi: 'Tên', credits: 3 }).expect(201);
@@ -359,7 +321,6 @@ describe('CSV import of catalog courses (e2e)', () => {
   it('answers 409 and writes nothing when the revision of the checks changed since the preview', async () => {
     const csv = `${COURSES_HEADER}\n${P}V1,Tên,,3,,,,`;
     const { body } = await preview(csv).expect(200);
-    // A deploy between the preview and the confirmation changed what the checks mean.
     vi.spyOn(f.app.get(CsvImportService), 'validationRevision').mockReturnValue('f12-structural-2');
     expect((await confirm(csv, body.reviewVersion).expect(409)).body.code).toBe('impact_changed');
     expect(await course(`${P}V1`)).toBeUndefined();
@@ -376,9 +337,7 @@ describe('CSV import of catalog courses (e2e)', () => {
     const refused = await confirm(csv, body.reviewVersion, helper).expect(403);
     expect([refused.body.code, refused.body.permission]).toEqual(['permission_required', 'catalog_maintainer']);
 
-    // A deletion request signs the account out (401), so the services are called directly:
-    // they refuse it themselves, on the read path of a preview as on the write path.
-    await f.db.query(`INSERT INTO global_admin_grants (user_id, permission) VALUES ($1, 'catalog_maintainer')`, [helper.userId]);
+    await grantGlobal(f.db, helper.userId, 'catalog_maintainer');
     await f.db.query(`UPDATE users SET deletion_requested_at = now(), purge_after = now() + interval '30 days' WHERE id = $1`, [helper.userId]);
     await preview(csv, helper).expect(401);
     const imports = f.app.get(CsvImportService);
@@ -394,15 +353,6 @@ describe('CSV import of catalog courses (e2e)', () => {
     const { body } = await preview(csv).expect(200);
     expect(body.summary).toEqual({ inserts: 4, updates: 1, noOps: 0 });
 
-    // The update and two inserts reach the database; the third insert fails in PostgreSQL itself, on a
-    // statement whose parameter and whose error message both hold a row's text.
-    const catalog = f.app.get(CatalogAdminService);
-    const insert = catalog.insertCourse.bind(catalog);
-    let inserts = 0;
-    vi.spyOn(catalog, 'insertCourse').mockImplementation(async (em, code, values) => {
-      if (++inserts === 3) await em.query('SELECT $1::integer', [values.nameVi]);
-      return insert(em, code, values);
-    });
     const logged: string[] = [];
     for (const stream of [process.stdout, process.stderr]) {
       vi.spyOn(stream, 'write').mockImplementation((chunk: string | Uint8Array) => {
@@ -410,20 +360,17 @@ describe('CSV import of catalog courses (e2e)', () => {
         return true;
       });
     }
-    const failed = await confirm(csv, body.reviewVersion);
+    const failed = await withInsertRefused(f.db, { table: 'courses', column: 'code', value: `${P}F4` }, () => confirm(csv, body.reviewVersion));
     vi.restoreAllMocks();
 
     expect([failed.status, failed.body]).toEqual([500, { statusCode: 500, message: 'Internal server error' }]);
-    expect(inserts).toBe(3);
     expect(await savedCourses()).toEqual(before);
-    // 22P02: invalid text representation, the failed cast.
-    expect(logged.join('')).toContain('A CSV import failed and saved nothing: QueryFailedError, SQLSTATE 22P02');
+    const CHECK_VIOLATION = '23514';
+    expect(logged.join('')).toContain(`A CSV import failed and saved nothing: QueryFailedError, SQLSTATE ${CHECK_VIOLATION}`);
     expect(logged.join('')).not.toContain(MARK);
-    // Nothing was left half-done: the same review still confirms.
     expect((await confirm(csv, body.reviewVersion).expect(200)).body.summary).toEqual({ inserts: 4, updates: 1, noOps: 0 });
   });
 
-  // #164: an empty period cell means blank (NULL), as an emptied box of the course form does.
   it('keeps a stored NULL period for an empty cell: the row is a no-op, not a change to 0', async () => {
     const code = `${P}NUL`;
     await f.db.query(`INSERT INTO courses (code, name_vi, credits, theory_periods, lab_periods, exercise_periods, project_periods) VALUES ($1, 'Null periods', 3, NULL, NULL, 15, NULL)`, [code]);
@@ -460,7 +407,6 @@ describe('CSV import of catalog courses (e2e)', () => {
     expect(inserted.body.rows[0]).toMatchObject({ action: 'insert', theoryPeriods: 45, labPeriods: null, exercisePeriods: null, projectPeriods: null });
     await confirm(first, inserted.body.reviewVersion).expect(200);
     expect(await f.db.query(periods, [code])).toEqual([{ theory_periods: 45, lab_periods: null, exercise_periods: null, project_periods: null }]);
-    // The same file again changes nothing.
     expect((await preview(first).expect(200)).body.summary).toEqual({ inserts: 0, updates: 0, noOps: 1 });
 
     const second = `${COURSES_HEADER}\n${code},Exercise periods,,4,45,,15,`;
@@ -502,11 +448,11 @@ describe('CSV import of catalog courses (e2e)', () => {
   it('refuses a credit or period count above what the database stores, in manual entry as in a file', async () => {
     const m = f.as(maintainer);
     const tooLarge = 2_147_483_648;
-    for (const res of [
+    for (const response of [
       await m.post('/api/admin/catalog/courses', { code: `${P}X1`, nameVi: 'Tên', credits: tooLarge }),
       await m.patch(`/api/admin/catalog/courses/${P}K`, { theoryPeriods: tooLarge }),
     ]) {
-      expect([res.status, res.body.code]).toEqual([400, 'validation_failed']);
+      expect([response.status, response.body.code]).toEqual([400, 'validation_failed']);
     }
     const { body } = await preview(`${COURSES_HEADER}\n${P}X1,Tên,,${tooLarge},,,,`).expect(200);
     expect(body.errors).toEqual([{ record: 2, field: 'credits', message: 'must not be greater than 2147483647' }]);
@@ -514,7 +460,7 @@ describe('CSV import of catalog courses (e2e)', () => {
 });
 
 describe('CSV import of group links (e2e)', () => {
-  const suffix = run();
+  const suffix = runSuffix();
   const L = `ZL${suffix}`;
   const one = `zz-links ${suffix} one`;
   const two = `zz-links ${suffix}, "two"`;
@@ -535,7 +481,6 @@ describe('CSV import of group links (e2e)', () => {
   const preview = (csv: string, account = admin) => f.as(account).post(`${base}/preview`, { csv });
   const confirm = (csv: string, reviewVersion: string, account = admin) => f.as(account).post(`${base}/confirm`, { csv, reviewVersion });
   const file = (rows: string[]) => [LINKS_HEADER, ...rows].join('\n');
-  // A group name with a comma and quotes must be quoted, with its quotes doubled.
   const TWO = `"${two.replace(/"/g, '""')}"`;
 
   beforeAll(async () => {
@@ -555,23 +500,19 @@ describe('CSV import of group links (e2e)', () => {
     vi.restoreAllMocks();
   });
 
-  // BOM, CRLF, padded fields, a code to canonicalize, a quoted name: two new links and one that exists.
   const FILE = () => `\uFEFF${LINKS_HEADER}\r\n ${one} , ${L.toLowerCase()}a \r\n${one},${L}B\r\n${TWO},${L}A\r\n`;
 
   it('needs the grant of the program in the route: 403 without it, 404 for a cohort of another program', async () => {
-    // The grant is checked before the file is read: 403 for a valid file, a malformed one and one with too many records.
     for (const account of [maintainer, stranger]) {
       for (const csv of [file([`${one},${L}A`]), 'not,the,header\n1,2,3', file([`${one},"${L}"A`]), file(Array.from({ length: 1001 }, (_, n) => `${one},ZZ${n}`))]) {
-        for (const res of [await preview(csv, account), await confirm(csv, 'x', account)]) expect([res.status, res.body.code, res.body.permission]).toEqual([403, 'permission_required', 'program_admin']);
+        for (const response of [await preview(csv, account), await confirm(csv, 'x', account)]) expect([response.status, response.body.code, response.body.permission]).toEqual([403, 'permission_required', 'program_admin']);
       }
     }
     const a = f.as(admin);
-    // The APCS administrator on CLC: no grant. APCS in the path with a CLC cohort: not found.
     for (const step of ['preview', 'confirm']) {
       const body = { csv: file([`${clcOnly},${L}A`]), ...(step === 'confirm' && { reviewVersion: 'x' }) };
       expect((await a.post(`${cohortImports(f.clc, f.clcCurriculum)}/${step}`, body)).body).toMatchObject({ statusCode: 403, code: 'permission_required' });
       expect((await a.post(`${cohortImports(f.apcs, f.clcCurriculum)}/${step}`, body)).body).toMatchObject({ statusCode: 404, code: 'not_found' });
-      // The cohort is resolved before the file is read too.
       expect((await a.post(`${cohortImports(f.apcs, f.clcCurriculum)}/${step}`, { ...body, csv: 'not,the,header' })).body).toMatchObject({ statusCode: 404, code: 'not_found' });
       expect((await a.post(`${cohortImports('not-a-uuid', f.apcs2024)}/${step}`, body)).body).toMatchObject({ statusCode: 400, code: 'validation_failed' });
     }
@@ -603,15 +544,15 @@ describe('CSV import of group links (e2e)', () => {
 
   it('lists a group of another cohort or program, an unknown course, a duplicate pair and a missing value as row errors', async () => {
     const bad = file([
-      `${clcOnly},${L}A`, // a CLC group: not in this cohort
-      `${one},${L}ZZ`, // not in the catalog
+      `${clcOnly},${L}A`,
+      `${one},${L}ZZ`,
       `${one},${L}C`,
-      `${one},${L.toLowerCase()}c`, // record 4 again
+      `${one},${L.toLowerCase()}c`,
       `,${L}D`,
       `${one},`,
       `${one},zl-1`,
       `zz-links ${suffix} missing,${L}ZY`,
-      `${one},${L}D,${f.apcs2025}`, // a third field
+      `${one},${L}D,${f.apcs2025}`,
     ]);
     const { body } = await preview(bad).expect(200);
     const noGroup = 'no requirement group of this cohort has this name; a file does not create groups';
@@ -627,14 +568,13 @@ describe('CSV import of group links (e2e)', () => {
       { record: 10, field: null, message: 'has 3 fields; the template has 2' },
     ]);
     expect([body.reviewVersion, body.summary]).toEqual([null, { inserts: 1, updates: 0, noOps: 0 }]);
-    // The file is wrong whatever the database holds: 400, and the one good row is not saved.
     expect((await confirm(bad, reviewed).expect(400)).body).toMatchObject({ code: 'validation_failed', errors: body.errors });
     expect(await links(g1)).toEqual([`${L}B`, `${L}F`]);
   });
 
   it('takes the program and the cohort from the route only: no column and no body field can change them', async () => {
     const scoped = `${LINKS_HEADER},curriculum_id\n${one},${L}A,${f.apcs2025}`;
-    for (const res of [await preview(scoped), await confirm(scoped, reviewed)]) expect([res.status, res.body.code]).toEqual([400, 'validation_failed']);
+    for (const response of [await preview(scoped), await confirm(scoped, reviewed)]) expect([response.status, response.body.code]).toEqual([400, 'validation_failed']);
     const a = f.as(admin);
     for (const res of [
       await a.post(`${base}/preview`, { csv: file([`${one},${L}A`]), curriculumId: f.apcs2025 }),
@@ -647,7 +587,6 @@ describe('CSV import of group links (e2e)', () => {
 
   it('saves the whole previewed file, only in the cohort of the route, and leaves links the file does not name', async () => {
     expect((await confirm(FILE(), reviewed).expect(200)).body).toEqual({ fileType: 'group_links', summary: { inserts: 2, updates: 0, noOps: 1 } });
-    // The 2025 cohort has a group of the same name: it got nothing. F was linked before and is in no file.
     expect(await allLinks()).toEqual({ g1: [`${L}A`, `${L}B`, `${L}F`], g2: [`${L}A`], g2025: [], gClc: [] });
   });
 
@@ -662,23 +601,20 @@ describe('CSV import of group links (e2e)', () => {
 
   it('answers 409 and writes nothing when the file, a link, a group or a catalog course changed since the preview', async () => {
     const stale = async (csv: string, version: string) => {
-      const res = await confirm(csv, version);
-      expect([res.status, res.body.code]).toEqual([409, 'impact_changed']);
+      const response = await confirm(csv, version);
+      expect([response.status, response.body.code]).toEqual([409, 'impact_changed']);
     };
     const groups = `/api/admin/programs/${f.apcs}/cohorts/${f.apcs2024}/requirement-groups`;
 
-    // The input changed.
     const first = await preview(file([`${one},${L}D`, `${TWO},${L}B`])).expect(200);
     await stale(file([`${one},${L}D`, `${TWO},${L}C`]), first.body.reviewVersion);
 
-    // A link changed: one of the two rows was linked by hand in between. The other row is not saved either.
     const linked = file([`${one},${L}C`, `${TWO},${L}B`]);
     const beforeLink = await preview(linked).expect(200);
     await f.as(admin).put(`${groups}/${g1}/courses/${L}C`).expect(204);
     await stale(linked, beforeLink.body.reviewVersion);
     expect(await links(g2)).toEqual([`${L}A`]);
 
-    // A reference changed: the group was renamed in between, so its name resolves nothing now.
     const renamed = file([`${TWO},${L}D`]);
     const beforeRename = await preview(renamed).expect(200);
     await f.as(admin).patch(`${groups}/${g2}`, { name: `${two} renamed` }).expect(200);
@@ -686,14 +622,12 @@ describe('CSV import of group links (e2e)', () => {
     expect((await preview(renamed).expect(200)).body).toMatchObject({ reviewVersion: null, errors: [{ record: 2, field: 'requirement_group_name' }] });
     await f.as(admin).patch(`${groups}/${g2}`, { name: two }).expect(200);
 
-    // The revision of the checks changed: a deploy in between.
     const checked = file([`${one},${L}D`]);
     const beforeDeploy = await preview(checked).expect(200);
     vi.spyOn(f.app.get(CsvImportService), 'validationRevision').mockReturnValue('f12-structural-2');
     await stale(checked, beforeDeploy.body.reviewVersion);
     vi.restoreAllMocks();
 
-    // A reference changed: the catalog course was deleted in between.
     const deleted = file([`${one},${L}E`]);
     const beforeDelete = await preview(deleted).expect(200);
     await f.as(maintainer).delete(`/api/admin/catalog/courses/${L}E`).expect(204);
@@ -718,26 +652,18 @@ describe('CSV import of group links (e2e)', () => {
     const { body } = await preview(csv).expect(200);
     expect(body.summary).toEqual({ inserts: 3, updates: 0, noOps: 0 });
 
-    const curricula = f.app.get(CurriculumAdminService);
-    const insert = curricula.insertLink.bind(curricula);
-    let inserts = 0;
-    vi.spyOn(curricula, 'insertLink').mockImplementation(async (em, groupId, code) => {
-      if (++inserts === 3) throw new Error('injected');
-      return insert(em, groupId, code);
-    });
     vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-    const failed = await confirm(csv, body.reviewVersion);
+    const failed = await withInsertRefused(f.db, { table: 'requirement_group_courses', column: 'course_code', value: `${L}C` }, () => confirm(csv, body.reviewVersion));
     vi.restoreAllMocks();
 
     expect([failed.status, failed.body]).toEqual([500, { statusCode: 500, message: 'Internal server error' }]);
-    expect(inserts).toBe(3);
     expect(await allLinks()).toEqual(before);
     expect((await confirm(csv, body.reviewVersion).expect(200)).body.summary).toEqual({ inserts: 3, updates: 0, noOps: 0 });
   });
 });
 
 describe('CSV import limits (e2e)', () => {
-  const suffix = run();
+  const suffix = runSuffix();
   const M = `ZM${suffix}`;
   const groupName = `zz-limits ${suffix}`;
   let f: Fixture;
@@ -746,16 +672,12 @@ describe('CSV import limits (e2e)', () => {
   let groupId: string;
   let links: string;
 
-  // ASCII only, so that every character can be escaped to six bytes of JSON. Each record is
-  // padded with spaces, which are trimmed: 100 records of about 1.3 KiB are over 100 KiB.
   const PAD = ' '.repeat(1250);
   const code = (n: number) => `${M}${String(n).padStart(4, '0')}`;
   const courseRows = (count: number, pad = PAD) => Array.from({ length: count }, (_, n) => `${code(n)},Synthetic course ${n},${pad},3,,,,`);
   const linkRows = (count: number, pad = PAD) => Array.from({ length: count }, (_, n) => `${groupName},${code(n)}${pad}`);
   const csvOf = (header: string, rows: string[]) => `${header}\n${rows.join('\n')}\n`;
-  /** The file padded with blank lines, which are ignored, to exactly `bytes` bytes. */
   const paddedTo = (csv: string, bytes: number) => csv + '\n'.repeat(bytes - Buffer.byteLength(csv));
-  /** A JSON body whose csv has every character written as a six-byte \uXXXX escape. */
   const escapedBody = (csv: string, reviewVersion?: string) => {
     const escaped = Array.from(csv, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`).join('');
     return `{"csv":"${escaped}"${reviewVersion === undefined ? '' : `,"reviewVersion":${JSON.stringify(reviewVersion)}`}}`;
@@ -808,7 +730,6 @@ describe('CSV import limits (e2e)', () => {
       const previewBody = escapedBody(csv);
       expect(Buffer.byteLength(previewBody)).toBeGreaterThan(6 * MIB);
       const preview = await f.as(route.account).post(route.path, previewBody).expect(200);
-      // The rows are those the test above saved.
       expect(preview.body.summary).toEqual({ inserts: 0, updates: 0, noOps: 100 });
       const confirmed = await f.as(route.account).post(confirmRoute.path, escapedBody(csv, preview.body.reviewVersion)).expect(200);
       expect(confirmed.body.summary).toEqual({ inserts: 0, updates: 0, noOps: 100 });
@@ -827,8 +748,6 @@ describe('CSV import limits (e2e)', () => {
   it('takes 1,000 data records and refuses 1,001 with 413 on each of the four routes', async () => {
     for (const route of routes()) {
       const atLimit = await f.as(route.account).post(route.path, bodyFor(route, csvOf(route.header, route.rows(1000, ''))));
-      // The preview reads all 1,000 rows (the links name 900 courses the catalog lacks: row
-      // errors, not a refusal); the confirmation gets as far as the review version.
       const read = atLimit.body.code ?? atLimit.body.rows.length + atLimit.body.errors.length;
       expect([route.path, atLimit.status, read]).toEqual([route.path, route.confirm ? 409 : 200, route.confirm ? 'impact_changed' : 1000]);
       const refused = await f.as(route.account).post(route.path, bodyFor(route, csvOf(route.header, route.rows(1001, '')))).expect(413);
@@ -852,26 +771,20 @@ describe('CSV import limits (e2e)', () => {
     const large = { csv: 'a'.repeat(150 * 1024) };
     const http = () => request(f.app.getHttpServer());
     for (const route of routes()) {
-      // No token, and a 7 MiB body: the default parser refuses it on its declared length, as on any route.
       expect((await http().post(route.path).set('Content-Type', 'application/json').send(JSON.stringify(bodyFor(route, 'a'.repeat(7 * MIB)))).expect(413)).body).toEqual(unparsed);
       expect((await http().post(route.path).send(large).expect(413)).body).toEqual(unparsed);
-      // A token that is no session, a revoked session, a signed-in user without a grant, and the grant of the other route family.
       const others = [{ token: 'no-such-session', userId: '' }, revoked, stranger, route.account === maintainer ? admin : maintainer];
       for (const account of others) expect((await f.as(account).post(route.path, large).expect(413)).body).toEqual(unparsed);
-      // Under 100 KiB they reach the route and get its own answer.
       await http().post(route.path).send(bodyFor(route, route.header)).expect(401);
       expect((await f.as(stranger).post(route.path, bodyFor(route, route.header)).expect(403)).body.code).toBe('permission_required');
     }
-    // A program grant opens the large parser for that program only.
     const clcImports = `${cohortImports(f.clc, f.clcCurriculum)}/preview`;
     expect((await f.as(admin).post(clcImports, large).expect(413)).body).toEqual(unparsed);
-    // The holder of the grant is still served above 100 KiB: the answer comes from the route, about the file.
     expect((await f.as(maintainer).post(`${CATALOG}/preview`, large).expect(400)).body.code).toBe('validation_failed');
     expect((await f.as(admin).post(`${links}/preview`, large).expect(400)).body.code).toBe('validation_failed');
   });
 
   it('refuses a compressed body with 415 on each of the four routes, for a holder of the grant as for anyone', async () => {
-    // About 7 KiB on the wire, 7 MiB once inflated; it is never inflated.
     const bomb = gzipSync(JSON.stringify({ csv: 'a'.repeat(7 * MIB), reviewVersion: 'x' }));
     expect(bomb.length).toBeLessThan(10 * 1024);
     for (const route of routes()) {
@@ -893,10 +806,9 @@ describe('CSV import limits (e2e)', () => {
       await f.as(admin).put(`${group}/courses/${code(0)}/prerequisites`, { prerequisites: [], padding: large }),
       await f.as(admin).post(`${group}/requirement-groups`, { name: groupName, kind: 'elective', officialNotes: large }),
       await request(f.app.getHttpServer()).post('/api/auth/sign-in').send({ email: 'limits@example.com', password: large }),
-      // An import path with something after it is not an import route.
       await m.post(`${CATALOG}/preview/again`, { csv: large }),
     ];
-    expect(refused.map((res) => res.status)).toEqual([413, 413, 413, 413, 413, 413]);
+    expect(refused.map((response) => response.status)).toEqual([413, 413, 413, 413, 413, 413]);
     await m.post('/api/admin/catalog/courses', { code: `${M}SMALL`, nameVi: 'x'.repeat(255), credits: 3 }).expect(201);
   });
 

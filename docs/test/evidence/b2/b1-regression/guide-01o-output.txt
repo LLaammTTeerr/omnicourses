@@ -1,0 +1,4 @@
+burst took 63 s, finished 09:09:48Z
+requests 1-120: 200 x120
+request 121: 200
+after one minute (09:10:54Z): 200

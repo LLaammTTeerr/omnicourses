@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
-import { canonicalCourseCode } from '../common/course-code.js';
+import { conflict, notFound, validationFailed } from '../common/api-errors.js';
+import { isRefusal, SQLSTATE } from '../common/failure-kind.js';
+import { sentFields, trimmedOrNull } from '../common/field-validators.js';
 import { RequirementGroup } from '../curriculum/requirement-group.entity.js';
-import { userGrants } from './access-admin.service.js';
-import { conflict, notFound, prerequisiteCycle, referencedItem, validationFailed } from './admin-errors.js';
-import { AdminWriteService } from './admin-write.service.js';
+import { prerequisiteCycle, referencedItem } from './admin-errors.js';
+import { catalogHas, cohortIn, courseCodeOr400, groupIn, noCatalogCourse } from './admin-lookups.js';
+import { AdminWriteService } from '../admin-access/admin-write.service.js';
 import {
   AdminProgramDto,
   CreateRequirementGroupDto,
@@ -16,31 +18,27 @@ import {
   UpdateRequirementGroupDto,
   UserGrantsDto,
 } from './curriculum-admin.dto.js';
+import { userGrants } from './user-grants.js';
 import { findPrerequisiteCycle } from './prerequisite-cycle.js';
+import { REFERENCES } from './references.js';
 
 const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 
-/** A course code as an administrator gave it, canonical (UC-11 step 5), or why it is not one. */
-export function parseCourseCode(input: string, field = 'courseCode'): { code: string; error: null } | { code: null; error: string } {
-  const code = canonicalCourseCode(input);
-  return code ? { code, error: null } : { code: null, error: `${field}: "${input}" is not a course code (letters A-Z and digits, 2 to 20)` };
+const GROUP_FIELDS = ['name', 'kind', 'officialNotes', 'creditsTotal', 'creditsTotalMin'] as const;
+
+type GroupTotals = Pick<RequirementGroup, 'kind' | 'creditsTotal' | 'creditsTotalMin'>;
+
+export function creditTotalMismatch(group: GroupTotals): string | null {
+  if (group.kind === 'compulsory' && group.creditsTotalMin !== null) return 'creditsTotalMin: a compulsory group stores creditsTotal, not a minimum (ADR 0005)';
+  if (group.kind === 'elective' && group.creditsTotal !== null) return 'creditsTotal: an elective group stores creditsTotalMin, not a fixed total (ADR 0005)';
+  return null;
 }
 
-/** A course code from a path or body, canonical, or a 400. */
-export function courseCodeOr400(input: string, field = 'courseCode'): string {
-  const parsed = parseCourseCode(input, field);
-  if (parsed.error !== null) throw validationFailed(parsed.error);
-  return parsed.code;
+function assertTotalsFitKind(group: GroupTotals): void {
+  const mismatch = creditTotalMismatch(group);
+  if (mismatch) throw validationFailed(mismatch);
 }
 
-/** What a link answers when the catalog lacks the course: linking never creates one. */
-export const noCatalogCourse = (code: string): string => `No catalog course has the code ${code}; a catalog maintainer adds it first`;
-
-// Program-administrator writes (ADR 0011): requirement groups, their course links, and the
-// prerequisites and offering terms of a curriculum's courses. Every write runs under the F12
-// lock with the caller's current grant for the path's program, and resolves the curriculum
-// and group from stored relations: an ID from another program is a 404, never a write.
-// Checks here are structural; academic consistency belongs to the rule engine.
 @Injectable()
 export class CurriculumAdminService {
   constructor(
@@ -48,7 +46,6 @@ export class CurriculumAdminService {
     private readonly writes: AdminWriteService,
   ) {}
 
-  /** The programs the caller may administer, with their cohorts. */
   async editablePrograms(callerId: string): Promise<AdminProgramDto[]> {
     const rows: { id: string; code: string; name_vi: string; curriculum_id: string | null; curriculum_code: string | null; cohort_year: number | null }[] =
       await this.db.query(
@@ -60,31 +57,26 @@ export class CurriculumAdminService {
         [callerId],
       );
     const programs = new Map<string, AdminProgramDto>();
-    for (const r of rows) {
-      const program = programs.get(r.id) ?? { id: r.id, code: r.code, nameVi: r.name_vi, curricula: [] };
-      programs.set(r.id, program);
-      if (r.curriculum_id) program.curricula.push({ id: r.curriculum_id, code: r.curriculum_code!, cohortYear: r.cohort_year! });
+    for (const row of rows) {
+      const program = programs.get(row.id) ?? { id: row.id, code: row.code, nameVi: row.name_vi, curricula: [] };
+      programs.set(row.id, program);
+      if (row.curriculum_id) program.curricula.push({ id: row.curriculum_id, code: row.curriculum_code!, cohortYear: row.cohort_year! });
     }
-    for (const p of programs.values()) p.curricula.sort((a, b) => a.cohortYear - b.cohortYear);
+    for (const program of programs.values()) program.curricula.sort((a, b) => a.cohortYear - b.cohortYear);
     return [...programs.values()].sort((a, b) => byText(a.code, b.code));
   }
 
-  /**
-   * The caller's own grants, for the screens to show only what the caller may open. A read of
-   * the caller's rows only: it takes no user ID, so it cannot answer about anyone else. It
-   * authorises nothing: every write still checks the grants inside its own transaction.
-   */
   ownGrants(callerId: string): Promise<UserGrantsDto> {
     return userGrants(this.db.manager, callerId);
   }
 
-  // ---- Requirement groups ------------------------------------------------------------------
-
   createGroup(callerId: string, programId: string, curriculumId: string, dto: CreateRequirementGroupDto): Promise<RequirementGroupAdminDto> {
     return this.writes.run(callerId, { program: programId }, async (em) => {
-      await curriculumIn(em, programId, curriculumId);
+      await cohortIn(em, programId, curriculumId);
       await assertGroupNameFree(em, curriculumId, dto.name);
-      const saved = await em.getRepository(RequirementGroup).save({ curriculumId, name: dto.name, kind: dto.kind, officialNotes: blankToNull(dto.officialNotes) });
+      const totals = { kind: dto.kind, creditsTotal: dto.creditsTotal ?? null, creditsTotalMin: dto.creditsTotalMin ?? null };
+      assertTotalsFitKind(totals);
+      const saved = await em.getRepository(RequirementGroup).save({ curriculumId, name: dto.name, officialNotes: trimmedOrNull(dto.officialNotes), ...totals });
       return groupDto(await em.getRepository(RequirementGroup).findOneByOrFail({ id: saved.id }));
     });
   }
@@ -93,15 +85,8 @@ export class CurriculumAdminService {
     return this.writes.run(callerId, { program: programId }, async (em) => {
       const group = await groupIn(em, programId, curriculumId, groupId);
       if (dto.name !== undefined && dto.name !== group.name) await assertGroupNameFree(em, curriculumId, dto.name);
-      // A stored total means one thing for each kind (ADR 0005); totals are not editable yet.
-      if (dto.kind !== undefined && dto.kind !== group.kind && (group.creditsTotal !== null || group.creditsTotalMin !== null)) {
-        throw validationFailed('kind: cannot change while the group stores a credit total (ADR 0011: totals wait for the rule-engine handoff)');
-      }
-      const patch: Partial<RequirementGroup> = {};
-      if (dto.name !== undefined) patch.name = dto.name;
-      if (dto.kind !== undefined) patch.kind = dto.kind;
-      if (dto.officialNotes !== undefined) patch.officialNotes = blankToNull(dto.officialNotes);
-      // update() sets updated_at with the change (ADR 0011).
+      const patch = sentFields(GROUP_FIELDS, dto, { officialNotes: trimmedOrNull }) as Partial<RequirementGroup>;
+      assertTotalsFitKind({ ...group, ...patch });
       if (Object.keys(patch).length) await em.getRepository(RequirementGroup).update({ id: groupId }, patch);
       return groupDto(await em.getRepository(RequirementGroup).findOneByOrFail({ id: groupId }));
     });
@@ -110,39 +95,60 @@ export class CurriculumAdminService {
   deleteGroup(callerId: string, programId: string, curriculumId: string, groupId: string): Promise<void> {
     return this.writes.run(callerId, { program: programId }, async (em) => {
       await groupIn(em, programId, curriculumId, groupId);
+      await em.query('SELECT 1 FROM "requirement_groups" WHERE "id" = $1 FOR UPDATE', [groupId]);
       const links: { course_code: string }[] = await em.query(
         'SELECT "course_code" FROM "requirement_group_courses" WHERE "requirement_group_id" = $1 ORDER BY "course_code"',
         [groupId],
       );
-      // ADR 0011: unlink the courses explicitly first, so no rule loses its course silently.
-      if (links.length) throw referencedItem('The group still links courses; remove them from it first', links.map((l) => `links ${l.course_code}`));
-      await em.query('DELETE FROM "requirement_groups" WHERE "id" = $1', [groupId]);
+      if (links.length) throw referencedItem('The group still links courses; remove them from it first', links.map((link) => REFERENCES.links(link.course_code)));
+      const [{ n: plans }]: { n: number }[] = await em.query(
+        'SELECT count(DISTINCT "plan_id")::int AS "n" FROM "plan_placements" WHERE "requirement_group_id" = $1',
+        [groupId],
+      );
+      if (plans) throw plansUseGroup([REFERENCES.groupPlans(plans)]);
+      const overflows: { from_group_id: string; to_group_id: string }[] = await em.query(
+        'SELECT "from_group_id", "to_group_id" FROM "requirement_group_overflows" WHERE "from_group_id" = $1 OR "to_group_id" = $1',
+        [groupId],
+      );
+      const combinedMinimums: { combined_minimum_id: string }[] = await em.query(
+        'SELECT "combined_minimum_id" FROM "combined_minimum_groups" WHERE "requirement_group_id" = $1',
+        [groupId],
+      );
+      const ruleReferences = [
+        ...(overflows.length ? [REFERENCES.groupOverflows(overflows.length)] : []),
+        ...(combinedMinimums.length ? [REFERENCES.groupCombinedMinimums(combinedMinimums.length)] : []),
+      ];
+      if (ruleReferences.length) {
+        throw referencedItem(
+          'Curriculum rules still reference this requirement group; keep it while overflow or combined-minimum rules name it',
+          ruleReferences,
+        );
+      }
+      try {
+        await em.query('DELETE FROM "requirement_groups" WHERE "id" = $1', [groupId]);
+      } catch (error) {
+        if (isPlanSlotRefusal(error)) throw plansUseGroup([REFERENCES.groupPlans(null)]);
+        const ruleReference = groupRuleRefusalReference(error);
+        if (ruleReference) {
+          throw referencedItem(
+            'Curriculum rules still reference this requirement group; keep it while overflow or combined-minimum rules name it',
+            [ruleReference],
+          );
+        }
+        throw error;
+      }
     });
   }
-
-  // ---- Group membership --------------------------------------------------------------------
 
   linkCourse(callerId: string, programId: string, curriculumId: string, groupId: string, rawCode: string): Promise<void> {
     const code = courseCodeOr400(rawCode);
     return this.writes.run(callerId, { program: programId }, async (em) => {
       await groupIn(em, programId, curriculumId, groupId);
-      if (!(await this.catalogHas(em, code))) throw notFound(noCatalogCourse(code));
+      if (!(await catalogHas(em, code))) throw notFound(noCatalogCourse(code));
       await this.insertLink(em, groupId, code);
     });
   }
 
-  // The two steps of a link, inside the caller's write transaction. The manual PUT above and
-  // the CSV import (csv-import.service.ts) both go through them, so a link is checked and
-  // saved one way. The checks are structural only: the group-total final-state validation of
-  // ADR 0011 waits for a rule-engine interface that does not exist yet.
-
-  /** Selecting a catalog course is not permission to change it (ADR 0011). */
-  async catalogHas(em: EntityManager, code: string): Promise<boolean> {
-    const [course] = await em.query('SELECT 1 FROM "courses" WHERE "code" = $1', [code]);
-    return Boolean(course);
-  }
-
-  /** Creates the link, or leaves the existing one. */
   async insertLink(em: EntityManager, groupId: string, code: string): Promise<void> {
     await em.query('INSERT INTO "requirement_group_courses" ("requirement_group_id", "course_code") VALUES ($1, $2) ON CONFLICT DO NOTHING', [groupId, code]);
   }
@@ -151,14 +157,22 @@ export class CurriculumAdminService {
     const code = courseCodeOr400(rawCode);
     return this.writes.run(callerId, { program: programId }, async (em) => {
       await groupIn(em, programId, curriculumId, groupId);
-      const [link] = await em.query('SELECT 1 FROM "requirement_group_courses" WHERE "requirement_group_id" = $1 AND "course_code" = $2', [groupId, code]);
+      const [link]: { counts_toward_total?: boolean; counts_toward_gpa?: boolean }[] = await em.query(
+        'SELECT "counts_toward_total", "counts_toward_gpa" FROM "requirement_group_courses" WHERE "requirement_group_id" = $1 AND "course_code" = $2',
+        [groupId, code],
+      );
       if (!link) throw notFound(`${code} is not in this group`);
+      if (link.counts_toward_total === false || link.counts_toward_gpa === false) {
+        throw referencedItem(
+          `${code} carries non-default GPA or credit-counting rules that cannot be re-entered through administration yet`,
+          [REFERENCES.countingRule(code)],
+        );
+      }
       const [elsewhere] = await em.query(
         `SELECT 1 FROM "requirement_group_courses" l JOIN "requirement_groups" g ON g."id" = l."requirement_group_id"
          WHERE g."curriculum_id" = $1 AND l."course_code" = $2 AND l."requirement_group_id" <> $3`,
         [curriculumId, code, groupId],
       );
-      // Leaving the curriculum would strand rules that name the course (UC-11 A5, prototype).
       if (!elsewhere) {
         const references = await rulesNaming(em, curriculumId, code);
         if (references.length) throw referencedItem(`${code} would leave the curriculum while its rules still name it; clear them first`, references);
@@ -167,64 +181,33 @@ export class CurriculumAdminService {
     });
   }
 
-  // ---- Prerequisites -----------------------------------------------------------------------
-
   setPrerequisites(callerId: string, programId: string, curriculumId: string, rawCode: string, dto: SetPrerequisitesDto): Promise<PrerequisitesDto> {
     const code = courseCodeOr400(rawCode);
-    const prerequisites = dto.prerequisites.map((p, i) => courseCodeOr400(p, `prerequisites[${i}]`));
-    const repeated = prerequisites.filter((p, i) => prerequisites.indexOf(p) !== i);
-    if (repeated.length) throw validationFailed(`prerequisites: ${[...new Set(repeated)].join(', ')} listed more than once`);
+    const prerequisites = prerequisiteCodes(dto.prerequisites);
     return this.writes.run(callerId, { program: programId }, async (em) => {
-      await curriculumIn(em, programId, curriculumId);
-      const courses = await coursesOf(em, curriculumId);
-      if (!courses.has(code)) throw notFound(`${code} is not a course of this curriculum`);
-      const outside = prerequisites.filter((p) => !courses.has(p));
-      if (outside.length) throw validationFailed(`prerequisites: ${outside.join(', ')} not a course of this curriculum; link it to a group first`);
-
-      const edges: { course_code: string; prerequisite_code: string }[] = await em.query(
-        'SELECT "course_code", "prerequisite_code" FROM "course_prerequisites" WHERE "curriculum_id" = $1',
-        [curriculumId],
-      );
-      const graph = new Map<string, string[]>();
-      for (const e of edges) graph.set(e.course_code, [...(graph.get(e.course_code) ?? []), e.prerequisite_code]);
-      const cycle = findPrerequisiteCycle(graph, code, prerequisites);
+      await cohortIn(em, programId, curriculumId);
+      await assertCurriculumCourses(em, curriculumId, code, prerequisites);
+      const cycle = findPrerequisiteCycle(await prerequisiteGraph(em, curriculumId), code, prerequisites);
       if (cycle) throw prerequisiteCycle(cycle);
-
-      await em.query(
-        `INSERT INTO "course_prerequisite_lists" ("curriculum_id", "course_code") VALUES ($1, $2)
-         ON CONFLICT ("curriculum_id", "course_code") DO UPDATE SET "updated_at" = now()`,
-        [curriculumId, code],
-      );
-      await em.query('DELETE FROM "course_prerequisites" WHERE "curriculum_id" = $1 AND "course_code" = $2', [curriculumId, code]);
-      if (prerequisites.length) {
-        await em.query(
-          `INSERT INTO "course_prerequisites" ("curriculum_id", "course_code", "prerequisite_code")
-           SELECT $1, $2, unnest($3::varchar[])`,
-          [curriculumId, code, prerequisites],
-        );
-      }
+      await savePrerequisites(em, curriculumId, code, prerequisites);
       return { courseCode: code, prerequisites: [...prerequisites].sort(byText) };
     });
   }
 
-  /** Back to "not recorded": the read API answers null again. */
   clearPrerequisites(callerId: string, programId: string, curriculumId: string, rawCode: string): Promise<PrerequisitesDto> {
     const code = courseCodeOr400(rawCode);
     return this.writes.run(callerId, { program: programId }, async (em) => {
-      await curriculumIn(em, programId, curriculumId);
-      // The list row cascades to its prerequisite rows.
+      await cohortIn(em, programId, curriculumId);
       await em.query('DELETE FROM "course_prerequisite_lists" WHERE "curriculum_id" = $1 AND "course_code" = $2', [curriculumId, code]);
       return { courseCode: code, prerequisites: null };
     });
   }
 
-  // ---- Offering terms ----------------------------------------------------------------------
-
   setOfferingTerms(callerId: string, programId: string, curriculumId: string, rawCode: string, dto: SetOfferingTermsDto): Promise<OfferingTermsDto> {
     const code = courseCodeOr400(rawCode);
     const terms = [...dto.terms].sort((a, b) => a - b);
     return this.writes.run(callerId, { program: programId }, async (em) => {
-      await curriculumIn(em, programId, curriculumId);
+      await cohortIn(em, programId, curriculumId);
       if (!(await coursesOf(em, curriculumId)).has(code)) throw notFound(`${code} is not a course of this curriculum`);
       await em.query('DELETE FROM "course_offering_terms" WHERE "curriculum_id" = $1 AND "course_code" = $2', [curriculumId, code]);
       await em.query(
@@ -238,25 +221,11 @@ export class CurriculumAdminService {
   clearOfferingTerms(callerId: string, programId: string, curriculumId: string, rawCode: string): Promise<OfferingTermsDto> {
     const code = courseCodeOr400(rawCode);
     return this.writes.run(callerId, { program: programId }, async (em) => {
-      await curriculumIn(em, programId, curriculumId);
+      await cohortIn(em, programId, curriculumId);
       await em.query('DELETE FROM "course_offering_terms" WHERE "curriculum_id" = $1 AND "course_code" = $2', [curriculumId, code]);
       return { courseCode: code, terms: null };
     });
   }
-}
-
-/** The curriculum, only if it belongs to the path's program. */
-export async function curriculumIn(em: EntityManager, programId: string, curriculumId: string): Promise<void> {
-  const [row] = await em.query('SELECT 1 FROM "curriculums" WHERE "id" = $1 AND "program_id" = $2', [curriculumId, programId]);
-  if (!row) throw notFound('No such cohort in this program');
-}
-
-/** The group, only if it belongs to the path's curriculum, which belongs to the path's program. */
-async function groupIn(em: EntityManager, programId: string, curriculumId: string, groupId: string): Promise<RequirementGroup> {
-  await curriculumIn(em, programId, curriculumId);
-  const group = await em.getRepository(RequirementGroup).findOneBy({ id: groupId, curriculumId });
-  if (!group) throw notFound('No such requirement group in this cohort');
-  return group;
 }
 
 async function assertGroupNameFree(em: EntityManager, curriculumId: string, name: string): Promise<void> {
@@ -264,17 +233,15 @@ async function assertGroupNameFree(em: EntityManager, curriculumId: string, name
   if (taken) throw conflict('duplicate_name', 'This cohort already has a requirement group with this name');
 }
 
-/** The codes linked to any group of the curriculum. */
 async function coursesOf(em: EntityManager, curriculumId: string): Promise<Set<string>> {
   const rows: { course_code: string }[] = await em.query(
     `SELECT DISTINCT l."course_code" FROM "requirement_group_courses" l
      JOIN "requirement_groups" g ON g."id" = l."requirement_group_id" WHERE g."curriculum_id" = $1`,
     [curriculumId],
   );
-  return new Set(rows.map((r) => r.course_code));
+  return new Set(rows.map((row) => row.course_code));
 }
 
-/** The recorded rules of the curriculum that name the course, in words. */
 async function rulesNaming(em: EntityManager, curriculumId: string, code: string): Promise<string[]> {
   const [own] = await em.query('SELECT 1 FROM "course_prerequisite_lists" WHERE "curriculum_id" = $1 AND "course_code" = $2', [curriculumId, code]);
   const [offered] = await em.query('SELECT 1 FROM "course_offering_terms" WHERE "curriculum_id" = $1 AND "course_code" = $2 LIMIT 1', [curriculumId, code]);
@@ -283,23 +250,83 @@ async function rulesNaming(em: EntityManager, curriculumId: string, code: string
     [curriculumId, code],
   );
   return [
-    ...(own ? [`prerequisites of ${code} are recorded`] : []),
-    ...(offered ? [`offering terms of ${code} are recorded`] : []),
-    ...dependents.map((d) => `${d.course_code} requires ${code}`),
+    ...(own ? [REFERENCES.ownPrerequisites(code)] : []),
+    ...(offered ? [REFERENCES.ownTerms(code)] : []),
+    ...dependents.map((dependent) => REFERENCES.requires(dependent.course_code, code)),
   ];
 }
 
-const blankToNull = (value: string | null | undefined): string | null => (value?.trim() ? value.trim() : null);
+function prerequisiteCodes(sent: string[]): string[] {
+  const prerequisites = sent.map((p, i) => courseCodeOr400(p, `prerequisites[${i}]`));
+  const repeated = prerequisites.filter((p, i) => prerequisites.indexOf(p) !== i);
+  if (repeated.length) throw validationFailed(`prerequisites: ${[...new Set(repeated)].join(', ')} listed more than once`);
+  return prerequisites;
+}
 
-function groupDto(g: RequirementGroup): RequirementGroupAdminDto {
+async function assertCurriculumCourses(em: EntityManager, curriculumId: string, code: string, prerequisites: string[]): Promise<void> {
+  const courses = await coursesOf(em, curriculumId);
+  if (!courses.has(code)) throw notFound(`${code} is not a course of this curriculum`);
+  const outside = prerequisites.filter((p) => !courses.has(p));
+  if (outside.length) throw validationFailed(`prerequisites: ${outside.join(', ')} not a course of this curriculum; link it to a group first`);
+}
+
+async function prerequisiteGraph(em: EntityManager, curriculumId: string): Promise<Map<string, string[]>> {
+  const edges: { course_code: string; prerequisite_code: string }[] = await em.query(
+    'SELECT "course_code", "prerequisite_code" FROM "course_prerequisites" WHERE "curriculum_id" = $1',
+    [curriculumId],
+  );
+  const graph = new Map<string, string[]>();
+  for (const edge of edges) graph.set(edge.course_code, [...(graph.get(edge.course_code) ?? []), edge.prerequisite_code]);
+  return graph;
+}
+
+async function savePrerequisites(em: EntityManager, curriculumId: string, code: string, prerequisites: string[]): Promise<void> {
+  await em.query(
+    `INSERT INTO "course_prerequisite_lists" ("curriculum_id", "course_code") VALUES ($1, $2)
+     ON CONFLICT ("curriculum_id", "course_code") DO UPDATE SET "updated_at" = now()`,
+    [curriculumId, code],
+  );
+  await em.query('DELETE FROM "course_prerequisites" WHERE "curriculum_id" = $1 AND "course_code" = $2', [curriculumId, code]);
+  if (prerequisites.length) {
+    await em.query(
+      `INSERT INTO "course_prerequisites" ("curriculum_id", "course_code", "prerequisite_code")
+       SELECT $1, $2, unnest($3::varchar[])`,
+      [curriculumId, code, prerequisites],
+    );
+  }
+}
+
+const PLAN_SLOT_GROUP_KEY = 'plan_placements_requirement_group_id_fkey';
+const OVERFLOW_FROM_GROUP_KEY = 'requirement_group_overflows_from_group_id_fkey';
+const OVERFLOW_TO_GROUP_KEY = 'requirement_group_overflows_to_group_id_fkey';
+const COMBINED_MINIMUM_GROUP_KEY = 'combined_minimum_groups_requirement_group_id_fkey';
+
+const plansUseGroup = (references: string[]) => referencedItem('Saved plans use the group; it stays while they name it', references);
+
+export function isPlanSlotRefusal(error: unknown): boolean {
+  return isRefusal(error, [SQLSTATE.restrictViolation, SQLSTATE.foreignKeyViolation], PLAN_SLOT_GROUP_KEY);
+}
+
+function groupRuleRefusalReference(error: unknown): string | null {
+  const states = [SQLSTATE.restrictViolation, SQLSTATE.foreignKeyViolation];
+  if (isRefusal(error, states, OVERFLOW_FROM_GROUP_KEY) || isRefusal(error, states, OVERFLOW_TO_GROUP_KEY)) {
+    return REFERENCES.groupOverflows(null);
+  }
+  if (isRefusal(error, states, COMBINED_MINIMUM_GROUP_KEY)) {
+    return REFERENCES.groupCombinedMinimums(null);
+  }
+  return null;
+}
+
+function groupDto(group: RequirementGroup): RequirementGroupAdminDto {
   return {
-    id: g.id,
-    curriculumId: g.curriculumId,
-    name: g.name,
-    kind: g.kind,
-    officialNotes: g.officialNotes,
-    creditsTotal: g.creditsTotal,
-    creditsTotalMin: g.creditsTotalMin,
-    updatedAt: g.updatedAt,
+    id: group.id,
+    curriculumId: group.curriculumId,
+    name: group.name,
+    kind: group.kind,
+    officialNotes: group.officialNotes,
+    creditsTotal: group.creditsTotal,
+    creditsTotalMin: group.creditsTotalMin,
+    updatedAt: group.updatedAt,
   };
 }

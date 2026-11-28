@@ -6,9 +6,8 @@ import { createOmniCourseApp } from '../app.js';
 import { createAppRouter } from '../router.js';
 import type { Guide, GuideListItem } from './api.js';
 import { guideText } from './testing/guide-fixtures.js';
+import { restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 
-// Long words and addresses with no break opportunity (no space, hyphen or slash inside):
-// the content most likely to push a narrow page sideways (A11Y-01c).
 const LONG = 'ĐăngkýhọcphầntrongthờigianmởcổngtheothôngbáocủaPhòngĐàotạo';
 const URL_LONG = `https://portal.example.com/${'DangKyHocPhan'.repeat(6)}`;
 
@@ -36,10 +35,9 @@ let host: HTMLDivElement | undefined;
 afterEach(() => {
   app?.unmount();
   host?.remove();
-  vi.restoreAllMocks();
+  restoreMocksAfterCheckingCalls();
 });
 
-// The whole app, header and padding included, so the width is the one a student gets.
 async function expectNoSidewaysScroll(path: string) {
   const router = createAppRouter(createMemoryHistory());
   await router.push(path);
@@ -62,8 +60,6 @@ describe('guide pages in a real browser', () => {
     await expectNoSidewaysScroll('/guides/zz-long');
   });
 
-  // Found on G01 in production (B1 GUIDE-01 rerun, 15 Nov 2026): a step's link became a third item of the step's
-  // two-column grid and fell into the 34 px number column, one letter per line.
   it('keeps a step link beside its text, not under the step number', async () => {
     await page.viewport(1280, 800);
     const step = { text: 'Open the “Forget Password” page.', link: { label: 'The portal’s “Forget Password” page', url: 'https://portal.example.com/forget-password' } };
@@ -81,7 +77,6 @@ describe('guide pages in a real browser', () => {
     const link = item.querySelector('a')!.getBoundingClientRect();
     const number = parseFloat(getComputedStyle(item, '::before').width);
     expect(link.left).toBeGreaterThanOrEqual(item.getBoundingClientRect().left + number);
-    // Squeezed into the number column it is about one letter wide; beside the text it fits the label on one line.
     expect(link.width).toBeGreaterThan(4 * number);
   });
 });

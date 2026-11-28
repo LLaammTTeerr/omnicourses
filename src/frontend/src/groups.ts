@@ -1,9 +1,5 @@
 import type { Lang } from './locale.js';
 
-// The eight requirement groups of the design (UI prototypes, README "Design direction"). Each has a colour token
-// in styles.css (`.g-<id>` sets --c, --on, --c-soft and --c-ink) and a glyph, so colour is never the only cue.
-// Every screen that colours by group imports it from here.
-
 export const GROUP_IDS = ['core', 'math', 'phys', 'eng', 'pol', 'gen', 'elec', 'thesis'] as const;
 export type GroupId = (typeof GROUP_IDS)[number];
 
@@ -25,5 +21,10 @@ export const GROUPS: readonly Group[] = [
   { id: 'thesis', glyph: '∎', name: { vi: 'Khóa luận tốt nghiệp', en: 'Graduation thesis' }, short: { vi: 'Khóa luận', en: 'Thesis' } },
 ];
 
-/** The class that sets a group's colour tokens. */
+const groupOf = (id: GroupId): Group => GROUPS.find((group) => group.id === id)!;
+
+export const groupGlyph = (id: GroupId): string => groupOf(id).glyph;
+
+export const groupShort = (id: GroupId, lang: Lang): string => groupOf(id).short[lang];
+
 export const groupClass = (id: GroupId): string => `g-${id}`;

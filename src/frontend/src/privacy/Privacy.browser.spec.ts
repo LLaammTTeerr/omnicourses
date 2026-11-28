@@ -6,6 +6,8 @@ import { createOmniCourseApp } from '../app.js';
 import { createAppRouter } from '../router.js';
 import { THEME_STORAGE_KEY } from '../shell/theme.js';
 import { HEALTHY } from '../testing/health.js';
+import { PRIVACY_MESSAGES } from './messages.js';
+import { restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 
 let app: VueApp | undefined;
 let host: HTMLDivElement | undefined;
@@ -14,7 +16,7 @@ afterEach(() => {
   host?.remove();
   app = host = undefined;
   localStorage.clear();
-  vi.restoreAllMocks();
+  restoreMocksAfterCheckingCalls();
 });
 
 describe('privacy notice in a real browser (A11Y-01c)', () => {
@@ -27,7 +29,6 @@ describe('privacy notice in a real browser (A11Y-01c)', () => {
   ])('never scrolls sideways at %i px in the %s theme', async (width, theme) => {
     await page.viewport(width, 800);
     localStorage.setItem(THEME_STORAGE_KEY, theme);
-    // The public header checks the API's health; the notice itself calls nothing.
     vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json(HEALTHY));
     const router = createAppRouter(createMemoryHistory());
     await router.push('/privacy');
@@ -35,7 +36,7 @@ describe('privacy notice in a real browser (A11Y-01c)', () => {
     document.body.append(host);
     app = createOmniCourseApp(router);
     app.mount(host);
-    await expect.poll(() => document.querySelector('h1')?.textContent).toBe('Quyền riêng tư');
+    await expect.poll(() => document.querySelector('h1')?.textContent).toBe(PRIVACY_MESSAGES.vi.title);
     expect(document.documentElement.dataset.theme).toBe(theme);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
   });

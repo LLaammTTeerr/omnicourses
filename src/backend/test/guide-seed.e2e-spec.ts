@@ -12,11 +12,9 @@ const PUBLISHED = FIXTURES.filter((f) => f.status === 'published')
   .map(textKey)
   .sort();
 
-/** The fixtures with one text changed. */
 const changing = (id: string, lang: string, change: Partial<GuideFile>) =>
   FIXTURES.map((f) => (f.id === id && f.lang === lang ? { ...f, ...change } : f));
 
-// The seed tests rewrite and withdraw guides.
 describe('Guide seed against PostgreSQL (e2e)', () => {
   let db: DataSource;
   let drop: (() => Promise<void>) | undefined;

@@ -1,31 +1,48 @@
 import { Logger } from '@nestjs/common';
+import { MoreThan } from 'typeorm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Clock } from '../config/clock.js';
 import { AiCostGuard } from './ai-cost-guard.service.js';
 import { AI_REASONS, AiUnavailableError } from './ai-unavailable.error.js';
+import { AiUsage } from './ai-usage.entity.js';
 
 const context = { userId: 'u1', feature: 'advisor' };
+const fixedNow = new Date('2026-06-01T12:00:00.000Z');
 
 describe('AiCostGuard', () => {
   let em: { query: ReturnType<typeof vi.fn>; count: ReturnType<typeof vi.fn>; insert: ReturnType<typeof vi.fn> };
   let usage: { manager: { transaction: ReturnType<typeof vi.fn> }; update: ReturnType<typeof vi.fn>; delete: ReturnType<typeof vi.fn> };
+  let clock: Clock;
   let guard: AiCostGuard;
 
   beforeEach(() => {
     em = { query: vi.fn(async () => []), count: vi.fn(async () => 0), insert: vi.fn(async () => ({ identifiers: [{ id: 'row-1' }] })) };
     usage = { manager: { transaction: vi.fn(async (work: (m: typeof em) => unknown) => work(em)) }, update: vi.fn(async () => undefined), delete: vi.fn(async () => undefined) };
-    guard = new AiCostGuard(usage as never, { dailyCallsPerUser: 20 });
+    clock = new Clock();
+    vi.spyOn(clock, 'now').mockReturnValue(fixedNow);
+    guard = new AiCostGuard(usage as never, { dailyCallsPerUser: 20 }, clock);
   });
 
   afterEach(() => vi.restoreAllMocks());
 
   describe('reserve', () => {
-    it('reserves a row below the cap and returns its id', async () => {
+    it('reserves a row below the cap using the namespaced advisory lock and injected clock', async () => {
       em.count.mockResolvedValue(19);
       await expect(guard.reserve(context, 'chat-model')).resolves.toBe('row-1');
+      expect(em.query).toHaveBeenCalledWith('SELECT pg_advisory_xact_lock($1, hashtext($2))', [3003, 'u1']);
+      expect(em.count).toHaveBeenCalledWith(AiUsage, {
+        where: { userId: 'u1', createdAt: MoreThan(new Date('2026-05-31T12:00:00.000Z')) },
+      });
+      expect(em.insert).toHaveBeenCalledWith(AiUsage, {
+        userId: 'u1',
+        feature: 'advisor',
+        model: 'chat-model',
+        createdAt: fixedNow,
+      });
     });
 
     it('refuses at the configured cap without inserting', async () => {
-      guard = new AiCostGuard(usage as never, { dailyCallsPerUser: 3 });
+      guard = new AiCostGuard(usage as never, { dailyCallsPerUser: 3 }, clock);
       em.count.mockResolvedValue(3);
       await expect(guard.reserve(context, 'chat-model')).rejects.toThrow(new AiUnavailableError(AI_REASONS.dailyLimit));
       expect(em.insert).not.toHaveBeenCalled();

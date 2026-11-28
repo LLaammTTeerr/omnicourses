@@ -3,13 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 import { RouterView, type Router } from 'vue-router';
 import { useAuth } from '../auth/store.js';
-import { session } from '../auth/testing/fixtures.js';
+import { session, user } from '../auth/testing/fixtures.js';
 import { useLocale } from '../locale.js';
 import { useTheme } from '../shell/theme.js';
 import { useToast } from '../shell/toast.js';
 import { closeNatively, hung, mockApi, sentBody, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import SettingsView from './SettingsView.vue';
+import { SETTINGS_MESSAGES } from './messages.js';
 
 const PHONE = session({
   id: '00000000-0000-4000-8000-0000000000b2',
@@ -22,7 +23,6 @@ const HERE = session({ id: '00000000-0000-4000-8000-0000000000b1', current: true
 let wrapper: VueWrapper | undefined;
 let router: Router;
 
-/** `routed`: through a RouterView, so the view's route guards run. */
 async function render(routes: Record<string, unknown> = {}, { routed = false } = {}) {
   const fetch = mockApi({ 'GET /auth/sessions': [OLD, PHONE, HERE], 'GET /programs': { programs: [] }, ...routes });
   const app = await setup('/settings');
@@ -47,7 +47,7 @@ describe('SettingsView', () => {
 
   it('shows the profile the API knows', async () => {
     const { w } = await render();
-    expect(w.get('h1').text()).toBe('Cài đặt');
+    expect(w.get('h1').text()).toBe(SETTINGS_MESSAGES.vi.title);
     expect(w.get('[data-test="display-name"]').text()).toBe('Sinh viên thử');
     expect(w.text()).toContain('zz-student@example.com');
   });
@@ -67,14 +67,13 @@ describe('SettingsView', () => {
     const { w, fetch } = await render();
     const calls = fetch.mock.calls.length;
     const copy = w.get('[data-test="copy-user-id"]');
-    expect(copy.text()).toBe('Sao chép');
+    expect(copy.text()).toBe(SETTINGS_MESSAGES.vi.copy);
     (copy.element as HTMLElement).focus();
     await copy.trigger('click');
     await flushPromises();
     expect(writeText).toHaveBeenCalledExactlyOnceWith('00000000-0000-4000-8000-000000000001');
-    expect(useToast().message).toBe('Đã sao chép mã người dùng.');
+    expect(useToast().message).toBe(SETTINGS_MESSAGES.vi.userIdCopied);
     expect(document.activeElement).toBe(copy.element);
-    // The ID is the one the session already holds: copying asks the API nothing.
     expect(fetch.mock.calls.length).toBe(calls);
     vi.unstubAllGlobals();
   });
@@ -87,8 +86,73 @@ describe('SettingsView', () => {
     await flushPromises();
     const field = w.get('[data-test="user-id"]').element as HTMLInputElement;
     expect([field.selectionStart, field.selectionEnd]).toEqual([0, field.value.length]);
-    expect(useToast().message).toBe('Chưa sao chép được. Mã đã được chọn sẵn: bấm Ctrl+C để sao chép.');
+    expect(useToast().message).toBe(SETTINGS_MESSAGES.vi.userIdNotCopied);
     vi.unstubAllGlobals();
+  });
+
+  it('saves the student ID and the class name, trimmed, and keeps them on the signed-in account (Lâm 4B, ADR 0019)', async () => {
+    const saved = user({ studentId: '24120000', className: '24CTT0' });
+    const { w, fetch } = await render({ 'PATCH /users/me': saved });
+    expect(w.get('label[for="student-id"]').text()).toBe('Mã số sinh viên (MSSV)');
+    expect(w.get('#profile').text()).toContain('không bao giờ gửi cho AI');
+    await w.get('[data-test="student-id"]').setValue(' 24120000 ');
+    await w.get('[data-test="class-name"]').setValue(' 24CTT0 ');
+    await w.get('[data-test="profile-form"]').trigger('submit');
+    await flushPromises();
+    const call = fetch.mock.calls.find(([, init]) => init?.method === 'PATCH')!;
+    expect(sentBody(call[1])).toEqual({ studentId: '24120000', className: '24CTT0' });
+    expect(useAuth().user).toEqual(saved);
+    expect(useToast().message).toBe(SETTINGS_MESSAGES.vi.profileSaved);
+  });
+
+  it('shows the saved values and clears both with blank fields', async () => {
+    const fetch = mockApi({ 'GET /auth/sessions': [HERE], 'GET /programs': { programs: [] }, 'PATCH /users/me': user() });
+    const app = await setup('/settings');
+    useAuth().user = user({ studentId: '24120000', className: '24CTT0' });
+    wrapper = mount(SettingsView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
+    await flushPromises();
+    expect((wrapper.get('[data-test="student-id"]').element as HTMLInputElement).value).toBe('24120000');
+    expect((wrapper.get('[data-test="class-name"]').element as HTMLInputElement).value).toBe('24CTT0');
+    await wrapper.get('[data-test="student-id"]').setValue('  ');
+    await wrapper.get('[data-test="class-name"]').setValue('');
+    await wrapper.get('[data-test="profile-form"]').trigger('submit');
+    await flushPromises();
+    const call = fetch.mock.calls.find(([, init]) => init?.method === 'PATCH')!;
+    expect(sentBody(call[1])).toEqual({ studentId: null, className: null });
+    expect(useAuth().user).toMatchObject({ studentId: null, className: null });
+  });
+
+  it.each(['2412000', '241200001', '2412000a', '２４１２００００'])('refuses the student ID %s without calling the API', async (value) => {
+    const { w, fetch } = await render();
+    await w.get('[data-test="student-id"]').setValue(value);
+    await w.get('[data-test="profile-form"]').trigger('submit');
+    await flushPromises();
+    expect(w.get('#student-id-error').text()).toBe(SETTINGS_MESSAGES.vi.studentIdInvalid);
+    expect(w.get('[data-test="student-id"]').attributes('aria-invalid')).toBe('true');
+    expect(w.get('[data-test="student-id"]').attributes('aria-describedby')).toBe('student-id-error');
+    expect(fetch.mock.calls.some(([, init]) => init?.method === 'PATCH')).toBe(false);
+  });
+
+  it('refuses a class name longer than 32 characters, counted in code points', async () => {
+    const { w, fetch } = await render();
+    await w.get('[data-test="class-name"]').setValue('😀'.repeat(33));
+    await w.get('[data-test="profile-form"]').trigger('submit');
+    await flushPromises();
+    expect(w.get('#class-name-error').text()).toBe(SETTINGS_MESSAGES.vi.classNameTooLong);
+    expect(fetch.mock.calls.some(([, init]) => init?.method === 'PATCH')).toBe(false);
+  });
+
+  it('says when saving failed, keeps what was typed, and logs no value', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { w } = await render({ 'PATCH /users/me': status(500) });
+    await w.get('[data-test="student-id"]').setValue('24120000');
+    await w.get('[data-test="class-name"]').setValue('24CTT0');
+    await w.get('[data-test="profile-form"]').trigger('submit');
+    await flushPromises();
+    expect(w.get('[data-test="profile-save-failed"]').text()).toBe(SETTINGS_MESSAGES.vi.profileSaveFailed);
+    expect((w.get('[data-test="student-id"]').element as HTMLInputElement).value).toBe('24120000');
+    expect(useAuth().user?.studentId).toBeNull();
+    expect(JSON.stringify(error.mock.calls)).not.toMatch(/24120000|24CTT0/);
   });
 
   it('lists the sessions, this device first, then the newest, each named after its browser (ADR 0002)', async () => {
@@ -116,7 +180,7 @@ describe('SettingsView', () => {
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining(`/auth/sessions/${PHONE.id}`), expect.objectContaining({ method: 'DELETE' }));
     expect(rows(w)).toHaveLength(1);
     expect(w.find('dialog[open]').exists()).toBe(false);
-    expect(useToast().message).toBe('Đã thu hồi phiên.');
+    expect(useToast().message).toBe(SETTINGS_MESSAGES.vi.revoked);
   });
 
   it('keeps the session when the student cancels', async () => {
@@ -139,7 +203,6 @@ describe('SettingsView', () => {
     await w.findAll('button').find((b) => b.text().includes('Xuất dữ liệu'))!.trigger('click');
     await flushPromises();
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/users/me/export'), expect.objectContaining({ headers: { Authorization: 'Bearer zz-token' } }));
-    // The file holds what the API sent. (Node's Blob and jsdom's differ, so check the content, not the class.)
     const saved = vi.mocked(URL.createObjectURL).mock.calls[0]![0] as Blob;
     expect(JSON.parse(await saved.text())).toEqual({ exportedAt: '2026-11-09T00:00:00.000Z', user: {}, tables: {} });
     expect(downloads).toEqual(['omnicourse-account.json']);
@@ -151,7 +214,7 @@ describe('SettingsView', () => {
     const { w } = await render({ 'GET /users/me/export': status(500) });
     await w.findAll('button').find((b) => b.text().includes('Xuất dữ liệu'))!.trigger('click');
     await flushPromises();
-    expect(w.get('#data [role="alert"]').text()).toBe('Chưa xuất được dữ liệu. Thử lại sau ít phút.');
+    expect(w.get('#data [role="alert"]').text()).toBe(SETTINGS_MESSAGES.vi.exportFailed);
   });
 
   async function openDeletion(w: VueWrapper) {
@@ -178,7 +241,7 @@ describe('SettingsView', () => {
     await dialog.get('#delete-password').setValue('zz-wrong-password');
     await dialog.get('form').trigger('submit');
     await flushPromises();
-    expect(dialog.get('[role="alert"]').text()).toBe('Mật khẩu không đúng.');
+    expect(dialog.get('[role="alert"]').text()).toBe(SETTINGS_MESSAGES.vi.wrongPassword);
     expect(dialog.get('#delete-password').attributes('aria-invalid')).toBe('true');
     expect(useAuth().signedIn).toBe(true);
     expect(router.currentRoute.value.name).toBe('settings');
@@ -193,7 +256,6 @@ describe('SettingsView', () => {
     await flushPromises();
     expect(dialog.findAll('button').find((b) => b.text() === 'Giữ lại')!.attributes('disabled')).toBeDefined();
     expect(dialog.get('[role="status"]').text()).toBe('Đang xử lý…');
-    // Escape reaches the dialog as a cancel event; a browser without `closedby` may then close it anyway.
     await dialog.trigger('cancel');
     closeNatively(dialog.element);
     await flushPromises();
@@ -201,18 +263,16 @@ describe('SettingsView', () => {
 
     answer(status(403, { message: 'Wrong password' })());
     await flushPromises();
-    expect(w.get('dialog[open] [role="alert"]').text()).toBe('Mật khẩu không đúng.');
+    expect(w.get('dialog[open] [role="alert"]').text()).toBe(SETTINGS_MESSAGES.vi.wrongPassword);
     expect(useAuth().signedIn).toBe(true);
   });
 
-  // While busy, `closedby="none"` leaves the Android back gesture to the browser, which goes back in history.
   it('stays on the page when the student goes back during the deletion, then leaves once it is done', async () => {
     let answer!: (response: Response) => void;
     const { w } = await render(
       { 'DELETE /users/me': () => new Promise<Response>((resolve) => (answer = resolve)), 'GET /health': { status: 'ok', database: 'up' }, 'GET /guides': { guides: [] } },
       { routed: true },
     );
-    // A page to go back to.
     await router.push('/guides');
     await router.push('/settings');
     await flushPromises();
@@ -231,7 +291,6 @@ describe('SettingsView', () => {
     expect(useAuth().signedIn).toBe(false);
   });
 
-  // The server may have done it: a retry then gets a 401, which signs the student out, and signing in cancels it.
   it('says a deletion that got no answer may have gone through', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const timer = new AbortController();
@@ -268,7 +327,7 @@ describe('SettingsView', () => {
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/auth/sign-out'), expect.objectContaining({ method: 'POST' }));
     expect(useAuth().signedIn).toBe(false);
     expect(router.currentRoute.value.name).toBe('home');
-    expect(useToast().message).toBe('Đã đăng xuất.');
+    expect(useToast().message).toBe(SETTINGS_MESSAGES.vi.signedOut);
   });
 
   it('switches the theme and the language', async () => {
@@ -293,9 +352,22 @@ describe('SettingsView', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     let calls = 0;
     const { w } = await render({ 'GET /auth/sessions': () => (calls++ === 0 ? new Response(null, { status: 500 }) : Response.json([HERE])) });
-    expect(w.get('#security [role="alert"]').text()).toContain('Chưa tải được danh sách phiên.');
+    expect(w.get('#security [role="alert"]').text()).toContain(SETTINGS_MESSAGES.vi.sessionsFailed);
     await w.get('#security [role="alert"] button').trigger('click');
     await flushPromises();
     expect(rows(w)).toHaveLength(1);
+  });
+
+  it('stays quiet and shows no revoke error toast when revoking a session answers 401', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { w } = await render({ [`DELETE /auth/sessions/${PHONE.id}`]: status(401) });
+    useToast().message = '';
+    await rows(w)[1]!.get('button').trigger('click');
+    await flushPromises();
+    await w.get('dialog[open]').findAll('button').find((b) => b.text() === 'Thu hồi')!.trigger('click');
+    await flushPromises();
+    expect(useAuth().signedIn).toBe(false);
+    expect(consoleError).not.toHaveBeenCalled();
+    expect(useToast().message).toBe('');
   });
 });

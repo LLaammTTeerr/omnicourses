@@ -1,0 +1,20 @@
+2026-11-28T07:45:38.197Z Chromium 156.0.8078.4 (headless, playwright-core 1.64.1)
+2026-11-28T07:45:38.282Z sign up on the screen as b1-run-r28c-a01@example.com
+ok   USER-01k: sign-up answers 201 | observed: 201
+ok   USER-01k: onboarding opens after sign-up | observed: /onboarding?redirect=/dashboard
+2026-11-28T07:45:40.711Z onboarding step 1 text: OmniCourse | Chương trình | Khóa | Mục tiêu | Tải học | EN | Làm sau | Đang tải…
+2026-11-28T07:45:40.737Z controls at the program question: ["Bỏ qua điều hướng","OmniCourse","EN","Làm sau"]
+FAIL USER-01k: a "My program isn't listed" choice exists at the program question | observed: 0 matching element(s)
+2026-11-28T07:45:40.787Z "later" link text: Làm sau
+2026-11-28T07:45:40.846Z after "Làm sau": /onboarding?redirect=/dashboard | OmniCourse | Chương trình | Khóa | Mục tiêu | Tải học | EN | Làm sau | Câu 1 / 4 · Chương trình | Bạn đang học chương trình nào? | </> | Cử nhân ngành Khoa học máy tính - Chương trình Tiên tiến | APCS | 10 chương trình khác chưa hỗ trợ trong bản này | Mỗi chương trình có CTĐT và quy định tín chỉ riêng. Bản này chỉ có APCS; chương trình khác sẽ có khi dữ liệu được kiểm tra xong. | Tiếp
+ok   USER-01k: no program is saved | observed: {"program":null,"cohort":null,"targetGraduationTerm":null,"creditsPerTerm":null,"internshipTerm":null,"finished":false}
+ok   USER-01k: the audit API answers 409 onboarding_required, with no audit worked out | observed: 409 {"statusCode":409,"code":"onboarding_required","message":"Finish onboarding to choose a program and cohort first"}
+FAIL USER-01k: Guides open normally | observed: /guides, 2 guides listed
+2026-11-28T07:45:43.051Z opening /dashboard lands on: /onboarding?redirect=/dashboard | OmniCourse | Chương trình | Khóa | Mục tiêu | Tải học | EN | Làm sau | Câu 1 / 4 · Chương trình | Bạn đang học chương trình nào? | </> | Cử nhân ngành Khoa học máy tính - Chương trình Tiên tiến | APCS | 10 chương trình khác chưa hỗ trợ trong bản này | Mỗi chương trình có CTĐT và quy định tín chỉ riêng. Bản này chỉ có APCS; chương trình khác sẽ có khi dữ liệu được kiểm tra xong. | Tiếp
+FAIL USER-01k: the dashboard renders and asks the student to finish onboarding, with a link (expected by the case) | observed: final URL /onboarding?redirect=/dashboard; dashboard "onboarding-required" notice shown: false
+ok   USER-01k: no error on the way | observed: 0 alert(s); console errors: []
+2026-11-28T07:45:44.006Z opening /audit lands on: /onboarding?redirect=/audit
+2026-11-28T07:45:44.967Z opening /settings lands on: /settings | study section: Chương trình và mục tiêu | Bạn chưa xong phần bắt đầu. | Chọn chương trình, khóa và mục tiêu để dùng các trang khác. | Làm tiếp
+2026-11-28T07:45:45.086Z after sign-out: /
+ok   USER-01k: after signing in again, onboarding opens | observed: 200 /onboarding?redirect=/dashboard
+2026-11-28T07:45:46.173Z console errors in the whole case: []

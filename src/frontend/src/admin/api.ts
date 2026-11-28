@@ -1,41 +1,10 @@
-import { request } from '../api.js';
-import type { Course, RequirementGroupKind } from '../curriculum/api.js';
+import { segment } from '../api.js';
+import { requestAsUser } from '../auth/store.js';
+import { CALENDAR_EVENT_KINDS, type AcademicCalendar, type CalendarEvent, type CalendarEventKind, type CalendarProgram } from '../calendar/api.js';
+import type { Course, RequirementGroupKind, TrainingType } from '../curriculum/api.js';
+import type { GlobalPermission, PermissionKind, UserGrants } from './grants.js';
 
-// The F12 administration DTOs of the API (ADR 0011), written by hand; api.spec.ts checks them, and every address
-// called here, against src/backend/openapi.json. The API decides every permission and every value: these calls
-// send what the administrator entered and return what the API answers.
-
-export const GLOBAL_PERMISSIONS = ['catalog_maintainer', 'access_manager'] as const;
-export type GlobalPermission = (typeof GLOBAL_PERMISSIONS)[number];
-/** The three independent grants (ADR 0011): none implies another. A 403 names the one the caller lacks. */
-export const PERMISSION_KINDS = ['program_admin', ...GLOBAL_PERMISSIONS] as const;
-export type PermissionKind = (typeof PERMISSION_KINDS)[number];
-
-// ---- Grants ----------------------------------------------------------------------------------------------------
-
-export interface ProgramGrant {
-  programId: string;
-  programCode: string;
-  grantedAt: string;
-  /** Who granted it; null for the bootstrap or a purged account. */
-  grantedBy: string | null;
-}
-
-export interface GlobalGrant {
-  permission: GlobalPermission;
-  grantedAt: string;
-  grantedBy: string | null;
-}
-
-export interface UserGrants {
-  userId: string;
-  /** By program code. */
-  programs: ProgramGrant[];
-  /** By permission. */
-  permissions: GlobalGrant[];
-}
-
-// ---- Programs the caller administers ---------------------------------------------------------------------------
+export { CALENDAR_EVENT_KINDS, type AcademicCalendar, type CalendarEvent, type CalendarEventKind, type CalendarProgram };
 
 export interface AdminCurriculum {
   id: string;
@@ -47,7 +16,6 @@ export interface AdminProgram {
   id: string;
   code: string;
   nameVi: string;
-  /** Its cohorts, oldest first. */
   curricula: AdminCurriculum[];
 }
 
@@ -55,25 +23,81 @@ export interface AdminProgramList {
   programs: AdminProgram[];
 }
 
-/** The program and cohort a curriculum write names in its address; the API checks that they belong together. */
 export interface CohortRef {
   programId: string;
   curriculumId: string;
 }
 
-// ---- Requirement groups ----------------------------------------------------------------------------------------
+export interface CreateProgramBody {
+  code: string;
+  nameVi: string;
+  nameEn?: string | null;
+  faculty?: string | null;
+  trainingType?: TrainingType | null;
+}
+
+export interface UpdateProgramBody {
+  nameVi?: string;
+  nameEn?: string | null;
+  faculty?: string | null;
+}
+
+export interface ProgramDetails {
+  id: string;
+  code: string;
+  nameVi: string;
+  nameEn: string | null;
+  faculty: string | null;
+  trainingType: TrainingType | null;
+  updatedAt: string;
+}
+
+export interface CreateCohortBody {
+  cohortYear: number;
+  code: string;
+  nameVi: string;
+  nameEn?: string | null;
+  language?: string | null;
+  totalCreditsMin?: number | null;
+}
+
+export interface UpdateCohortBody {
+  nameVi?: string;
+  nameEn?: string | null;
+  language?: string | null;
+  totalCreditsMin?: number | null;
+}
+
+export interface CohortDetails {
+  id: string;
+  programId: string;
+  cohortYear: number;
+  code: string;
+  nameVi: string;
+  nameEn: string | null;
+  language: string | null;
+  totalCreditsMin: number | null;
+  updatedAt: string;
+}
+
+export interface CohortList {
+  cohorts: CohortDetails[];
+}
 
 export interface CreateGroupBody {
   name: string;
   kind: RequirementGroupKind;
   officialNotes?: string | null;
+  creditsTotal?: number | null;
+  creditsTotalMin?: number | null;
 }
 
-/** Only the fields to change. Credit totals are not editable (ADR 0011): the API refuses them. */
 export interface UpdateGroupBody {
   name?: string;
   kind?: RequirementGroupKind;
   officialNotes?: string | null;
+  creditsTotal?: number | null;
+  creditsTotalMin?: number | null;
 }
 
 export interface AdminGroup {
@@ -87,31 +111,23 @@ export interface AdminGroup {
   updatedAt: string;
 }
 
-// ---- Prerequisites and offering terms --------------------------------------------------------------------------
-
 export interface SetPrerequisitesBody {
-  /** Every course that must be passed first; [] records "none". */
   prerequisites: string[];
 }
 
 export interface Prerequisites {
   courseCode: string;
-  /** null once cleared: not recorded. */
   prerequisites: string[] | null;
 }
 
 export interface SetOfferingTermsBody {
-  /** Term numbers 1, 2 or 3; at least one. */
   terms: number[];
 }
 
 export interface OfferingTerms {
   courseCode: string;
-  /** null once cleared: not recorded. */
   terms: number[] | null;
 }
-
-// ---- Catalog courses -------------------------------------------------------------------------------------------
 
 export interface CreateCourseBody {
   code: string;
@@ -124,7 +140,6 @@ export interface CreateCourseBody {
   projectPeriods?: number | null;
 }
 
-/** Only the fields to change; the code never changes (ADR 0011). */
 export interface UpdateCourseBody {
   nameVi?: string;
   nameEn?: string | null;
@@ -133,17 +148,10 @@ export interface UpdateCourseBody {
   labPeriods?: number | null;
   exercisePeriods?: number | null;
   projectPeriods?: number | null;
-  /** The reviewVersion of a 409 impact_confirmation_required answer: confirms the change for the curricula it listed. */
   confirmImpact?: string;
 }
 
-/**
- * A request body as the administrator typed it. A value the form could not read as a number stays the text they
- * typed, so the API refuses it and names the field; the screen never guesses or drops a value.
- */
 export type Entered<T> = { [K in keyof T]: T[K] | string | null };
-
-// ---- Access management -----------------------------------------------------------------------------------------
 
 export interface AccessProgram {
   id: string;
@@ -155,9 +163,84 @@ export interface AccessProgramList {
   programs: AccessProgram[];
 }
 
-// ---- Error bodies ----------------------------------------------------------------------------------------------
+export const IMPORT_FILE_TYPES = ['catalog_courses', 'group_links'] as const;
+export type ImportFileType = (typeof IMPORT_FILE_TYPES)[number];
 
-/** Every F12 error: the screen words its message from `code`; `message` is English text for a developer. */
+export const IMPORT_HEADERS: Record<ImportFileType, readonly string[]> = {
+  catalog_courses: ['code', 'name_vi', 'name_en', 'credits', 'theory_periods', 'lab_periods', 'exercise_periods', 'project_periods'],
+  group_links: ['requirement_group_name', 'course_code'],
+};
+
+export const BYTES_PER_KIB = 1024;
+export const BYTES_PER_MIB = 1024 * BYTES_PER_KIB;
+
+export const IMPORT_MAX_BYTES = BYTES_PER_MIB;
+export const IMPORT_MAX_RECORDS = 1000;
+export const SIGNED_OUT_BODY_MAX_KIB = 100;
+
+export interface ImportPreviewBody {
+  csv: string;
+}
+
+export interface ImportConfirmBody {
+  csv: string;
+  reviewVersion: string;
+}
+
+export interface ImportRowError {
+  record: number;
+  field: string | null;
+  message: string;
+}
+
+export interface ImportSummary {
+  inserts: number;
+  updates: number;
+  noOps: number;
+}
+
+export interface CatalogImportRow extends Course {
+  record: number;
+  action: 'insert' | 'update' | 'no_op';
+  changedFields: (keyof Course)[];
+  current: Course | null;
+  affectedCurricula: AffectedCurriculum[];
+}
+
+export interface GroupLinkImportRow {
+  record: number;
+  action: 'insert' | 'no_op';
+  requirementGroupName: string;
+  requirementGroupId: string;
+  courseCode: string;
+}
+
+interface ImportPreviewBase {
+  errors: ImportRowError[];
+  summary: ImportSummary;
+  reviewVersion: string | null;
+}
+
+export interface CatalogImportPreview extends ImportPreviewBase {
+  fileType: 'catalog_courses';
+  rows: CatalogImportRow[];
+  affectedCurricula: AffectedCurriculum[];
+}
+
+export interface GroupLinkImportPreview extends ImportPreviewBase {
+  fileType: 'group_links';
+  programId: string;
+  curriculumId: string;
+  rows: GroupLinkImportRow[];
+}
+
+export type ImportPreview = CatalogImportPreview | GroupLinkImportPreview;
+
+export interface ImportResult {
+  fileType: ImportFileType;
+  summary: ImportSummary;
+}
+
 export interface AdminErrorBody {
   statusCode: number;
   code: string;
@@ -169,12 +252,10 @@ export interface PermissionRequiredBody extends AdminErrorBody {
 }
 
 export interface PrerequisiteCycleBody extends AdminErrorBody {
-  /** From the edited course back to it: each code requires the next. */
   cycle: string[];
 }
 
 export interface ReferencedItemBody extends AdminErrorBody {
-  /** What still needs the item, in English words. */
   references: string[];
 }
 
@@ -185,77 +266,109 @@ export interface AffectedCurriculum {
   cohortYear: number;
 }
 
+export interface ImportRejectedBody extends AdminErrorBody {
+  errors?: ImportRowError[];
+}
+
 export interface ImpactConfirmationBody extends AdminErrorBody {
   affectedCurricula: AffectedCurriculum[];
   reviewVersion: string;
 }
 
-// ---- Calls -----------------------------------------------------------------------------------------------------
+export type CalendarTerm = 1 | 2 | 3;
 
-/**
- * One path segment. A segment of only dots would be resolved by the browser as a relative path, so the request
- * would reach another address; a trailing space keeps it one segment, and the API then refuses it as a value.
- */
-const segment = (value: string): string => {
-  const encoded = encodeURIComponent(value);
-  return /^\.+$/.test(encoded) ? `${encoded}%20` : encoded;
-};
+export interface CreateCalendarEventBody {
+  academicYear: number;
+  term?: CalendarTerm | null;
+  kind: CalendarEventKind;
+  startsOn: string;
+  endsOn?: string;
+  title: string;
+  titleEn?: string | null;
+  sourceUrl?: string | null;
+  notes?: string | null;
+}
+
+export interface UpdateCalendarEventBody {
+  academicYear?: number;
+  term?: CalendarTerm | null;
+  kind?: CalendarEventKind;
+  startsOn?: string;
+  endsOn?: string;
+  title?: string;
+  titleEn?: string | null;
+  sourceUrl?: string | null;
+  notes?: string | null;
+}
+
 const cohortPath = (cohort: CohortRef) => `/admin/programs/${segment(cohort.programId)}/cohorts/${segment(cohort.curriculumId)}`;
 const groupPath = (cohort: CohortRef, groupId: string) => `${cohortPath(cohort)}/requirement-groups/${segment(groupId)}`;
 const rulePath = (cohort: CohortRef, courseCode: string) => `${cohortPath(cohort)}/courses/${segment(courseCode)}`;
 const userPath = (userId: string) => `/admin/access/users/${segment(userId)}`;
+const calendarEventsPath = (programId: string) => `/admin/programs/${segment(programId)}/calendar-events`;
 
-/** The signed-in user's own grants; empty lists when they hold none. Open to any signed-in user. */
-export const fetchOwnGrants = (token: string) => request<UserGrants>('GET', '/admin/grants', { token });
+export const fetchAdminPrograms = () => requestAsUser<AdminProgramList>('GET', '/admin/programs');
 
-/** The programs the caller holds a program grant for, with their cohorts. */
-export const fetchAdminPrograms = (token: string) => request<AdminProgramList>('GET', '/admin/programs', { token });
+export const createProgram = (body: Entered<CreateProgramBody>) => requestAsUser<ProgramDetails>('POST', '/admin/programs', { body });
+export const updateProgram = (programId: string, body: Entered<UpdateProgramBody>) =>
+  requestAsUser<ProgramDetails>('PATCH', `/admin/programs/${segment(programId)}`, { body });
+export const fetchCohorts = (programId: string) => requestAsUser<CohortList>('GET', `/admin/programs/${segment(programId)}/cohorts`);
+export const createCohort = (programId: string, body: Entered<CreateCohortBody>) =>
+  requestAsUser<CohortDetails>('POST', `/admin/programs/${segment(programId)}/cohorts`, { body });
+export const fetchCohort = (cohort: CohortRef) => requestAsUser<CohortDetails>('GET', cohortPath(cohort));
+export const updateCohort = (cohort: CohortRef, body: Entered<UpdateCohortBody>) => requestAsUser<CohortDetails>('PATCH', cohortPath(cohort), { body });
 
-export const createGroup = (token: string, cohort: CohortRef, body: Entered<CreateGroupBody>) =>
-  request<AdminGroup>('POST', `${cohortPath(cohort)}/requirement-groups`, { token, body });
-export const updateGroup = (token: string, cohort: CohortRef, groupId: string, body: Entered<UpdateGroupBody>) =>
-  request<AdminGroup>('PATCH', groupPath(cohort, groupId), { token, body });
-/** 409 referenced_item while the group still links courses. */
-export const deleteGroup = (token: string, cohort: CohortRef, groupId: string) => request<void>('DELETE', groupPath(cohort, groupId), { token });
+export const createGroup = (cohort: CohortRef, body: Entered<CreateGroupBody>) =>
+  requestAsUser<AdminGroup>('POST', `${cohortPath(cohort)}/requirement-groups`, { body });
+export const updateGroup = (cohort: CohortRef, groupId: string, body: Entered<UpdateGroupBody>) =>
+  requestAsUser<AdminGroup>('PATCH', groupPath(cohort, groupId), { body });
+export const deleteGroup = (cohort: CohortRef, groupId: string) => requestAsUser<void>('DELETE', groupPath(cohort, groupId));
 
-/** Links a catalog course to the group; a course already in it stays. 404: the catalog has no such code. */
-export const linkCourse = (token: string, cohort: CohortRef, groupId: string, courseCode: string) =>
-  request<void>('PUT', `${groupPath(cohort, groupId)}/courses/${segment(courseCode)}`, { token });
-/** 409 referenced_item when the course would leave the curriculum while a recorded rule names it. */
-export const unlinkCourse = (token: string, cohort: CohortRef, groupId: string, courseCode: string) =>
-  request<void>('DELETE', `${groupPath(cohort, groupId)}/courses/${segment(courseCode)}`, { token });
+export const linkCourse = (cohort: CohortRef, groupId: string, courseCode: string) =>
+  requestAsUser<void>('PUT', `${groupPath(cohort, groupId)}/courses/${segment(courseCode)}`);
+export const unlinkCourse = (cohort: CohortRef, groupId: string, courseCode: string) =>
+  requestAsUser<void>('DELETE', `${groupPath(cohort, groupId)}/courses/${segment(courseCode)}`);
 
-/** Replaces the course's list; [] records "none". 400 prerequisite_cycle names a cycle. */
-export const setPrerequisites = (token: string, cohort: CohortRef, courseCode: string, prerequisites: string[]) =>
-  request<Prerequisites>('PUT', `${rulePath(cohort, courseCode)}/prerequisites`, { token, body: { prerequisites } satisfies SetPrerequisitesBody });
-/** Back to not recorded. */
-export const clearPrerequisites = (token: string, cohort: CohortRef, courseCode: string) =>
-  request<Prerequisites>('DELETE', `${rulePath(cohort, courseCode)}/prerequisites`, { token });
+export const setPrerequisites = (cohort: CohortRef, courseCode: string, prerequisites: string[]) =>
+  requestAsUser<Prerequisites>('PUT', `${rulePath(cohort, courseCode)}/prerequisites`, { body: { prerequisites } satisfies SetPrerequisitesBody });
+export const clearPrerequisites = (cohort: CohortRef, courseCode: string) =>
+  requestAsUser<Prerequisites>('DELETE', `${rulePath(cohort, courseCode)}/prerequisites`);
 
-export const setOfferingTerms = (token: string, cohort: CohortRef, courseCode: string, terms: number[]) =>
-  request<OfferingTerms>('PUT', `${rulePath(cohort, courseCode)}/offering-terms`, { token, body: { terms } satisfies SetOfferingTermsBody });
-/** Back to not recorded. */
-export const clearOfferingTerms = (token: string, cohort: CohortRef, courseCode: string) =>
-  request<OfferingTerms>('DELETE', `${rulePath(cohort, courseCode)}/offering-terms`, { token });
+export const setOfferingTerms = (cohort: CohortRef, courseCode: string, terms: number[]) =>
+  requestAsUser<OfferingTerms>('PUT', `${rulePath(cohort, courseCode)}/offering-terms`, { body: { terms } satisfies SetOfferingTermsBody });
+export const clearOfferingTerms = (cohort: CohortRef, courseCode: string) =>
+  requestAsUser<OfferingTerms>('DELETE', `${rulePath(cohort, courseCode)}/offering-terms`);
 
-/** 409 duplicate_code when the catalog has the code. */
-export const createCourse = (token: string, body: Entered<CreateCourseBody>) => request<Course>('POST', '/admin/catalog/courses', { token, body });
-/** 409 impact_confirmation_required or impact_changed when a curriculum links the course: review, then confirm. */
-export const updateCourse = (token: string, courseCode: string, body: Entered<UpdateCourseBody>) =>
-  request<Course>('PATCH', `/admin/catalog/courses/${segment(courseCode)}`, { token, body });
-/** 409 referenced_item while a curriculum, rule, transcript or saved plan names the course. */
-export const deleteCourse = (token: string, courseCode: string) => request<void>('DELETE', `/admin/catalog/courses/${segment(courseCode)}`, { token });
+export const createCourse = (body: Entered<CreateCourseBody>) => requestAsUser<Course>('POST', '/admin/catalog/courses', { body });
+export const updateCourse = (courseCode: string, body: Entered<UpdateCourseBody>) =>
+  requestAsUser<Course>('PATCH', `/admin/catalog/courses/${segment(courseCode)}`, { body });
+export const deleteCourse = (courseCode: string) => requestAsUser<void>('DELETE', `/admin/catalog/courses/${segment(courseCode)}`);
 
-/** Every program, to choose a program grant from. */
-export const fetchAccessPrograms = (token: string) => request<AccessProgramList>('GET', '/admin/access/programs', { token });
-/** One user's grants, by exact user ID. 404: no account has it. */
-export const fetchUserGrants = (token: string, userId: string) => request<UserGrants>('GET', `${userPath(userId)}/grants`, { token });
-export const grantProgram = (token: string, userId: string, programId: string) =>
-  request<UserGrants>('PUT', `${userPath(userId)}/programs/${segment(programId)}`, { token });
-export const revokeProgram = (token: string, userId: string, programId: string) =>
-  request<UserGrants>('DELETE', `${userPath(userId)}/programs/${segment(programId)}`, { token });
-export const grantGlobal = (token: string, userId: string, permission: GlobalPermission) =>
-  request<UserGrants>('PUT', `${userPath(userId)}/global/${segment(permission)}`, { token });
-/** 409 last_access_manager when it would leave no active access manager. */
-export const revokeGlobal = (token: string, userId: string, permission: GlobalPermission) =>
-  request<UserGrants>('DELETE', `${userPath(userId)}/global/${segment(permission)}`, { token });
+export const fetchAccessPrograms = () => requestAsUser<AccessProgramList>('GET', '/admin/access/programs');
+export const fetchUserGrants = (userId: string) => requestAsUser<UserGrants>('GET', `${userPath(userId)}/grants`);
+export const grantProgram = (userId: string, programId: string) =>
+  requestAsUser<UserGrants>('PUT', `${userPath(userId)}/programs/${segment(programId)}`);
+export const revokeProgram = (userId: string, programId: string) =>
+  requestAsUser<UserGrants>('DELETE', `${userPath(userId)}/programs/${segment(programId)}`);
+export const grantGlobal = (userId: string, permission: GlobalPermission) =>
+  requestAsUser<UserGrants>('PUT', `${userPath(userId)}/global/${segment(permission)}`);
+export const revokeGlobal = (userId: string, permission: GlobalPermission) =>
+  requestAsUser<UserGrants>('DELETE', `${userPath(userId)}/global/${segment(permission)}`);
+
+export const previewCatalogImport = (csv: string) =>
+  requestAsUser<CatalogImportPreview>('POST', '/admin/catalog/imports/preview', { body: { csv } satisfies ImportPreviewBody });
+export const confirmCatalogImport = (csv: string, reviewVersion: string) =>
+  requestAsUser<ImportResult>('POST', '/admin/catalog/imports/confirm', { body: { csv, reviewVersion } satisfies ImportConfirmBody });
+export const previewLinkImport = (cohort: CohortRef, csv: string) =>
+  requestAsUser<GroupLinkImportPreview>('POST', `${cohortPath(cohort)}/imports/preview`, { body: { csv } satisfies ImportPreviewBody });
+export const confirmLinkImport = (cohort: CohortRef, csv: string, reviewVersion: string) =>
+  requestAsUser<ImportResult>('POST', `${cohortPath(cohort)}/imports/confirm`, { body: { csv, reviewVersion } satisfies ImportConfirmBody });
+
+export const fetchProgramCalendar = (programCode: string) =>
+  requestAsUser<AcademicCalendar>('GET', `/academic-calendar?program=${encodeURIComponent(programCode)}`);
+export const createCalendarEvent = (programId: string, body: Entered<CreateCalendarEventBody>) =>
+  requestAsUser<CalendarEvent>('POST', calendarEventsPath(programId), { body });
+export const updateCalendarEvent = (programId: string, eventId: string, body: Entered<UpdateCalendarEventBody>) =>
+  requestAsUser<CalendarEvent>('PATCH', `${calendarEventsPath(programId)}/${segment(eventId)}`, { body });
+export const deleteCalendarEvent = (programId: string, eventId: string) =>
+  requestAsUser<void>('DELETE', `${calendarEventsPath(programId)}/${segment(eventId)}`);

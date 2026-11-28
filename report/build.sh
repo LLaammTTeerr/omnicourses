@@ -182,6 +182,12 @@ case "$TARGET" in
     # Top-level documents only; uc-specs.tex and diagrams/ are \input fragments
     while IFS= read -r f; do FILES+=("$f"); done < <(find "$SCRIPT_DIR/assignments/PA2" -maxdepth 1 -name "*.tex" ! -name "uc-*" ! -name "_*")
     ;;
+  pa3)
+    while IFS= read -r f; do FILES+=("$f"); done < <(find "$SCRIPT_DIR/assignments/PA3" -maxdepth 1 -name "*.tex" ! -name "_*")
+    ;;
+  pa4)
+    while IFS= read -r f; do FILES+=("$f"); done < <(find "$SCRIPT_DIR/assignments/PA4" -maxdepth 1 -name "*.tex" ! -name "_*")
+    ;;
   week[0-9]|week[0-9][0-9]|week-[0-9]|week-[0-9][0-9])
     NUM=$(echo "$TARGET" | grep -o '[0-9]\+')
     PADDED=$(printf "%02d" "$NUM")
@@ -192,7 +198,7 @@ case "$TARGET" in
       FILES=("$TARGET")
     else
       echo "Unknown target: $TARGET"
-      echo "Options: all, weekly, pa1, pa2, week1..week10, pa1-package, pa2-package, clean"
+      echo "Options: all, weekly, pa1, pa2, pa3, pa4, week1..week10, pa1-package, pa2-package, clean"
       exit 1
     fi
     ;;

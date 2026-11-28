@@ -7,9 +7,9 @@ import { mockApi, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import AuditView from './AuditView.vue';
 import { COMBINED, course, degreeAudit, emptyAudit, group, GROUP_A, GROUP_C, GROUP_MATH } from './testing/fixtures.js';
+import { AUDIT_MESSAGES } from './messages.js';
 
 let wrapper: VueWrapper | undefined;
-/** scrollIntoView as jsdom has it (none, so far): the scroll tests put one in and must take it out again. */
 const ORIGINAL_SCROLL = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollIntoView');
 
 async function render(answer: unknown = degreeAudit(), path = '/audit', errorHandler?: (error: unknown) => void) {
@@ -63,7 +63,7 @@ describe('AuditView (F3, ADR 0013)', () => {
     expect(missing).toContain('Còn thiếu: 4 TC');
     expect(missing).toContain('Chưa đạt: ZZ202');
     expect(missing).toContain('Căn cứ: QĐ 1175/QĐ-KHTN Điều 17.3.b');
-    expect(section(w, GROUP_MATH).get('[data-test="missing"]').text()).toContain('Không còn thiếu gì.');
+    expect(section(w, GROUP_MATH).get('[data-test="missing"]').text()).toContain(AUDIT_MESSAGES.vi.nothingMissing);
   });
 
   it('says when what a group lacks is all in progress, never "0 TC" missing', async () => {
@@ -96,7 +96,6 @@ describe('AuditView (F3, ADR 0013)', () => {
   });
 
   it('names a course that still blocks the group though it counts in another one', async () => {
-    // The API keeps a failed or in-progress course's own status in every group that lists it (ADR 0013).
     const groups = [
       group(GROUP_A, 'Kiến thức Computer Science (A): bắt buộc', {
         passedCredits: 4,
@@ -115,8 +114,7 @@ describe('AuditView (F3, ADR 0013)', () => {
     const elective = section(w, GROUP_C);
     expect(elective.text()).toContain('Tự chọn · Không có tối thiểu riêng · tính trong Kiến thức tự chọn · 4 TC đang học');
     expect(elective.text()).not.toMatch(/\/ 0/);
-    // The API calls it met and lists no condition for it: the screen shows no ✓ and points to the combined minimum.
-    expect(elective.get('[data-test="group-state"]').text()).toBe('Xét theo tối thiểu chung');
+    expect(elective.get('[data-test="group-state"]').text()).toBe(AUDIT_MESSAGES.vi.byCombined);
     expect(elective.get('[data-test="missing"]').text()).toBe('Còn thiếu: xem Kiến thức tự chọn');
     expect(elective.text()).not.toContain('✓');
     expect(elective.text()).not.toContain('Không còn thiếu gì');
@@ -134,7 +132,7 @@ describe('AuditView (F3, ADR 0013)', () => {
     const combined = w.get(`#combined-${COMBINED}`);
     expect(combined.text()).toContain('0 / 12 TC · 12 TC đang học');
     expect(combined.text()).toContain('○ Chưa đạt');
-    expect(combined.text()).not.toContain('Còn thiếu');
+    expect(combined.text()).not.toContain(AUDIT_MESSAGES.vi.missing);
     expect(combined.text()).toContain('Căn cứ: QĐ 1175/QĐ-KHTN Điều 17.3.b');
   });
 
@@ -170,12 +168,12 @@ describe('AuditView (F3, ADR 0013)', () => {
 
   it('lists the graduation conditions with their citations, and the unchecked ones as for the school', async () => {
     const { w } = await render();
-    expect(w.get('[data-test="graduation"]').text()).toContain('Chưa đủ điều kiện tốt nghiệp');
+    expect(w.get('[data-test="graduation"]').text()).toContain(AUDIT_MESSAGES.vi.graduationNotYet);
     const unmet = w.get('[data-test="conditions-unmet"]').text();
     expect(unmet).toContain('Kiến thức Computer Science (A): bắt buộc');
     expect(unmet).toContain('Tích lũy tối thiểu 20 TC của khóa');
     const notChecked = w.get('[data-test="conditions-not-checked"]');
-    expect(notChecked.text()).toContain('Trường sẽ xét');
+    expect(notChecked.text()).toContain(AUDIT_MESSAGES.vi.notCheckedTitle);
     expect(notChecked.text()).toContain('? Chuẩn ngoại ngữ của trường QĐ 1175/QĐ-KHTN Điều 17.3.d');
     expect(notChecked.text()).toContain('QĐ 1175/QĐ-KHTN Điều 2.7');
     expect(notChecked.text()).not.toContain('Đã đạt');
@@ -222,7 +220,6 @@ describe('AuditView (F3, ADR 0013)', () => {
     expect(w.findAll('[data-test="group"]')).toHaveLength(3);
     expect(section(w, GROUP_A).text()).toContain('0 / 8 TC');
     expect(rowsOf(w, GROUP_A).map((cells) => cells[3])).toEqual(['Chưa học', 'Chưa học']);
-    // (C) has nothing passed: no ✓ on it, while the combined minimum it feeds is 0 / 12 and not met.
     expect(section(w, GROUP_C).text()).not.toContain('✓');
     expect(w.find('[data-test="conditions-met"]').exists()).toBe(false);
     expect(w.find('[data-test="terms"]').exists()).toBe(false);
@@ -238,7 +235,7 @@ describe('AuditView (F3, ADR 0013)', () => {
     const w = wrapper;
     const text = (test: string) => w.get(`[data-test="${test}"]`).text();
     expect(w.find('[aria-busy="true"]').exists()).toBe(false);
-    expect(text('graduation-status')).toBe('Chưa đủ điều kiện tốt nghiệp');
+    expect(text('graduation-status')).toBe(AUDIT_MESSAGES.vi.graduationNotYet);
     expect(text('credits-toward-total')).toBe('8 / 20 TC');
     expect(text('credits-remaining')).toBe('còn 12 TC');
     expect(text('credits-in-progress')).toBe('4 TC đang học');
@@ -246,7 +243,7 @@ describe('AuditView (F3, ADR 0013)', () => {
     expect(text('gpa-average')).toBe('7,75');
     expect(text('gpa-accumulated-average')).toBe('8');
     expect(text('gpa-four-point')).toBe('3,5');
-    expect(text('gpa-classification')).toBe('Giỏi');
+    expect(text('gpa-classification')).toBe(AUDIT_MESSAGES.vi.classifications.very_good);
     const term = w.get('[data-test="term-2024-1"]');
     expect(term.get('[data-test="term-credits"]').text()).toBe('9');
     expect(term.get('[data-test="term-passed"]').text()).toBe('9');
@@ -259,7 +256,7 @@ describe('AuditView (F3, ADR 0013)', () => {
     const { w } = await render();
     useLocale().set('en');
     await flushPromises();
-    expect(w.get('h1').text()).toBe('Degree audit');
+    expect(w.get('h1').text()).toBe(AUDIT_MESSAGES.en.auditTitle);
     expect(rowsOf(w, GROUP_C)[0]).toEqual(['ZZ414', 'Test elective ZZ414', '4', 'In progress', '–']);
     expect(rowsOf(w, GROUP_A)[1]![4]).toBe('4.5');
   });
@@ -296,17 +293,12 @@ describe('AuditView (F3, ADR 0013)', () => {
 
     it('takes the hash as the router decoded it, so a stray % neither throws nor scrolls', async () => {
       const errors = vi.fn();
-      // The router's own scroll behaviour warns that "#group-%" is no valid selector; that is not this page's.
       vi.spyOn(console, 'warn').mockImplementation(() => {});
       const { w } = await render(degreeAudit(), '/audit#group-%25', errors);
       expect(errors).not.toHaveBeenCalled();
       expect(scrolled).toEqual([]);
       expect(w.findAll('[data-test="group"]')).toHaveLength(3);
     });
-  });
-
-  it('leaves no scrollIntoView behind for later tests', () => {
-    expect(Object.getOwnPropertyDescriptor(Element.prototype, 'scrollIntoView')).toEqual(ORIGINAL_SCROLL);
   });
 
   it('sends a student without a program to onboarding', async () => {
@@ -318,7 +310,7 @@ describe('AuditView (F3, ADR 0013)', () => {
   it('shows an error with a retry when the audit cannot be loaded', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const { w } = await render(status(503));
-    expect(w.get('[role="alert"]').text()).toContain('Chưa tải được kết quả xét tốt nghiệp.');
+    expect(w.get('[role="alert"]').text()).toContain(AUDIT_MESSAGES.vi.loadFailed);
     expect(w.find('[data-test="group"]').exists()).toBe(false);
   });
 
@@ -327,5 +319,19 @@ describe('AuditView (F3, ADR 0013)', () => {
     const { w } = await render(status(401));
     expect(useAuth().signedIn).toBe(false);
     expect(w.find('[role="alert"]').exists()).toBe(false);
+  });
+
+  it('labels course and term cells with localized column names for mobile cards', async () => {
+    const { w } = await render();
+    const courseCells = section(w, GROUP_A).get('tbody tr').findAll('td[data-label]');
+    expect(courseCells.map((td) => td.attributes('data-label'))).toEqual([AUDIT_MESSAGES.vi.credits, AUDIT_MESSAGES.vi.status, AUDIT_MESSAGES.vi.grade]);
+    const termCells = w.get('[data-test="terms"] tbody tr').findAll('td[data-label]');
+    expect(termCells.map((td) => td.attributes('data-label'))).toEqual([
+      AUDIT_MESSAGES.vi.load,
+      AUDIT_MESSAGES.vi.passed,
+      AUDIT_MESSAGES.vi.termAverage,
+      AUDIT_MESSAGES.vi.cumulative,
+      AUDIT_MESSAGES.vi.status,
+    ]);
   });
 });

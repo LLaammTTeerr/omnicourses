@@ -154,6 +154,7 @@ jobs:
           cache: npm
       - run: npm install -g npm@${{ env.NPM_VERSION }}
       - run: npm ci
+      - run: npm run lint
       - run: npm run typecheck -w src/frontend
       - run: npm run test -w src/frontend
       - name: Install Chromium for browser tests

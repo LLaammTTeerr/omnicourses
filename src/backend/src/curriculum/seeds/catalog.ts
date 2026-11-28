@@ -1,0 +1,89 @@
+import type { CatalogCourse, CatalogDecision, CurriculumSeed, PrintedRow } from './seed-types.js';
+
+const CATALOG_FIELDS = [
+  'name_vi',
+  'name_en',
+  'credits',
+  'theory_periods',
+  'lab_periods',
+  'exercise_periods',
+  'project_periods',
+] as const satisfies readonly (keyof Omit<CatalogCourse, 'code'>)[];
+
+export function rowToCourse(seed: CurriculumSeed, row: PrintedRow): CatalogCourse {
+  const appendix = seed.appendix.find((a) => a.code === row.code);
+  return {
+    code: row.code,
+    name_vi: row.name_vi,
+    name_en: appendix?.name_en ?? null,
+    credits: row.credits,
+    theory_periods: row.theory_periods,
+    lab_periods: row.lab_periods,
+    exercise_periods: row.exercise_periods,
+    project_periods: row.project_periods,
+  };
+}
+
+interface Sighting {
+  course: CatalogCourse;
+  label: string;
+}
+
+export interface CatalogConflict {
+  code: string;
+  field: string;
+  values: { where: string; value: unknown }[];
+}
+
+export class CatalogConflictError extends Error {
+  constructor(readonly conflicts: CatalogConflict[]) {
+    super(
+      `Course catalog conflict: ${conflicts.length} value(s) differ for the same course code. ` +
+        'Resolve each in the seed data or with an explicit catalog decision; the seed never lets the last write win.\n' +
+        conflicts
+          .map(
+            (c) => `  ${c.code}.${c.field}: ` + c.values.map((v) => `${JSON.stringify(v.value)} (${v.where})`).join(' vs '),
+          )
+          .join('\n'),
+    );
+    this.name = 'CatalogConflictError';
+  }
+}
+
+export function seedLabel(seed: CurriculumSeed): string {
+  return `${seed.program.code} ${seed.curriculum.cohort_year}`;
+}
+
+export function buildCatalog(seeds: CurriculumSeed[], decisions: CatalogDecision[]): Map<string, CatalogCourse> {
+  const sightings = new Map<string, Sighting[]>();
+  for (const seed of seeds) {
+    for (const group of seed.groups) {
+      for (const row of group.rows) {
+        const list = sightings.get(row.code) ?? [];
+        list.push({ course: rowToCourse(seed, row), label: `${seedLabel(seed)} p.${row.page}` });
+        sightings.set(row.code, list);
+      }
+    }
+  }
+
+  const conflicts: CatalogConflict[] = [];
+  const catalog = new Map<string, CatalogCourse>();
+  for (const [code, list] of sightings) {
+    const course: CatalogCourse = { ...list[0].course };
+    for (const field of CATALOG_FIELDS) {
+      const printedValues = [...new Set(list.map((s) => s.course[field]).filter((v) => v !== null))];
+      (course as unknown as Record<string, unknown>)[field] = printedValues.length ? printedValues[0] : null;
+      if (printedValues.length <= 1) continue;
+      const decision = decisions.find((d) => d.code === code && d.field === field);
+      const decided = decision ? new Set(decision.printed.map((p) => p.value)) : undefined;
+      if (decision && printedValues.every((v) => decided!.has(v)) && decided!.has(decision.catalog_value)) {
+        (course as unknown as Record<string, unknown>)[field] = decision.catalog_value;
+        continue;
+      }
+      conflicts.push({ code, field, values: list.map((s) => ({ where: s.label, value: s.course[field] })) });
+    }
+    catalog.set(code, course);
+  }
+  if (conflicts.length) throw new CatalogConflictError(conflicts);
+  return catalog;
+}

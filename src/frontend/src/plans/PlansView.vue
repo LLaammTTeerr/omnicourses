@@ -1,23 +1,19 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef } from 'vue';
-import { onBeforeRouteLeave, RouterLink, useRouter } from 'vue-router';
-import { statusOf } from '../api.js';
+import { RouterLink, useRouter } from 'vue-router';
 import { useAsyncLoad } from '../async-load.js';
-import { useAuth } from '../auth/store.js';
 import { formatDateTime, useLocale, useMessages } from '../locale.js';
 import { termName } from '../terms.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
-import { createPlan, deletePlan, duplicatePlan, fetchPlans, renamePlan, type PlanListItem, type PlanSummary } from './api.js';
+import { deletePlanIfThere, fitPlanName, usePlanActions } from './actions.js';
+import { createPlan, duplicatePlan, fetchPlans, renamePlan, type PlanListItem, type PlanSummary } from './api.js';
 import DeletePlanDialog from './DeletePlanDialog.vue';
 import { PLANNER_MESSAGES } from './messages.js';
 import PlanNameDialog from './PlanNameDialog.vue';
 
-// F5 (UC-05 A6): the student's plans, to open, create, rename, copy and delete. A plan keeps the curriculum it was
-// created with (ADR 0014); a new one uses the student's program and cohort from onboarding.
-const auth = useAuth();
 const onboarding = useOnboarding();
 const locale = useLocale();
 const toast = useToast();
@@ -26,77 +22,55 @@ const m = useMessages(PLANNER_MESSAGES);
 
 const plans = ref<PlanListItem[]>([]);
 const { status, reload } = useAsyncLoad('the plans', async () => {
-  plans.value = (await auth.authed(fetchPlans)).plans;
+  plans.value = (await fetchPlans()).plans;
 });
 
-// The router guard loads the onboarding answers but opens the page when that fails, so the list loads them too:
-// "pick a program in Settings" is said only once they are known to have none.
 const answers = useAsyncLoad('the onboarding answers', () => onboarding.load());
 const program = computed(() => {
   const answers = onboarding.answers;
   return answers?.program && answers.cohort ? { code: answers.program, cohort: answers.cohort } : null;
 });
 
-/** Name dialog: create a plan, or rename `plan`. */
 const naming = shallowRef<{ plan: PlanSummary | null } | null>(null);
-const busy = ref(false);
-const dialogError = ref<string | null>(null);
 const deleting = shallowRef<PlanSummary | null>(null);
+const { busy, dialogError, attempt, attemptOrToast } = usePlanActions(() => naming.value !== null || deleting.value !== null);
 
 function openNaming(plan: PlanSummary | null): void {
   dialogError.value = null;
   naming.value = { plan };
 }
 
-/** Runs an action; a 401 has already signed the student out (App.vue), any other failure is said. */
-async function attempt(what: string, action: () => Promise<void>): Promise<boolean> {
-  busy.value = true;
-  dialogError.value = null;
-  try {
-    await action();
-    return true;
-  } catch (e) {
-    if (statusOf(e) !== 401) {
-      console.error(`${what} failed:`, e);
-      dialogError.value = m.value.actionFailed;
-    }
-    return false;
-  } finally {
-    busy.value = false;
-  }
+async function rename(target: PlanSummary, name: string): Promise<void> {
+  const done = await attempt('Renaming the plan', async () => {
+    const renamed = await renamePlan(target.id, name);
+    plans.value = plans.value.map((plan) => (plan.id === renamed.id ? { ...plan, ...renamed } : plan));
+    toast.show(m.value.renamed(renamed.name));
+  });
+  if (done) naming.value = null;
 }
 
-async function saveName(name: string): Promise<void> {
-  const target = naming.value?.plan ?? null;
-  if (target) {
-    const done = await attempt('Renaming the plan', async () => {
-      const renamed = await auth.authed((token) => renamePlan(token, target.id, name));
-      plans.value = plans.value.map((plan) => (plan.id === renamed.id ? { ...plan, ...renamed } : plan));
-      toast.show(m.value.renamed(renamed.name));
-    });
-    if (done) naming.value = null;
-    return;
-  }
+async function create(name: string): Promise<void> {
   if (!program.value) return;
   const { code, cohort } = program.value;
   await attempt('Creating a plan', async () => {
-    const created = await auth.authed((token) => createPlan(token, { name, programCode: code, cohortYear: cohort }));
+    const created = await createPlan({ name, programCode: code, cohortYear: cohort });
     toast.show(m.value.created(created.name));
     naming.value = null;
     await router.push({ name: 'plan', params: { id: created.id } });
   });
 }
 
-async function copy(plan: PlanSummary): Promise<void> {
-  // The API allows 100 characters, counting an emoji as one: cut between code points, never inside a surrogate pair.
-  const name = Array.from(m.value.copyName(plan.name)).slice(0, 100).join('');
-  const done = await attempt('Copying the plan', async () => {
-    const copied = await auth.authed((token) => duplicatePlan(token, plan.id, name));
-    const source = plans.value.find((p) => p.id === plan.id);
-    plans.value = [...plans.value, { ...copied, preview: source!.preview }];
+function saveName(name: string): Promise<void> {
+  const target = naming.value?.plan ?? null;
+  return target ? rename(target, name) : create(name);
+}
+
+async function copy(plan: PlanListItem): Promise<void> {
+  await attemptOrToast('Copying the plan', async () => {
+    const copied = await duplicatePlan(plan.id, fitPlanName(m.value.copyName(plan.name)));
+    plans.value = [...plans.value, { ...copied, preview: plan.preview }];
     toast.show(m.value.copied(copied.name));
   });
-  if (!done && dialogError.value) toast.show(dialogError.value);
 }
 
 function askDelete(plan: PlanSummary): void {
@@ -108,24 +82,13 @@ async function confirmDelete(): Promise<void> {
   const plan = deleting.value;
   if (!plan) return;
   const done = await attempt('Deleting the plan', async () => {
-    try {
-      await auth.authed((token) => deletePlan(token, plan.id));
-    } catch (e) {
-      // Already gone: an earlier deletion that timed out here may have gone through on the server.
-      if (statusOf(e) !== 404) throw e;
-    }
+    await deletePlanIfThere(plan.id);
     plans.value = plans.value.filter((p) => p.id !== plan.id);
     toast.show(m.value.deleted(plan.name));
   });
   if (done) deleting.value = null;
 }
 
-// A busy dialog refuses Escape with `closedby="none"`, which leaves the Android back gesture to the browser: history
-// back. Stay until its request answers, so the result is said. A 401 has signed the student out, who may leave; a
-// create closes its dialog before opening the new plan.
-onBeforeRouteLeave(() => !(busy.value && (naming.value !== null || deleting.value !== null)) || !auth.signedIn);
-
-/** The plan at a glance: the terms it spans and what it holds. */
 function previewOf(plan: PlanListItem): { span: string | null; counts: string } {
   const p = plan.preview;
   if (!p.firstTerm || !p.lastTerm) return { span: null, counts: m.value.previewEmpty };
@@ -133,7 +96,6 @@ function previewOf(plan: PlanListItem): { span: string | null; counts: string } 
   return { span: m.value.previewSpan(termName(p.firstTerm, lang), termName(p.lastTerm, lang)), counts: m.value.previewCounts(p.termCount, p.courseCount, p.slotCount) };
 }
 
-/** A click anywhere on a card opens the plan, except on its buttons. */
 function openCard(event: MouseEvent, plan: PlanSummary): void {
   if ((event.target as Element).closest('button, a')) return;
   void router.push({ name: 'plan', params: { id: plan.id } });
@@ -187,7 +149,6 @@ usePageTitle(() => m.value.title);
           <p class="plan-counts" data-test="plan-counts">{{ previewOf(plan).counts }}</p>
           <p class="small t3">{{ m.curriculum(plan.curriculum.code) }} · {{ m.updated(formatDateTime(plan.updatedAt, locale.lang)) }}</p>
         </div>
-        <!-- One action at a time: they share `busy` and `dialogError`, so a copy's failure cannot show in another's dialog. -->
         <div class="plan-card-acts" role="group" :aria-label="m.actionsFor(plan.name)">
           <button class="btn sm" type="button" data-test="rename" :disabled="busy" @click="openNaming(plan)"><Icon name="edit" size="sm" />{{ m.rename }}</button>
           <button class="btn sm" type="button" data-test="copy" :disabled="busy" @click="copy(plan)"><Icon name="copy" size="sm" />{{ m.copy }}</button>
@@ -212,7 +173,7 @@ usePageTitle(() => m.value.title);
   </div>
 </template>
 
-<style>
+<style scoped>
 .plans-page .empty { text-align: center; display: grid; gap: 4px; }
 .plan-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 14px; }
 .plan-card {

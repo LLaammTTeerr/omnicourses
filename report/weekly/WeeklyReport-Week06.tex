@@ -1,0 +1,79 @@
+\documentclass{article}
+\usepackage{../shared/omnicourse}
+\input{../shared/meta.tex}
+
+\renewcommand{\docshortname}{Weekly Report -- Week 6}
+\hypersetup{pdftitle={OmniCourse -- Weekly Report Week 6}}
+
+\begin{document}
+
+\weeklycover{Weekly Report \textbullet{} Week 6}{9 November -- 15 November 2026 \textbullet{} Sprint 3, Elaboration}
+             {Phan Bình Nguyên Lâm (Project Lead)}{ESE-PA3-WR-06}
+
+\pagestyle{fancy}
+\ocompact
+
+{\footnotesize\sffamily\color{ocGray}\bfseries SPRINT 3 \textbullet{} ELABORATION \textbullet{} WEEK 2 OF 2 (PA3 \& BUILD
+B1)}\par\vspace{4pt}
+
+\noindent\hspace*{\tabcolsep}\begin{tabularx}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}XXXX@{}}
+  \kpi{22}{tasks worked on} & \kpi{19}{tasks finished} & \kpi{21}{pull requests merged} & \kpi{100\%}{rule engine coverage}
+\end{tabularx}
+\par\vspace{0.45cm}
+
+\section{Team}
+The five members of the group, as registered in PA0. Sprint 3 closed Elaboration with build \texttt{B1} deployed and tested
+against staging and production.
+
+\par\vspace{5pt}
+{\color{ocRule}\rule{\textwidth}{0.4pt}}\par\vspace{4pt}
+\OmniCourseTeamShort
+
+\section{Achievements since last week}
+Rows summarise merged pull requests and acceptance runs through Sunday 15 November 2026.
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.6cm}Yp{1.5cm}p{2.0cm}p{1.3cm}@{}}
+\hcell{No.} & \hcell{Task} & \hcell{Due date} & \hcell{Responsibility} & \hcell{Complete}\\\hdrline
+\endhead
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Phan Bình Nguyên Lâm}\\
+1 & Built pure rule engine (\texttt{src/rules/}) and audit migration \texttt{1794300000000}: integer-tenths GPA, retakes, overflows, combined minimums (\#79) & 11/11/2026 & Lâm & 100\%\\
+2 & Authored C4 Software Architecture Document, class model, and \texttt{design-differences.md} ledger & 15/11/2026 & Lâm & 100\%\\
+3 & Amended F2 transcript design (ADR 0007: paste or type, no file) after verifying HCMUS portals offer no transcript PDF & 15/11/2026 & Lâm & 100\%\\
+4 & Deployed and tagged build \texttt{B1}; accepted ADR 0011 and ADR 0015 & 15/11/2026 & Lâm & 100\%\\
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Võ Nguyễn Minh Triết}\\
+5 & Reviewed APCS 2024 completion fixture (\#83) and audit GPA/overflow calculations & 14/11/2026 & Triết & 100\%\\
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Nguyễn Hữu Quốc Thắng}\\
+6 & Implemented first F12 curriculum administration backend writes, grants and \texttt{admin:bootstrap} CLI (\#74) & 14/11/2026 & Thắng & 100\%\\
+7 & Verified \texttt{src/rules/**} statement coverage gate at 100\% (459/459 statements) for B1 & 15/11/2026 & Thắng & 100\%\\
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Nguyễn Anh Dũng}\\
+8 & Authored 561-line \texttt{test-cases-b1.md} and executed full B1 staging acceptance \& 130-run performance suite (\texttt{report-b1.md}) & 15/11/2026 & Dũng & 100\%\\
+9 & Filed B1 defects (\#101, \#114, \#115, \#117, \#119) with reproducible evidence & 15/11/2026 & Dũng & 100\%\\
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Lê Hữu Hoà}\\
+10 & Shipped Dashboard, Degree Audit (\texttt{AuditView.vue}), Curriculum Explorer (\texttt{ExplorerView.vue}), and Transcript editor (\#70) & 13/11/2026 & Hoà, Lâm & 100\%\\
+11 & Shipped multi-plan CRUD, pointer/keyboard drag-and-drop and batched drop validation (\texttt{POST /plans/:id/issues/drops}, \#90) ahead of B2 & 15/11/2026 & Hoà, Lâm & 100\%\\
+\end{xltabular}}
+
+\section{Issues and impacts}
+\begin{ocnote}{Issues of the week}
+\begin{itemize}
+  \item \textbf{HCMUS portal has no downloadable transcript PDF.} F2 was formally amended from PDF parsing to deterministic
+        grades-table paste plus manual typing (ADR 0007 amendment, 15 November).
+  \item \textbf{WCAG AA contrast findings (\#119).} \texttt{axe-core} flagged muted grey text and dark-mode accent contrast on
+        B1 screens; scheduled for token-level remediation in Sprint 4.
+  \item \textbf{Guides G01 and G07 published after B1 cut.} Portal checks completed immediately after the initial B1 tag.
+\end{itemize}
+\end{ocnote}
+
+\section{Next week's goals}
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.6cm}Yp{1.8cm}p{3.0cm}@{}}
+\hcell{No.} & \hcell{Goal} & \hcell{Due date} & \hcell{Responsibility}\\\hdrline
+\endhead
+1 & Build F12 administration screens (\texttt{/admin}), program/cohort routes and CSV bulk import & 22/11/2026 & Thắng, Lâm\\
+2 & Build F10 academic calendar API and week/month calendar view (ADR 0017) & 22/11/2026 & Dũng, Hoà\\
+3 & Seed verified \texttt{CS469 -> CS470} APCS capstone prerequisite and author B2 test cases & 22/11/2026 & Lâm, Dũng\\
+\end{xltabular}}
+
+\end{document}

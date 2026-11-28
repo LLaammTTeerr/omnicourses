@@ -1,11 +1,12 @@
 import { Controller, Delete, Get, Param, PipeTransform, Put } from '@nestjs/common';
 import { ApiConflictResponse, ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
 import { Authenticated, CurrentUser } from '../auth/auth.decorators.js';
+import { AdminErrorDto, validationFailed } from '../common/api-errors.js';
+import { uuidParam } from '../common/api-requests.js';
 import { User } from '../users/user.entity.js';
-import { AdminErrorDto, validationFailed } from './admin-errors.js';
-import { GLOBAL_PERMISSIONS, type GlobalPermission } from './admin-grant.entities.js';
-import { AdminErrors, uuidParam } from './admin-params.js';
 import { AccessAdminService } from './access-admin.service.js';
+import { GLOBAL_PERMISSIONS, type GlobalPermission } from '../admin-access/admin-grant.entities.js';
+import { AdminErrors } from '../admin-access/admin-error-responses.js';
 import { AccessProgramListDto, UserGrantsDto } from './curriculum-admin.dto.js';
 
 const permissionParam: PipeTransform<string, GlobalPermission> = {
@@ -15,9 +16,6 @@ const permissionParam: PipeTransform<string, GlobalPermission> = {
   },
 };
 
-// F12 access-manager routes (ADR 0011). The recipient gives their user ID (GET /api/users/me)
-// to the access manager; there is no user search. The first access manager comes from the
-// operator command `npm run admin:bootstrap`, never from an HTTP route.
 @ApiTags('curriculum-admin')
 @Authenticated()
 @AdminErrors()

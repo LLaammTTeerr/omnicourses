@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
 import { RouterView, useRoute, useRouter } from 'vue-router';
-import { useAdminAccess } from './admin/store.js';
+import { useGrantsFollowSession } from './admin/access.js';
 import { useAuth } from './auth/store.js';
 import { useMessages } from './locale.js';
+import { useUnreadPolling } from './notifications/store.js';
 import AppSidebar from './shell/AppSidebar.vue';
 import { SHELL_MESSAGES } from './shell/messages.js';
 import MobileBars from './shell/MobileBars.vue';
@@ -16,7 +17,6 @@ import ToastHost from './shell/ToastHost.vue';
 import TooltipHost from './shell/TooltipHost.vue';
 
 const auth = useAuth();
-const access = useAdminAccess();
 const route = useRoute();
 const router = useRouter();
 const sidebar = useSidebar();
@@ -24,14 +24,12 @@ const toast = useToast();
 const m = useMessages(SHELL_MESSAGES);
 useTheme();
 
-// The frame around the page (RouteMeta.layout in router.ts).
 const layout = computed(() => {
   const wanted = route.meta.layout ?? 'public';
   if (wanted === 'auto') return auth.signedIn ? 'app' : 'public';
   return wanted;
 });
 
-// A session that ends while a private page is open (revoked on another device, expired): sign in, then come back.
 watch(
   () => auth.signedIn,
   (signedIn) => {
@@ -41,24 +39,9 @@ watch(
   },
 );
 
-// ADR 0011: the navigation lists Administration only for a user who holds a grant, so ask the API once per sign-in.
-// A failed load leaves the entry out for now: it is asked again on the next page the user opens, and by the
-// administration page itself.
-watch(
-  () => auth.user?.id,
-  (userId) => {
-    if (userId) void access.load();
-  },
-  { immediate: true },
-);
-watch(
-  () => route.fullPath,
-  () => {
-    if (auth.signedIn && access.failed) void access.load();
-  },
-);
+useGrantsFollowSession();
+useUnreadPolling();
 
-// ADR 0004: tell the student that signing in cancelled their pending deletion.
 watch(
   () => auth.accountRestored,
   (restored) => {

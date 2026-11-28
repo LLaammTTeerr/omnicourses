@@ -1,12 +1,12 @@
 import type { AuthResult, Session, User } from '../api.js';
 
-// Synthetic accounts for tests: no real names, emails or student IDs.
-
 export function user(overrides: Partial<User> = {}): User {
   return {
     id: '00000000-0000-4000-8000-000000000001',
     email: 'zz-student@example.com',
     displayName: 'Sinh viên thử',
+    studentId: null,
+    className: null,
     emailVerifiedAt: null,
     createdAt: '2026-10-01T08:00:00.000Z',
     ...overrides,

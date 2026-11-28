@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Headers, HttpCode, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, HttpCode, Param, ParseUUIDPipe, Post, Req } from '@nestjs/common';
+import type { Request } from 'express';
 import {
   ApiBearerAuth,
   ApiConflictResponse,
@@ -38,8 +39,8 @@ export class AuthController {
   @HttpCode(200)
   @ApiOkResponse({ type: AuthResultDto, description: 'Signing in during the deletion grace period cancels the deletion (`accountRestored: true`).' })
   @ApiUnauthorizedResponse({ description: 'Invalid email or password' })
-  signIn(@Body() dto: SignInDto, @Headers('user-agent') userAgent?: string): Promise<AuthResultDto> {
-    return this.auth.signIn(dto, userAgent);
+  signIn(@Req() req: Request, @Body() dto: SignInDto, @Headers('user-agent') userAgent?: string): Promise<AuthResultDto> {
+    return this.auth.signIn(dto, userAgent, req.ip);
   }
 
   @Post('refresh')

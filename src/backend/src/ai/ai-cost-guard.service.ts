@@ -1,25 +1,17 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository } from 'typeorm';
+import { NAMESPACED_LOCKS } from '../common/advisory-locks.js';
+import { failureKind } from '../common/failure-kind.js';
+import { Clock } from '../config/clock.js';
+import { AI_CONFIG, type AiConfig } from '../config/env.js';
 import { DAY_MS } from '../config/time.js';
-import { AI_CONFIG, type AiConfig } from './ai-config.js';
 import { AI_REASONS, AiUnavailableError } from './ai-unavailable.error.js';
 import { AiUsage } from './ai-usage.entity.js';
 import type { AiCallContext } from './llm.service.js';
-import { logErrorName } from './log-error-name.js';
 
-export type AiUsageResult = Pick<AiUsage, 'inputTokens' | 'outputTokens' | 'latencyMs' | 'succeeded'>;
+type AiUsageResult = Pick<AiUsage, 'inputTokens' | 'outputTokens' | 'latencyMs' | 'succeeded'>;
 
-// Per-user daily cap (ADR 0003). One call = one structured() or one chat(),
-// however many tool steps it takes. A call counts once it is about to reach the
-// model: the gateway reserves its row just before the first model request, so a
-// call the student stops early, or one still running, counts like a finished
-// one (the provider bills it either way); so does a timeout or a provider 5xx.
-// A call that fails before that (no key, no model configured) writes no row,
-// and one the provider refused without billing (wrong key, no credit, rate
-// limit) has its row released. The window rolls over 24 hours, so
-// no time zone is involved. The monthly budget is the credit limit set on the
-// OpenRouter key itself.
 @Injectable()
 export class AiCostGuard {
   private readonly logger = new Logger(AiCostGuard.name);
@@ -27,48 +19,34 @@ export class AiCostGuard {
   constructor(
     @InjectRepository(AiUsage) private readonly usage: Repository<AiUsage>,
     @Inject(AI_CONFIG) private readonly config: Pick<AiConfig, 'dailyCallsPerUser'>,
+    private readonly clock: Clock,
   ) {}
 
-  /**
-   * Counts and inserts in one transaction under a per-user advisory lock, so
-   * parallel calls queue here and each sees the rows of the ones before it.
-   * Returns the row id for finish(). Throws AiUnavailableError at the cap.
-   */
   async reserve(context: AiCallContext, model: string): Promise<string> {
     const cap = this.config.dailyCallsPerUser;
     return this.usage.manager.transaction(async (em) => {
-      await em.query('SELECT pg_advisory_xact_lock(hashtext($1))', [context.userId]);
-      const used = await em.count(AiUsage, { where: { userId: context.userId, createdAt: MoreThan(new Date(Date.now() - DAY_MS)) } });
+      await em.query('SELECT pg_advisory_xact_lock($1, hashtext($2))', [NAMESPACED_LOCKS.aiQuota, context.userId]);
+      const now = this.clock.now();
+      const used = await em.count(AiUsage, { where: { userId: context.userId, createdAt: MoreThan(new Date(now.getTime() - DAY_MS)) } });
       if (used >= cap) throw new AiUnavailableError(AI_REASONS.dailyLimit);
-      const { identifiers } = await em.insert(AiUsage, { userId: context.userId, feature: context.feature, model });
+      const { identifiers } = await em.insert(AiUsage, { userId: context.userId, feature: context.feature, model, createdAt: now });
       return identifiers[0].id as string;
     });
   }
 
-  /**
-   * Fills in the reserved row once the call ends, however it ends. Never
-   * throws: it runs in the gateway's finally, where a throw would replace the
-   * reply. The row already counts, so a lost update loses only the numbers.
-   */
   async finish(id: string, result: AiUsageResult): Promise<void> {
     try {
       await this.usage.update(id, result);
     } catch (error) {
-      logErrorName(this.logger, 'Could not record AI usage', error);
+      this.logger.warn(`Could not record AI usage: ${failureKind(error)}`);
     }
   }
 
-  /**
-   * Deletes the reserved row of a call the provider refused without billing
-   * (wrong key, no credit, rate limit), so a student's retries while it is
-   * broken don't use up the day. Never throws: if the delete fails, the call
-   * keeps counting, which errs on the side of the budget.
-   */
   async release(id: string): Promise<void> {
     try {
       await this.usage.delete(id);
     } catch (error) {
-      logErrorName(this.logger, 'Could not release AI usage', error);
+      this.logger.warn(`Could not release AI usage: ${failureKind(error)}`);
     }
   }
 }

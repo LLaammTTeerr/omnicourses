@@ -1,8 +1,11 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn, UpdateDateColumn } from 'typeorm';
+import { Check, Column, Entity, JoinColumn, ManyToOne, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 import type { GuideContent, GuideLang, GuideStatus } from './guide-file.js';
 import { Guide } from './guide.entity.js';
 
 @Entity({ name: 'guide_texts' })
+@Check('ck_guide_texts_lang', `"lang" IN ('vi', 'en')`)
+@Check('ck_guide_texts_status', `"status" IN ('published', 'withdrawn')`)
+@Check('ck_guide_texts_version', `"version" >= 1`)
 export class GuideText {
   @PrimaryColumn({ name: 'guide_id', type: 'varchar', length: 64 })
   guideId!: string;
@@ -11,11 +14,10 @@ export class GuideText {
   lang!: GuideLang;
 
   @ManyToOne(() => Guide, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'guide_id' })
+  @JoinColumn({ name: 'guide_id', foreignKeyConstraintName: 'guide_texts_guide_id_fkey' })
   guide!: Guide;
 
   @Column({ type: 'varchar', length: 20 })
-  /** A draft is never loaded. */
   status!: Exclude<GuideStatus, 'draft'>;
 
   @Column({ type: 'integer' })
@@ -24,7 +26,6 @@ export class GuideText {
   @Column({ name: 'change_note', type: 'text' })
   changeNote!: string;
 
-  // TypeORM reads a date column as YYYY-MM-DD.
   @Column({ name: 'last_checked_on', type: 'date' })
   lastCheckedOn!: string;
 

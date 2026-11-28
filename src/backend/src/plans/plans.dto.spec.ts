@@ -3,7 +3,6 @@ import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
 import { CreatePlanDto, DuplicatePlanDto, PlanBoardDto, RenamePlanDto } from './plans.dto.js';
 
-// Synthetic codes only (AGENTS.md hard rule 3).
 const GROUP = '3f2b8c1e-0d4a-4c6b-9e1f-2a3b4c5d6e7f';
 const course = (overrides: Record<string, unknown> = {}) => ({ kind: 'course', courseCode: 'ZZ001', ...overrides });
 const slot = (overrides: Record<string, unknown> = {}) => ({ kind: 'slot', requirementGroupId: GROUP, credits: 3, ...overrides });
@@ -57,7 +56,9 @@ describe('plan names', () => {
   it('trims the name and refuses an empty or long one', async () => {
     expect(plainToInstance(RenamePlanDto, { name: '  Main plan ' }).name).toBe('Main plan');
     expect(await errorsFor(RenamePlanDto, { name: '   ' })).toEqual(['name:minLength']);
-    expect(await errorsFor(RenamePlanDto, { name: 'x'.repeat(101) })).toEqual(['name:maxLength']);
+    expect(await errorsFor(RenamePlanDto, { name: 'x'.repeat(101) })).toEqual(['name:maxCodePoints']);
+    expect(await errorsFor(RenamePlanDto, { name: 'x'.repeat(99) + '❤️' })).toEqual(['name:maxCodePoints']);
+    expect(await errorsFor(RenamePlanDto, { name: 'Main plan\u0000' })).toEqual(['name:noNullCharacter']);
     expect(await errorsFor(RenamePlanDto, {})).toContain('name:isString');
   });
 

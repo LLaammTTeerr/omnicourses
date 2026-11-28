@@ -1,6 +1,4 @@
-// Synthetic curricula and transcripts for the rule engine's unit tests (AGENTS.md hard rule 3).
-// Course codes start with ZZ; nothing here is a real student record.
-import type { CurriculumRuleCourse, CurriculumRuleGroup, CurriculumRules } from '../../curriculum/curriculum-rules.reader.js';
+import type { CurriculumRuleCourse, CurriculumRuleGroup, CurriculumRules } from '../../curriculum/curriculum-rules.js';
 import type { Term } from '../../terms/term.js';
 import type { TranscriptEntry, TranscriptResult } from '../../transcript/transcript-entry.js';
 
@@ -26,12 +24,6 @@ export function group(
   };
 }
 
-/**
- * An APCS-shaped curriculum, small: a compulsory group, an elective group whose excess overflows
- * into C, a compulsory group with a course outside the total and the GPA (like Thể dục), elective
- * B with a minimum, elective C without one, B + C ≥ 12 together, and a 10-credit graduation group.
- * Total: 8 + 4 + 4 + 12 + 10 = 38.
- */
 export function zzCurriculum(overrides: Partial<CurriculumRules> = {}): CurriculumRules {
   return {
     programCode: 'ZZPROG',
@@ -48,6 +40,8 @@ export function zzCurriculum(overrides: Partial<CurriculumRules> = {}): Curricul
       group('tn', 'elective', 10, [course('ZZT1', 10), course('ZZT2', 5), course('ZZT3', 5)]),
     ],
     combinedMinimums: [{ id: 'bc', name: 'B + C', creditsMin: 12, officialNotes: null, groupIds: ['b', 'c'] }],
+    prerequisites: new Map(),
+    offeringTerms: new Map(),
     ...overrides,
   };
 }
@@ -56,17 +50,14 @@ export function term(year: number, number: Term['number']): Term {
   return { year, number };
 }
 
-/** A graded attempt. */
 export function graded(code: string, credits: number, grade: number, at: Term = term(2024, 1)): TranscriptEntry {
   return { courseCode: code, courseName: `Course ${code}`, credits, result: 'graded', grade, term: at };
 }
 
-/** An attempt without a grade: in progress, exempt, pass or fail. */
 export function ungraded(code: string, credits: number, result: Exclude<TranscriptResult, 'graded'>, at: Term = term(2024, 1)): TranscriptEntry {
   return { courseCode: code, courseName: `Course ${code}`, credits, result, grade: null, term: at };
 }
 
-/** Every requirement of zzCurriculum met: 38 credits toward the total, B + C = 12. */
 export function zzGraduatingTranscript(): TranscriptEntry[] {
   return [
     graded('ZZA1', 4, 8, term(2024, 1)),
@@ -80,3 +71,36 @@ export function zzGraduatingTranscript(): TranscriptEntry[] {
     graded('ZZT1', 10, 9, term(2025, 1)),
   ];
 }
+
+export const EXPECTED_NOT_CHECKED_CONDITIONS = [
+  {
+    id: 'no_prosecution_or_suspension',
+    description: 'Not being prosecuted, and not serving a suspension, at the time of graduation review',
+    citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.a',
+    status: 'not_checked',
+  },
+  {
+    id: 'defence_education_certificate',
+    description: 'The Giáo dục quốc phòng - An ninh certificate (passing the courses is checked with their group)',
+    citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.c',
+    status: 'not_checked',
+  },
+  {
+    id: 'foreign_language_standard',
+    description: "The school's foreign-language standard",
+    citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.d',
+    status: 'not_checked',
+  },
+  {
+    id: 'it_standard',
+    description: 'The IT standard set by the curriculum',
+    citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.e',
+    status: 'not_checked',
+  },
+  {
+    id: 'study_time_limit',
+    description: 'Finishing within the maximum study time',
+    citation: 'QĐ 1175/QĐ-KHTN Điều 2.7',
+    status: 'not_checked',
+  },
+];

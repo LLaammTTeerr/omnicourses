@@ -4,13 +4,16 @@ import request from 'supertest';
 import { DataSource, QueryFailedError } from 'typeorm';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AcademicCalendarService } from '../src/academic-calendar/academic-calendar.service.js';
+import { AccountPurgeService } from '../src/account/account-purge.service.js';
 import { Clock } from '../src/config/clock.js';
 import { NotificationSchedule } from '../src/notifications/notification-schedule.js';
 import { NotificationsService } from '../src/notifications/notifications.service.js';
 import { TranscriptEntry } from '../src/transcript/transcript-entry.js';
 import { TranscriptService } from '../src/transcript/transcript.service.js';
+import { UsersService } from '../src/users/users.service.js';
+import { type Account, authed, grantProgram, runSuffix } from './support/admin.js';
 import { bootApp } from './support/app.js';
-import { signedInUser } from './support/users.js';
+import { signedInUser, storedUser } from './support/users.js';
 
 interface Notice {
   id: string;
@@ -20,25 +23,15 @@ interface Notice {
   event: { id: string; programCode: string; academicYear: number; term: number | null; startsOn: string; endsOn: string; title: string; titleEn: string | null } | null;
   links: string[];
 }
-interface Account {
-  token: string;
-  userId: string;
-}
 
-// Synthetic transcript rows (AGENTS.md hard rule 3). The second row is a retake of the first.
 const rows: TranscriptEntry[] = [
   { courseCode: 'ZZ101', courseName: 'Synthetic One', credits: 4, result: 'graded', grade: 4.5, term: { year: 2025, number: 1 } },
   { courseCode: 'ZZ101', courseName: 'Synthetic One', credits: 4, result: 'graded', grade: 8, term: { year: 2025, number: 3 } },
   { courseCode: 'ZZ102', courseName: 'Synthetic Two', credits: 3, result: 'in_progress', grade: null, term: { year: 2026, number: 1 } },
 ];
 
-// F10 notification inbox (ADR 0018). The rules numbered below are Dũng's decision of
-// 25 November 2026 (owner of F10). Synthetic programs, dates and example.com accounts only,
-// unique per run and removed in afterAll. Every date is in 2090 or 2091 and the injected clock
-// is set there too, so a run that creates notifications for everyone never meets a date another
-// e2e file, or a developer, entered in the shared database.
-/** The CHECK constraint the failure test adds to make PostgreSQL refuse the rows of one date. */
 const FAIL_ONE_DATE = 'zz_notifications_fail_one_date';
+const SESSION_DAYS_LONGER_THAN_THE_CLOCK_MOVES = '1000';
 
 describe('Notification inbox (e2e)', () => {
   let app: INestApplication;
@@ -50,20 +43,13 @@ describe('Notification inbox (e2e)', () => {
       return new Date(this.at);
     },
   };
-  /** Sets the clock to a time of a Vietnam day (UTC+7); noon unless told otherwise. */
   const onDay = (day: string, time = '12:00:00') => {
     clock.at = new Date(`${day}T${time}+07:00`);
   };
   const http = () => request(app.getHttpServer());
-  const as = (token: string) => ({
-    get: (path: string) => http().get(path).set('Authorization', `Bearer ${token}`),
-    post: (path: string, body: object = {}) => http().post(path).set('Authorization', `Bearer ${token}`).send(body),
-    put: (path: string, body: object = {}) => http().put(path).set('Authorization', `Bearer ${token}`).send(body),
-    patch: (path: string, body: object = {}) => http().patch(path).set('Authorization', `Bearer ${token}`).send(body),
-    delete: (path: string) => http().delete(path).set('Authorization', `Bearer ${token}`),
-  });
+  const as = authed(() => app);
 
-  const suffix = randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
+  const suffix = runSuffix();
   const codeA = `ZZNTF${suffix}A`;
   const codeB = `ZZNTF${suffix}B`;
   let programA: string;
@@ -72,7 +58,6 @@ describe('Notification inbox (e2e)', () => {
   let adminB: Account;
   const userIds: string[] = [];
 
-  /** A new signed-in account; with a program code, a student of that program. */
   async function student(programCode?: string, finished = true): Promise<Account> {
     const user = await signedInUser(app);
     userIds.push(user.userId);
@@ -87,58 +72,62 @@ describe('Notification inbox (e2e)', () => {
     );
 
   const events = (program: string) => `/api/admin/programs/${program}/calendar-events`;
-  /** The administrator enters a school date through the calendar API (ADR 0017). */
   async function enter(kind: string, startsOn: string, extra: object = {}, admin = adminA, program = programA): Promise<string> {
     const body = { academicYear: Number(startsOn.slice(0, 4)), term: 1, kind, startsOn, title: `Synthetic ${kind} ${startsOn}`, ...extra };
-    const res = await as(admin.token).post(events(program), body);
-    // 2091 dates belong to the academic year 2090 too (ADR 0017): try it before failing.
-    if (res.status === 400) return (await as(admin.token).post(events(program), { ...body, academicYear: body.academicYear - 1 }).expect(201)).body.id;
-    expect(res.status).toBe(201);
-    return res.body.id;
+    const response = await as(admin.token).post(events(program), body);
+    if (response.status === 400) return (await as(admin.token).post(events(program), { ...body, academicYear: body.academicYear - 1 }).expect(201)).body.id;
+    expect(response.status).toBe(201);
+    return response.body.id;
   }
 
-  /** The inbox as the screen reads it: over HTTP, which first creates what is due today. */
   const inbox = async (user: Account, query = ''): Promise<Notice[]> => (await as(user.token).get(`/api/notifications${query}`).expect(200)).body.notifications;
-  /** The kinds a student holds for one school date, read from the table: no read, so nothing is created. */
   const stored = async (user: Account, eventId: string): Promise<string[]> =>
     ((await db.query('SELECT kind FROM notifications WHERE user_id = $1 AND calendar_event_id = $2 ORDER BY kind', [user.userId, eventId])) as { kind: string }[]).map((r) => r.kind);
-  /** The same through a read: the service's list(), the code behind GET /api/notifications. */
   const seen = async (user: Account, eventId: string): Promise<string[]> =>
     (await notifications.list(user.userId, {})).notifications.filter((n) => n.event?.id === eventId).map((n) => n.kind);
-  /** How many notifications exist for one school date of this run, whoever holds them. */
   const total = async (eventId: string): Promise<number> => ((await db.query('SELECT count(*)::int AS n FROM notifications WHERE calendar_event_id = $1', [eventId])) as { n: number }[])[0]!.n;
   const transcriptNotices = async (user: Account): Promise<number> =>
     ((await db.query(`SELECT count(*)::int AS n FROM notifications WHERE user_id = $1 AND kind = 'transcript_changed'`, [user.userId])) as { n: number }[])[0]!.n;
   const save = (user: Account, body: TranscriptEntry[]) => as(user.token).put('/api/users/me/transcript', { rows: body });
 
   beforeAll(async () => {
-    app = await bootApp((builder) => builder.overrideProvider(Clock).useValue(clock));
+    vi.stubEnv('SESSION_TTL_DAYS', SESSION_DAYS_LONGER_THAN_THE_CLOCK_MOVES);
+    app = await bootApp((builder) =>
+      builder
+        .overrideProvider(Clock)
+        .useValue(clock)
+        .overrideProvider(AccountPurgeService)
+        .useFactory({ factory: (users: UsersService) => new AccountPurgeService(users, new Clock()), inject: [UsersService] }),
+    );
     db = app.get(DataSource);
     notifications = app.get(NotificationsService);
-    // A run killed inside the failure test below can leave its constraint behind.
     await db.query(`ALTER TABLE notifications DROP CONSTRAINT IF EXISTS ${FAIL_ONE_DATE}`);
     const insertProgram = async (code: string) => ((await db.query(`INSERT INTO programs (code, name_vi) VALUES ($1, $2) RETURNING id`, [code, `Chương trình ${code}`])) as { id: string }[])[0]!.id;
     programA = await insertProgram(codeA);
     programB = await insertProgram(codeB);
     adminA = await student();
     adminB = await student();
-    await db.query(`INSERT INTO program_admin_grants (user_id, program_id) VALUES ($1, $2), ($3, $4)`, [adminA.userId, programA, adminB.userId, programB]);
+    await grantProgram(db, adminA.userId, programA);
+    await grantProgram(db, adminB.userId, programB);
   });
 
   afterAll(async () => {
     if (db?.isInitialized && programA) {
       const programs = [programA, programB].filter(Boolean);
       await db.query('DELETE FROM academic_calendar WHERE program_id = ANY($1)', [programs]);
-      // Notifications, onboarding answers, grants and sessions go with the accounts (ON DELETE CASCADE).
       await db.query('DELETE FROM users WHERE id = ANY($1)', [userIds]);
       await db.query('DELETE FROM programs WHERE id = ANY($1)', [programs]);
     }
     await app?.close();
+    vi.unstubAllEnvs();
   });
 
-  it('maps the table exactly as migration 1795575059760 creates it', async () => {
-    const { upQueries } = await db.driver.createSchemaBuilder().log();
-    expect(upQueries.map((q) => q.query).filter((q) => q.includes('"notifications"'))).toEqual([]);
+  it('purges accounts by the wall clock, not by the clock this file sets in 2090', async () => {
+    const userId = await storedUser(app);
+    userIds.push(userId);
+    await db.query('UPDATE users SET deletion_requested_at = now(), purge_after = $2 WHERE id = $1', [userId, '2050-01-01T00:00:00Z']);
+    await app.get(AccountPurgeService).purge();
+    expect(await db.query('SELECT id FROM users WHERE id = $1', [userId])).toHaveLength(1);
   });
 
   it('refuses every route without a token', async () => {
@@ -149,7 +138,6 @@ describe('Notification inbox (e2e)', () => {
   });
 
   describe('school dates', () => {
-    // Rule 1: one notification 7 days before a registration window opens and one on the day it opens.
     it('announces a registration window seven days before it opens and on the day it opens, once each', async () => {
       const s = await student(codeA);
       onDay('2090-03-01');
@@ -169,7 +157,6 @@ describe('Notification inbox (e2e)', () => {
         event: { id: window, programCode: codeA, academicYear: 2090, term: 1, startsOn: '2090-03-20', endsOn: '2090-03-31', title: 'Synthetic registration 2090-03-20', titleEn: 'Synthetic registration window' },
         links: ['calendar', 'planner'],
       });
-      // Rule 6: a second read and a second run the same day make nothing new.
       expect(await inbox(s)).toEqual([soon]);
       await notifications.createDue();
       await notifications.createDue();
@@ -190,7 +177,6 @@ describe('Notification inbox (e2e)', () => {
       expect((await as(s.token).get('/api/notifications/unread-count').expect(200)).body).toEqual({ unread: 2 });
     });
 
-    // Rule 2: one notification on the first day of the term, and no seven-day notice for it.
     it('announces a term on its first day only', async () => {
       const s = await student(codeA);
       onDay('2090-04-01');
@@ -206,7 +192,6 @@ describe('Notification inbox (e2e)', () => {
       expect(await seen(s, term)).toEqual(['term_start']);
     });
 
-    // Rule 4: days follow Vietnam time (UTC+7). 16:59:59 UTC is still the day before; 17:00:00 UTC is the day.
     it('changes day at 00:00 in Vietnam, 17:00:00 UTC, exactly', async () => {
       const s = await student(codeA);
       onDay('2090-05-01');
@@ -221,14 +206,12 @@ describe('Notification inbox (e2e)', () => {
       expect(await seen(s, window)).toEqual(['registration_soon']);
       expect(await seen(s, term)).toEqual(['term_start']);
 
-      // The last instant of the opening day's eve, then the first instant of the opening day.
       clock.at = new Date('2090-05-19T16:59:59.999Z');
       expect(await seen(s, window)).toEqual(['registration_soon']);
       clock.at = new Date('2090-05-19T17:00:00.000Z');
       expect(await seen(s, window)).toEqual(['registration_open', 'registration_soon']);
     });
 
-    // Rule 4, second half: a day's notification exists by 00:00, for a student who never opens the app.
     it("creates the day's notifications from the timer, without any read", async () => {
       const s = await student(codeA);
       onDay('2090-06-01');
@@ -241,7 +224,6 @@ describe('Notification inbox (e2e)', () => {
       expect(await stored(s, term)).toEqual(['term_start']);
     });
 
-    // Rule 6: a date entered late sends what is due now and skips the days that have passed.
     it('skips the seven-day notice of a date entered three days before it starts, and still announces the opening day', async () => {
       const s = await student(codeA);
       onDay('2090-07-10');
@@ -282,7 +264,6 @@ describe('Notification inbox (e2e)', () => {
       expect(await stored(s, term)).toEqual(['term_start']);
     });
 
-    // Rule 6: a day on which nothing ran (the server was down) is skipped, not caught up.
     it('does not catch up on a day that passed with no run', async () => {
       const s = await student(codeA);
       onDay('2090-09-01');
@@ -297,24 +278,20 @@ describe('Notification inbox (e2e)', () => {
       expect(await seen(s, window)).toEqual(['registration_open']);
     });
 
-    // Rule 6: if a date moves after a notification went out, nothing is sent again.
     it('sends nothing again when a date moves after its notification went out', async () => {
       const s = await student(codeA);
       onDay('2090-10-01');
       const window = await enter('registration', '2090-10-20', { endsOn: '2090-10-31' });
       onDay('2090-10-13');
-      // The run for everyone, as the timer does it: every student of the program now holds the notice.
       await notifications.createDue();
       expect(await stored(s, window)).toEqual(['registration_soon']);
       const afterSoon = await total(window);
 
-      // Moved five days later: the day seven days before the new date makes no second notice.
       await as(adminA.token).patch(`${events(programA)}/${window}`, { startsOn: '2090-10-25', title: 'Synthetic registration, moved' }).expect(200);
       onDay('2090-10-18');
       await notifications.createDue();
       expect(await total(window)).toBe(afterSoon);
       expect(await seen(s, window)).toEqual(['registration_soon']);
-      // The old opening day passes with nothing. The opening notice had not gone out, so it goes out on the new day.
       onDay('2090-10-20');
       expect(await seen(s, window)).toEqual(['registration_soon']);
       onDay('2090-10-25');
@@ -323,7 +300,6 @@ describe('Notification inbox (e2e)', () => {
       const afterOpen = await total(window);
       expect(afterOpen).toBe(2 * afterSoon);
 
-      // Moved again after both went out: nothing more, on any of the new days.
       await as(adminA.token).patch(`${events(programA)}/${window}`, { startsOn: '2090-10-31' }).expect(200);
       for (const day of ['2090-10-24', '2090-10-31']) {
         onDay(day);
@@ -332,7 +308,6 @@ describe('Notification inbox (e2e)', () => {
         expect(await seen(s, window)).toEqual(['registration_open', 'registration_soon']);
       }
 
-      // A notification keeps the date as it was when it was made; the calendar holds the current one.
       const list = (await inbox(s)).filter((n) => n.event?.id === window);
       expect(list.map((n) => [n.kind, n.event?.startsOn, n.event?.title])).toEqual([
         ['registration_open', '2090-10-25', 'Synthetic registration, moved'],
@@ -340,7 +315,6 @@ describe('Notification inbox (e2e)', () => {
       ]);
     });
 
-    // Case B of the same per-kind key (ADR 0018, Consequences; as built, put to Dũng on 25 November 2026).
     it('sends the seven-day notice of a date postponed by a week after its opening-day notice went out, and no second opening-day notice', async () => {
       const s = await student(codeA);
       onDay('2091-05-04');
@@ -348,7 +322,6 @@ describe('Notification inbox (e2e)', () => {
       await notifications.createDue();
       expect(await stored(s, window)).toEqual(['registration_open']);
 
-      // Postponed to today + 7, the same day: the seven-day notice had not gone out, so it goes out now.
       await as(adminA.token).patch(`${events(programA)}/${window}`, { startsOn: '2091-05-11' }).expect(200);
       await notifications.createDue();
       expect(await stored(s, window)).toEqual(['registration_open', 'registration_soon']);
@@ -359,20 +332,17 @@ describe('Notification inbox (e2e)', () => {
         ['registration_soon', '2091-05-11'],
       ]);
 
-      // The new opening day: the opening-day notice went out already, so nothing goes out.
       onDay('2091-05-11');
       await notifications.createDue();
       expect(await total(window)).toBe(afterBoth);
       expect(await seen(s, window)).toHaveLength(2);
 
-      // To announce the postponed date again, the administrator deletes it and enters it again: a new date.
       await as(adminA.token).delete(`${events(programA)}/${window}`).expect(204);
       const again = await enter('registration', '2091-05-11', { endsOn: '2091-05-20' });
       expect(await seen(s, again)).toEqual(['registration_open']);
       expect(await stored(s, window)).toEqual(['registration_open', 'registration_soon']);
     });
 
-    // Case C of the same per-kind key (ADR 0018, Consequences; as built, put to Dũng on 25 November 2026).
     it('sends the opening-day notice too when a term start that was announced today is changed to a registration window', async () => {
       const s = await student(codeA);
       onDay('2091-05-25');
@@ -383,14 +353,12 @@ describe('Notification inbox (e2e)', () => {
       await as(adminA.token).patch(`${events(programA)}/${date}`, { kind: 'registration' }).expect(200);
       await notifications.createDue();
       expect(await stored(s, date)).toEqual(['registration_open', 'term_start']);
-      // Two notifications of one school date, each once.
       await notifications.createDue();
       const held = (await inbox(s)).filter((n) => n.event?.id === date);
       expect(held.map((n) => n.kind).sort()).toEqual(['registration_open', 'term_start']);
       expect(new Set(held.map((n) => n.event?.startsOn))).toEqual(new Set(['2091-05-25']));
     });
 
-    // Rule 6: each student gets each notification once, whatever runs at the same time.
     it('makes one notification when several runs and reads happen at once', async () => {
       const [s, t] = [await student(codeA), await student(codeA)];
       onDay('2090-11-01');
@@ -421,14 +389,12 @@ describe('Notification inbox (e2e)', () => {
           [s.userId, kind, eventId, eventId && codeA, eventId && 2090, startsOn, eventId && 'Synthetic'],
         );
       await expect(insert('term_start', term, '2090-11-30')).rejects.toThrow(/uq_notifications_user_event_kind/);
-      // A school-date notification without its date would slip past the key; a kind outside the list is refused.
       await expect(insert('term_start', null, null)).rejects.toThrow(/ck_notifications_event/);
       await expect(insert('transcript_changed', term, '2090-11-12')).rejects.toThrow(/ck_notifications_event/);
       await expect(insert('add_drop', term, '2090-11-12')).rejects.toThrow(/ck_notifications_kind/);
       await expect(db.query(`INSERT INTO notifications (user_id, kind, calendar_event_id) VALUES ($1, 'term_start', $2)`, [s.userId, randomUUID()])).rejects.toThrow(/ck_notifications_snapshot/);
     });
 
-    // Rule 7: not in B2.
     it('makes nothing for add/drop windows and the other kinds of school date', async () => {
       const s = await student(codeA);
       onDay('2090-11-20');
@@ -449,7 +415,6 @@ describe('Notification inbox (e2e)', () => {
       const termA = await enter('term_start', '2090-12-05');
       const termB = await enter('term_start', '2090-12-05', { title: 'Synthetic term start of program B' }, adminB, programB);
       onDay('2090-12-05');
-      // The run for everyone, as the timer does it.
       await notifications.createDue();
       for (const a of [a1, a2]) {
         expect(await stored(a, termA)).toEqual(['term_start']);
@@ -462,7 +427,6 @@ describe('Notification inbox (e2e)', () => {
       expect(seenByB?.event).toMatchObject({ id: termB, programCode: codeB, title: 'Synthetic term start of program B' });
       expect(await inbox(nobody)).toEqual([]);
       expect((await as(nobody.token).get('/api/notifications/unread-count').expect(200)).body).toEqual({ unread: 0 });
-      // Only students of the program hold a row for the date; administrators without the program hold none.
       const holders = ((await db.query('SELECT user_id FROM notifications WHERE calendar_event_id = $1 AND user_id = ANY($2)', [termA, userIds])) as { user_id: string }[]).map((r) => r.user_id);
       expect(holders).not.toContain(b.userId);
       expect(holders).not.toContain(nobody.userId);
@@ -475,14 +439,11 @@ describe('Notification inbox (e2e)', () => {
       const term = await enter('term_start', '2091-06-01');
       expect((await inbox(reader)).map((n) => n.event?.id)).toEqual([term]);
       expect((await as(reader.token).get('/api/notifications/unread-count').expect(200)).body).toEqual({ unread: 1 });
-      // One row in all: every other student of the program still has none.
       expect(await total(term)).toBe(1);
       expect(await stored(other, term)).toEqual([]);
 
-      // Their own read makes theirs, and theirs alone.
       expect((await as(other.token).get('/api/notifications/unread-count').expect(200)).body).toEqual({ unread: 1 });
       expect(await total(term)).toBe(2);
-      // The run for everyone, as the timer does it, makes the rest.
       await notifications.createDue();
       expect(await total(term)).toBeGreaterThan(2);
     });
@@ -502,12 +463,10 @@ describe('Notification inbox (e2e)', () => {
       await notifications.createDue();
       expect(await stored(early, window)).toEqual(['registration_soon']);
 
-      // Joins later the same day: the notification is still due today.
       onDay('2090-12-08', '21:00:00');
       await join(sameDay, codeA);
       expect(await seen(sameDay, window)).toEqual(['registration_soon']);
 
-      // Joins the next day: the seven-day notice is past; the opening notice comes.
       onDay('2090-12-09');
       await join(late, codeA);
       expect(await seen(late, window)).toEqual([]);
@@ -526,7 +485,6 @@ describe('Notification inbox (e2e)', () => {
       await join(mover, codeB);
       onDay('2090-12-17');
       expect(await seen(mover, termB)).toEqual(['term_start']);
-      // The notification of the old program stays in the inbox.
       expect(await seen(mover, termA)).toEqual(['term_start']);
     });
 
@@ -536,12 +494,10 @@ describe('Notification inbox (e2e)', () => {
       const window = await enter('registration', '2090-12-25');
       await db.query(`UPDATE users SET deletion_requested_at = now(), purge_after = now() + interval '30 days' WHERE id = $1`, [leaving.userId]);
       await notifications.createDue();
-      // Even a run narrowed to that account makes nothing.
       await notifications.createDue(leaving.userId);
       expect(await stored(staying, window)).toEqual(['registration_soon']);
       expect(await stored(leaving, window)).toEqual([]);
 
-      // Signing in again cancels the deletion (ADR 0004). The day that passed is not caught up.
       onDay('2090-12-19');
       await db.query('UPDATE users SET deletion_requested_at = NULL, purge_after = NULL WHERE id = $1', [leaving.userId]);
       await notifications.createDue();
@@ -557,7 +513,6 @@ describe('Notification inbox (e2e)', () => {
 
     beforeEach(() => {
       errors = [];
-      // Every error line of the app, the exception handler's included.
       vi.spyOn(Logger.prototype, 'error').mockImplementation((...args: unknown[]) => void errors.push(args.map(String).join(' ')));
     });
 
@@ -571,32 +526,26 @@ describe('Notification inbox (e2e)', () => {
       const bad = await enter('term_start', '2091-07-01', { title: 'Synthetic date whose statement fails' });
       const good = await enter('registration', '2091-07-01');
       const goodB = await enter('term_start', '2091-07-01', {}, adminB, programB);
-      // PostgreSQL itself refuses the rows of one date: a real failed statement, not a mock.
       await db.query(`ALTER TABLE notifications DROP CONSTRAINT IF EXISTS ${FAIL_ONE_DATE}`);
       await db.query(`ALTER TABLE notifications ADD CONSTRAINT ${FAIL_ONE_DATE} CHECK (calendar_event_id IS DISTINCT FROM '${bad}'::uuid)`);
       try {
-        // The run for everyone does not reject, and the dates of both programs are created.
         await notifications.createDue();
         expect(await stored(a, good)).toEqual(['registration_open']);
         expect(await stored(b, goodB)).toEqual(['term_start']);
         expect(await total(bad)).toBe(0);
-        // One line for the run: counts and the kind of failure, nothing of the statement.
         expect(errors).toHaveLength(1);
         expect(errors[0]).toMatch(/^Could not create the notifications of 1 of \d+ school date\(s\) that are due: QueryFailedError, SQLSTATE 23514$/);
 
-        // A read answers 200 with what is stored, and creates the caller's other date.
         const reader = await student(codeA);
         errors.length = 0;
         expect((await inbox(reader)).map((n) => [n.kind, n.event?.id])).toEqual([['registration_open', good]]);
         expect((await as(reader.token).get('/api/notifications/unread-count').expect(200)).body).toEqual({ unread: 1 });
-        // Two failed reads in the same minute: the first is logged, the second is not (ADR 0018, decision 15).
         expect(errors).toHaveLength(1);
         for (const line of errors) expect(line).toMatch(/^Could not create the notifications of 1 of \d+ school date\(s\) that are due: QueryFailedError, SQLSTATE 23514$/);
         for (const value of [a.userId, reader.userId, bad, 'Synthetic', codeA, 'INSERT', FAIL_ONE_DATE]) expect(errors.join('\n')).not.toContain(value);
       } finally {
         await db.query(`ALTER TABLE notifications DROP CONSTRAINT IF EXISTS ${FAIL_ONE_DATE}`);
       }
-      // The cause is gone and it is still the day: the next run creates what failed.
       errors.length = 0;
       await notifications.createDue();
       expect(await stored(a, bad)).toEqual(['term_start']);
@@ -610,7 +559,6 @@ describe('Notification inbox (e2e)', () => {
       const before = await inbox(s);
       expect(before).toHaveLength(1);
 
-      // What TypeORM throws for a refused statement: it carries the statement and its parameters.
       const failure = new QueryFailedError(
         `SELECT "e"."title" FROM "academic_calendar" "e" WHERE "e"."starts_on" IN ($1, $2) /* ${s.userId} */`,
         ['2091-07-10', s.userId, 'Synthetic title in a parameter'],
@@ -622,16 +570,12 @@ describe('Notification inbox (e2e)', () => {
       expect((await as(s.token).get('/api/notifications/unread-count').expect(200)).body).toEqual({ unread: 1 });
       expect(startingOn).toHaveBeenCalledTimes(2);
       const line = 'Could not create the notifications that are due before a read: QueryFailedError, SQLSTATE 57014';
-      // The second read fails within the same minute and is not logged (ADR 0018, decision 15). The
-      // first line may count the reads of the test above that were not logged.
       expect(errors.map((l) => l.replace(/ \(\d+ more failed read\(s\) since the last line were not logged\)$/, ''))).toEqual([line]);
 
-      // The timer logs the same kind of line, and does not stop.
       await app.get(NotificationSchedule).tick();
       expect(errors[1]).toBe('Could not create the notifications that are due: QueryFailedError, SQLSTATE 57014');
       for (const value of [s.userId, 'Synthetic', 'SELECT', 'statement timeout', '2091-07-10']) expect(errors.join('\n')).not.toContain(value);
 
-      // Marking read does not create anything, so it does not depend on the failed read.
       expect((await as(s.token).post(`/api/notifications/${before[0]!.id}/read`).expect(200)).body.readAt).not.toBeNull();
       expect(errors).toHaveLength(2);
     });
@@ -650,10 +594,8 @@ describe('Notification inbox (e2e)', () => {
       const kept = (await inbox(s)).filter((n) => n.event?.id === first);
       expect(kept).toHaveLength(1);
       expect(kept[0]).toMatchObject({ kind: 'registration_open', event: { id: first, programCode: codeA, startsOn: '2091-01-05', endsOn: '2091-01-12', title: body.title } });
-      // It can still be marked read.
       expect((await as(s.token).post(`/api/notifications/${kept[0]!.id}/read`).expect(200)).body.readAt).not.toBeNull();
 
-      // The same date entered again has a new ID: the key does not know it, so it is announced.
       const second = await enter('registration', '2091-01-05', body);
       expect(second).not.toBe(first);
       expect(await seen(s, second)).toEqual(['registration_open']);
@@ -675,7 +617,6 @@ describe('Notification inbox (e2e)', () => {
       await enter('registration', '2091-02-01');
       await enter('term_start', '2091-02-01', {}, adminB, programB);
       list = await inbox(owner);
-      // A later instant, so the order has both a tie (the three above) and a strict step.
       onDay('2091-02-01', '15:00:00');
       await save(owner, rows).expect(200);
       await save(owner, [rows[0]!]).expect(200);
@@ -720,15 +661,15 @@ describe('Notification inbox (e2e)', () => {
 
     it('refuses malformed query values with 400', async () => {
       for (const query of ['?unread=yes', '?unread=1', '?kind=party', '?kind=term_start&kind=party', '?kind=term_start&kind=term_start', '?limit=0', '?limit=101', '?limit=ten', '?limit=1.5', '?limit=1e2', '?limit=0x10', '?limit=%2B5', '?limit=%205', '?limit=5&limit=6', '?before=42']) {
-        const res = await as(owner.token).get(`/api/notifications${query}`);
-        expect(res.status, query).toBe(400);
+        const response = await as(owner.token).get(`/api/notifications${query}`);
+        expect(response.status, query).toBe(400);
       }
     });
 
     it("answers 404, never 403, for another student's notification, an unknown ID and a malformed ID, and changes nothing", async () => {
       for (const id of [othersNotice.id, randomUUID(), '42', 'not-a-uuid', "1' OR '1'='1"]) {
-        const res = await as(owner.token).post(`/api/notifications/${encodeURIComponent(id)}/read`);
-        expect([res.status, res.body.code], id).toEqual([404, 'not_found']);
+        const response = await as(owner.token).post(`/api/notifications/${encodeURIComponent(id)}/read`);
+        expect([response.status, response.body.code], id).toEqual([404, 'not_found']);
       }
       expect((await as(owner.token).get(`/api/notifications?before=${othersNotice.id}`).expect(404)).body.code).toBe('not_found');
       expect((await as(owner.token).get(`/api/notifications?before=${randomUUID()}`).expect(404)).body.code).toBe('not_found');
@@ -746,7 +687,6 @@ describe('Notification inbox (e2e)', () => {
       expect(read).toEqual({ ...target, readAt: '2091-02-01T09:00:00.000Z' });
       expect(await count()).toBe(list.length - 1);
 
-      // Again, later: nothing changes, the first time stays.
       onDay('2091-02-01', '18:00:00');
       expect((await as(owner.token).post(`/api/notifications/${target.id.toUpperCase()}/read`).expect(200)).body).toEqual(read);
       expect(await count()).toBe(list.length - 1);
@@ -771,7 +711,6 @@ describe('Notification inbox (e2e)', () => {
     });
   });
 
-  // Rule 3: one notification each time the student saves a transcript that differs from the saved one.
   describe('a changed transcript', () => {
     let s: Account;
     let bystander: Account;
@@ -796,7 +735,6 @@ describe('Notification inbox (e2e)', () => {
     it('makes one for each save that differs: a grade, a retake row added, a retake row removed', async () => {
       await save(s, [{ ...rows[0]!, grade: 5 }, rows[1]!, rows[2]!]).expect(200);
       expect(await transcriptNotices(s)).toBe(1);
-      // The same attempt entered twice is a row more, not the same transcript.
       await save(s, [{ ...rows[0]!, grade: 5 }, rows[1]!, rows[1]!, rows[2]!]).expect(200);
       expect(await transcriptNotices(s)).toBe(2);
       await save(s, [{ ...rows[0]!, grade: 5 }, rows[1]!, rows[2]!]).expect(200);
@@ -815,12 +753,9 @@ describe('Notification inbox (e2e)', () => {
 
     it('makes nothing when a save is refused, or fails and rolls back', async () => {
       const before = await transcriptNotices(s);
-      // Refused before the transaction: an invalid row (UC-02 A2).
       await save(s, [{ ...rows[0]!, grade: 11 }]).expect(400);
       await save(s, [{ ...rows[2]!, grade: 7 }]).expect(400);
-      // Fails inside the transaction, at the insert: the row passes no validation here.
       await expect(app.get(TranscriptService).replace(s.userId, [{ ...rows[0]!, credits: 99 }])).rejects.toThrow(/ck_transcript_rows_credits/);
-      // Fails inside the transaction after the notification was written: it rolls back with the save.
       let sawNotice = -1;
       const remove = app.get(TranscriptService).onSaved(async (tx) => {
         sawNotice = (await tx.query(`SELECT count(*)::int AS n FROM notifications WHERE user_id = $1 AND kind = 'transcript_changed'`, [s.userId]))[0].n;
@@ -840,10 +775,8 @@ describe('Notification inbox (e2e)', () => {
       const before = await transcriptNotices(s);
       await save(s, []).expect(200);
       expect(await transcriptNotices(s)).toBe(before + 1);
-      // Empty over empty: no change.
       await save(s, []).expect(200);
       expect(await transcriptNotices(s)).toBe(before + 1);
-      // Rows over empty: a first import again.
       await save(s, rows).expect(200);
       expect(await transcriptNotices(s)).toBe(before + 1);
       await save(s, [rows[0]!]).expect(200);
@@ -859,7 +792,6 @@ describe('Notification inbox (e2e)', () => {
       const t = await student();
       await save(t, rows).expect(200);
       const transcript = app.get(TranscriptService);
-      // Serialised by the save's lock: the second compares against what the first committed.
       await Promise.all([transcript.replace(t.userId, [rows[0]!]), transcript.replace(t.userId, [rows[0]!])]);
       expect(await transcriptNotices(t)).toBe(1);
     });

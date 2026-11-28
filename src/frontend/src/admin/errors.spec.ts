@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { HttpError } from '../api.js';
-import { byField, readFailure, readReference } from './errors.js';
+import { byField } from '../api.js';
+import { readFailure, readReference } from './errors.js';
+import { ADMIN_MESSAGES } from './messages.js';
+import references from '../../../backend/test/fixtures/admin-references.json';
 
 const answer = (status: number, body: Record<string, unknown> | null) =>
   new HttpError('/admin/x', status, 'PUT', typeof body?.message === 'string' ? [body.message] : ((body?.message as string[] | undefined) ?? []), typeof body?.code === 'string' ? body.code : null, body);
@@ -116,11 +119,54 @@ describe('readReference', () => {
     ['3 offering-term rows name it', { kind: 'count', what: 'offering_terms', count: 3 }],
     ['4 transcript rows name it', { kind: 'count', what: 'transcript_rows', count: 4 }],
     ['1 saved plans place it', { kind: 'count', what: 'plans', count: 1 }],
+    ['2 saved plans use it', { kind: 'group_plans', count: 2 }],
+    ['saved plans use it', { kind: 'group_plans', count: null }],
   ])('reads "%s"', (text, reference) => {
     expect(readReference(text)).toEqual(reference);
   });
 
+  it.each(references)('reads "%s", a sentence the API builds', (text) => {
+    expect(readReference(text).kind).not.toBe('other');
+  });
+
   it('keeps a sentence it does not know as the API wrote it', () => {
     expect(readReference('5 new things name it')).toEqual({ kind: 'other', text: '5 new things name it' });
+  });
+
+  it('words the saved plans that use a group in both languages, with and without a number', () => {
+    const say = (lang: 'vi' | 'en', text: string) => ADMIN_MESSAGES[lang].reference(readReference(text));
+    expect(say('en', '3 saved plans use it')).toBe('3 saved plans use this group');
+    expect(say('en', '1 saved plans use it')).toBe('1 saved plan uses this group');
+    expect(say('en', 'saved plans use it')).toBe('saved plans use this group');
+    expect(say('vi', '3 saved plans use it')).toBe('3 lộ trình đã lưu đang dùng nhóm này');
+    expect(say('vi', 'saved plans use it')).toBe('có lộ trình đã lưu đang dùng nhóm này');
+  });
+
+});
+
+describe('readFailure for the CSV import and the program routes (UC-11 A1, A2, A9)', () => {
+  it('keeps the record-numbered errors of a file the API could not read', () => {
+    const failure = readFailure(
+      answer(400, { statusCode: 400, code: 'validation_failed', message: 'The CSV does not have the header of this template', errors: [{ record: 1, field: null, message: 'the header must be exactly: a,b' }, { record: 'x' }] }),
+    );
+    expect(failure).toEqual({ kind: 'file', details: ['The CSV does not have the header of this template'], errors: [{ record: 1, field: null, message: 'the header must be exactly: a,b' }] });
+  });
+
+  it('reads a 409 impact_changed without a new review as a changed import, to preview again', () => {
+    expect(readFailure(answer(409, { statusCode: 409, code: 'impact_changed', message: 'x' }))).toEqual({ kind: 'review_changed' });
+  });
+
+  it('reads a 413 as too large, with the code or without it (the body parser answers before the route)', () => {
+    expect(readFailure(answer(413, { statusCode: 413, code: 'payload_too_large', message: 'x' }))).toEqual({ kind: 'too_large' });
+    expect(readFailure(answer(413, { statusCode: 413, message: 'request entity too large' }))).toEqual({ kind: 'too_large' });
+    expect(readFailure(answer(413, null))).toEqual({ kind: 'too_large' });
+  });
+
+  it('reads a 415 as a compressed body', () => {
+    expect(readFailure(answer(415, { statusCode: 415, code: 'unsupported_content_encoding', message: 'x' }))).toEqual({ kind: 'compressed' });
+  });
+
+  it('reads a second cohort of the same year as a conflict', () => {
+    expect(readFailure(answer(409, { statusCode: 409, code: 'duplicate_cohort', message: 'x' }))).toEqual({ kind: 'conflict', code: 'duplicate_cohort', references: [] });
   });
 });

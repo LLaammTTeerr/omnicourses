@@ -9,105 +9,51 @@ import {
   type RouterHistory,
   type RouterScrollBehavior,
 } from 'vue-router';
-import SettingsView from './account/SettingsView.vue';
-import AccessAdmin from './admin/AccessAdmin.vue';
-import AdminView from './admin/AdminView.vue';
-import CatalogAdmin from './admin/CatalogAdmin.vue';
-import CurriculumAdmin from './admin/CurriculumAdmin.vue';
-import AuditView from './audit/AuditView.vue';
-import DashboardView from './audit/DashboardView.vue';
+import { accountRoutes } from './account/routes.js';
+import { adminRoutes } from './admin/routes.js';
+import { auditRoutes } from './audit/routes.js';
 import { afterSignIn, HOME_SIGNED_IN } from './auth/redirect.js';
-import SignInView from './auth/SignInView.vue';
-import SignUpView from './auth/SignUpView.vue';
+import { authRoutes } from './auth/routes.js';
 import { useAuth } from './auth/store.js';
-import CalendarView from './calendar/CalendarView.vue';
-import ExplorerView from './explorer/ExplorerView.vue';
-import GuideView from './guides/GuideView.vue';
-import GuidesView from './guides/GuidesView.vue';
-import OnboardingView from './onboarding/OnboardingView.vue';
-import PlanEditorView from './plans/PlanEditorView.vue';
-import PlannerEntry from './plans/PlannerEntry.vue';
-import PlansView from './plans/PlansView.vue';
-import PrivacyView from './privacy/PrivacyView.vue';
+import { calendarRoutes } from './calendar/routes.js';
+import { dashboardRoutes } from './dashboard/routes.js';
+import { explorerRoutes } from './explorer/routes.js';
+import { guideRoutes } from './guides/routes.js';
+import { notificationRoutes } from './notifications/routes.js';
+import { onboardingRoutes } from './onboarding/routes.js';
 import { useOnboarding } from './onboarding/store.js';
-import TranscriptView from './transcript/TranscriptView.vue';
-import HomeView from './views/HomeView.vue';
+import { planRoutes } from './plans/routes.js';
+import { privacyRoutes } from './privacy/routes.js';
+import { sharingRoutes } from './sharing/routes.js';
+import { transcriptRoutes } from './transcript/routes.js';
+import { homeRoutes } from './views/routes.js';
 
-declare module 'vue-router' {
-  interface RouteMeta {
-    /** App.vue keeps the page alive while another page is open. */
-    keepAlive?: boolean;
-    /**
-     * The frame App.vue draws around the page: `public` the header for visitors, `app` the sidebar, `bare` none
-     * (sign-in and sign-up), `auto` the sidebar when signed in and the public header when not. Default `public`.
-     */
-    layout?: 'public' | 'app' | 'bare' | 'auto';
-    /** `required`: signed out goes to sign-in and comes back. `guest`: signed in goes on to the app. */
-    auth?: 'required' | 'guest';
-    /**
-     * A signed-in student whose onboarding is unfinished is sent to it first (UC-01 A5, A8). `optional`: the page
-     * opens anyway, so account controls stay reachable when the student's program is not offered yet (A7).
-     */
-    onboarding?: 'optional';
-  }
-}
-
-const routes: RouteRecordRaw[] = [
-  { path: '/', name: 'home', component: HomeView, meta: { layout: 'public' } },
-  { path: '/sign-in', name: 'sign-in', component: SignInView, meta: { layout: 'bare', auth: 'guest' } },
-  { path: '/sign-up', name: 'sign-up', component: SignUpView, meta: { layout: 'bare', auth: 'guest' } },
-  // Readable signed out (ADR 0010).
-  // The guide list stays alive while a guide is open, so Back finds the same search and scroll position.
-  { path: '/guides', name: 'guides', component: GuidesView, meta: { layout: 'auto', keepAlive: true } },
-  { path: '/guides/:id', name: 'guide', component: GuideView, props: true, meta: { layout: 'auto' } },
-  // Readable signed out: sign-up links it beside the consent box (UC-01 step 2).
-  { path: '/privacy', name: 'privacy', component: PrivacyView, meta: { layout: 'auto' } },
-  { path: '/onboarding', name: 'onboarding', component: OnboardingView, meta: { layout: 'bare', auth: 'required' } },
-  { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { layout: 'app', auth: 'required' } },
-  { path: '/calendar', name: 'calendar', component: CalendarView, meta: { layout: 'app', auth: 'required' } },
-  { path: '/audit', name: 'audit', component: AuditView, meta: { layout: 'app', auth: 'required' } },
-  { path: '/explorer', name: 'explorer', component: ExplorerView, meta: { layout: 'app', auth: 'required' } },
-  // Nested, so the sidebar's Plans link stays marked while a plan is open.
-  {
-    path: '/plans',
-    meta: { layout: 'app', auth: 'required' },
-    children: [
-      // The front door opens a plan (the last one open, or a new default plan); the list is one level below.
-      { path: '', name: 'plans', component: PlannerEntry },
-      { path: 'all', name: 'plan-list', component: PlansView },
-      { path: ':id', name: 'plan', component: PlanEditorView, props: true },
-    ],
-  },
-  { path: '/transcript', name: 'transcript', component: TranscriptView, meta: { layout: 'app', auth: 'required' } },
-  { path: '/settings', name: 'settings', component: SettingsView, meta: { layout: 'app', auth: 'required', onboarding: 'optional' } },
-  // F12 administration (ADR 0011). Open to every signed-in user: the page asks the API for their grants and says so
-  // when they hold none, and the API checks every request. Onboarding is optional, since an administrator need not
-  // be a student of an offered program. The sections are children, so the navigation's link stays marked in each;
-  // /admin itself has none, and AdminView then opens the first section the user holds.
-  {
-    path: '/admin',
-    name: 'admin',
-    component: AdminView,
-    meta: { layout: 'app', auth: 'required', onboarding: 'optional' },
-    // One child per entry of admin/sections.ts.
-    children: [
-      { path: 'curriculum', name: 'admin-curriculum', component: CurriculumAdmin },
-      { path: 'catalog', name: 'admin-catalog', component: CatalogAdmin },
-      { path: 'access', name: 'admin-access', component: AccessAdmin },
-    ],
-  },
+export const routes: RouteRecordRaw[] = [
+  ...homeRoutes,
+  ...authRoutes,
+  ...onboardingRoutes,
+  ...dashboardRoutes,
+  ...calendarRoutes,
+  ...notificationRoutes,
+  ...auditRoutes,
+  ...transcriptRoutes,
+  ...explorerRoutes,
+  ...planRoutes,
+  ...guideRoutes,
+  ...sharingRoutes,
+  ...privacyRoutes,
+  ...accountRoutes,
+  ...adminRoutes,
   { path: '/:unknown(.*)*', redirect: '/' },
 ];
 
 const scrollBehavior: RouterScrollBehavior = (to, _from, saved) => saved ?? (to.hash ? { el: to.hash } : { top: 0 });
 
-/** Unfinished onboarding comes before any other private page; once finished, onboarding opens no more (UC-01 step 9). */
 async function onboardingFirst(to: RouteLocationNormalized): Promise<NavigationGuardReturn> {
   let finished: boolean;
   try {
     ({ finished } = await useOnboarding().load());
   } catch (e) {
-    // Never trap the student in a loop: the page opens, and a 401 has already signed them out (App.vue).
     console.error('Loading the onboarding answers failed:', e);
     return true;
   }
@@ -119,10 +65,35 @@ async function onboardingFirst(to: RouteLocationNormalized): Promise<NavigationG
   return finished ? true : { name: 'onboarding', query: { redirect: to.fullPath } };
 }
 
-export function createAppRouter(history: RouterHistory = createWebHistory()): Router {
+export const CHUNK_RELOAD_KEY = 'omnicourse.chunk-reload';
+
+const CHUNK_ERROR_PATTERN =
+  /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|Unable to preload CSS/i;
+
+export function isChunkLoadError(error: unknown): boolean {
+  return error instanceof Error && CHUNK_ERROR_PATTERN.test(error.message);
+}
+
+export function reloadOnStaleChunk(targetPath: string, reload: (url: string) => void = (url) => window.location.assign(url)): boolean {
+  try {
+    if (sessionStorage.getItem(CHUNK_RELOAD_KEY) === targetPath) {
+      sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+      return false;
+    }
+    sessionStorage.setItem(CHUNK_RELOAD_KEY, targetPath);
+  } catch {
+    return false;
+  }
+  reload(targetPath);
+  return true;
+}
+
+export function createAppRouter(
+  history: RouterHistory = createWebHistory(),
+  onChunkReload?: (url: string) => void,
+): Router {
   const router = createRouter({ history, routes, scrollBehavior });
   router.beforeEach(async (to) => {
-    // A router navigated before the app installs Pinia (some tests) has nobody signed in.
     const auth = getActivePinia() ? useAuth() : null;
     await auth?.start();
     const signedIn = auth?.signedIn ?? false;
@@ -130,6 +101,18 @@ export function createAppRouter(history: RouterHistory = createWebHistory()): Ro
     if (to.meta.auth === 'guest' && signedIn) return afterSignIn(to.query.redirect);
     if (signedIn && to.meta.auth === 'required' && to.meta.onboarding !== 'optional') return onboardingFirst(to);
     return true;
+  });
+  router.afterEach((to) => {
+    try {
+      if (sessionStorage.getItem(CHUNK_RELOAD_KEY) === to.fullPath) {
+        sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+      }
+    } catch {}
+  });
+  router.onError((error, to) => {
+    if (isChunkLoadError(error)) {
+      reloadOnStaleChunk(to.fullPath, onChunkReload);
+    }
   });
   return router;
 }

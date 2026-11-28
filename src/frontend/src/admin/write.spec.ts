@@ -1,28 +1,36 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HttpError } from '../api.js';
-import { useAuth } from '../auth/store.js';
+import { requestAsUser, useAuth } from '../auth/store.js';
 import { user } from '../auth/testing/fixtures.js';
-import { mockApi } from '../testing/fetch.js';
-import { useAdminAccess } from './store.js';
+import { mockApi, status } from '../testing/fetch.js';
+import { useAdminAccess } from './access.js';
 import { PROGRAM_ADMIN } from './testing/fixtures.js';
-import { settleWrite, useWrites } from './write.js';
+import { useWrites } from './write.js';
+
+function signIn(): void {
+  setActivePinia(createPinia());
+  const auth = useAuth();
+  auth.token = 'zz-token';
+  auth.user = user();
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+}
 
 const refusal = (status: number, code: string, extra: Record<string, unknown> = {}) => new HttpError('/admin/x', status, 'PUT', ['x'], code, { statusCode: status, code, message: 'x', ...extra });
 
-describe('settleWrite (UC-11 A7)', () => {
-  beforeEach(() => vi.spyOn(console, 'error').mockImplementation(() => {}));
+describe('what a write ends in (UC-11 A7)', () => {
+  beforeEach(signIn);
   afterEach(() => vi.restoreAllMocks());
 
   it('reports saved when the API answers, without reloading', async () => {
     const landed = vi.fn(async () => true);
-    expect(await settleWrite(async () => 'value', landed)).toEqual({ outcome: 'saved', value: 'value' });
+    expect(await useWrites().send(async () => 'value', landed)).toEqual({ outcome: 'saved', value: 'value' });
     expect(landed).not.toHaveBeenCalled();
   });
 
   it('reports a refusal as the API gave it, without reloading', async () => {
     const landed = vi.fn(async () => true);
-    const result = await settleWrite(() => Promise.reject(refusal(409, 'duplicate_name')), landed);
+    const result = await useWrites().send(() => Promise.reject(refusal(409, 'duplicate_name')), landed);
     expect(result).toEqual({ outcome: 'refused', failure: { kind: 'conflict', code: 'duplicate_name', references: [] } });
     expect(landed).not.toHaveBeenCalled();
   });
@@ -37,23 +45,23 @@ describe('settleWrite (UC-11 A7)', () => {
       order.push('write');
       throw lost;
     });
-    const result = await settleWrite(write, async () => {
+    const result = await useWrites().send(write, async () => {
       order.push('reload');
       return true;
     });
     expect(result).toEqual({ outcome: 'confirmed' });
-    expect(await settleWrite(write, async () => false)).toEqual({ outcome: 'not_applied' });
+    expect(await useWrites().send(write, async () => false)).toEqual({ outcome: 'not_applied' });
     expect(order).toEqual(['write', 'reload', 'write']);
   });
 
   it('never repeats the write itself', async () => {
     const write = vi.fn(() => Promise.reject(new TypeError('Failed to fetch')));
-    await settleWrite(write, async () => false);
+    await useWrites().send(write, async () => false);
     expect(write).toHaveBeenCalledTimes(1);
   });
 
   it('says the outcome is unknown when the saved data cannot be reloaded either, never saved', async () => {
-    const result = await settleWrite(
+    const result = await useWrites().send(
       () => Promise.reject(new TypeError('Failed to fetch')),
       () => Promise.reject(new TypeError('Failed to fetch')),
     );
@@ -61,7 +69,7 @@ describe('settleWrite (UC-11 A7)', () => {
   });
 
   it('reports a session that ended during the reload as signed out', async () => {
-    const result = await settleWrite(
+    const result = await useWrites().send(
       () => Promise.reject(new TypeError('Failed to fetch')),
       () => Promise.reject(new HttpError('/admin/x', 401)),
     );
@@ -70,25 +78,19 @@ describe('settleWrite (UC-11 A7)', () => {
 });
 
 describe('useWrites', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia());
-    const auth = useAuth();
-    auth.token = 'zz-token';
-    auth.user = user();
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-  });
+  beforeEach(signIn);
   afterEach(() => vi.restoreAllMocks());
 
-  it('is busy while the write is out, sends the token, and has no problem once saved', async () => {
+  it('is busy while the write is out, and has no problem once saved', async () => {
     const writes = useWrites();
     let answer!: (value: string) => void;
     const sent = writes.send(
-      (token) => new Promise<string>((resolve) => (answer = (value) => resolve(`${value} ${token}`))),
+      () => new Promise<string>((resolve) => (answer = resolve)),
       async () => false,
     );
     expect(writes.busy.value).toBe(true);
     answer('saved with');
-    expect(await sent).toEqual({ outcome: 'saved', value: 'saved with zz-token' });
+    expect(await sent).toEqual({ outcome: 'saved', value: 'saved with' });
     expect(writes.busy.value).toBe(false);
     expect(writes.problem.value).toBeNull();
   });
@@ -118,14 +120,11 @@ describe('useWrites', () => {
     await writes.send(write, check);
     expect(writes.problem.value).toEqual({ outcome: 'unknown' });
 
-    // Still offline: still unknown.
     expect(await writes.recheck()).toEqual({ outcome: 'unknown' });
     expect(writes.problem.value).toEqual({ outcome: 'unknown' });
-    // Back online, and the saved data does not have the change: say so.
     landed = false;
     expect(await writes.recheck()).toEqual({ outcome: 'not_applied' });
     expect(writes.problem.value).toEqual({ outcome: 'not_applied' });
-    // Nothing is unknown any more, so there is nothing to check again.
     expect(await writes.recheck()).toBeNull();
     expect(check).toHaveBeenCalledTimes(3);
     expect(write).toHaveBeenCalledTimes(1);
@@ -140,7 +139,6 @@ describe('useWrites', () => {
     expect(await writes.send(again, async () => true)).toEqual({ outcome: 'unknown' });
     expect(again).not.toHaveBeenCalled();
     expect(writes.problem.value).toEqual({ outcome: 'unknown' });
-    // Once the screen has dropped the problem (and says the page may be out of date), a write goes out again.
     writes.clear();
     expect(await writes.send(again, async () => true)).toEqual({ outcome: 'saved', value: 'saved' });
   });
@@ -181,15 +179,27 @@ describe('useWrites', () => {
     await vi.waitFor(() => expect(useAdminAccess().grants).toEqual(PROGRAM_ADMIN));
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(writes.problem.value).toEqual({ outcome: 'refused', failure: { kind: 'permission', permission: 'catalog_maintainer' } });
-    // The page keeps the refusal to show, whatever the grants turn out to be.
     expect(useAdminAccess().refusal).toEqual({ permission: 'catalog_maintainer' });
   });
 
   it('signs the user out on a 401 and shows no problem: the shell takes them to sign in', async () => {
     const writes = useWrites();
-    const result = await writes.send(() => Promise.reject(new HttpError('/admin/x', 401, 'PUT')), async () => false);
+    mockApi({ 'PUT /admin/access/users/u/programs/p': status(401) });
+    const result = await writes.send(() => requestAsUser('PUT', '/admin/access/users/u/programs/p'), async () => false);
     expect(result).toEqual({ outcome: 'refused', failure: { kind: 'signed_out' } });
     expect(writes.problem.value).toBeNull();
     expect(useAuth().signedIn).toBe(false);
   });
+
+  it('says signed out, and sends and reloads nothing, when the session is already gone (#160)', async () => {
+    useAuth().token = null;
+    const writes = useWrites();
+    const write = vi.fn(async () => 'saved');
+    const landed = vi.fn(async () => true);
+    expect(await writes.send(write, landed)).toEqual({ outcome: 'refused', failure: { kind: 'signed_out' } });
+    expect(write).not.toHaveBeenCalled();
+    expect(landed).not.toHaveBeenCalled();
+    expect(writes.problem.value).toBeNull();
+  });
+
 });

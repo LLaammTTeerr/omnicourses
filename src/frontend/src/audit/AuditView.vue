@@ -12,17 +12,10 @@ import AuditGate from './AuditGate.vue';
 import { AUDIT_MESSAGES } from './messages.js';
 import { combinedNamesOf, conditionFor, conditionLabel, formatScore, groupName, notPassedByStatus, shownGroups, useAudit, withoutOwnCondition } from './present.js';
 
-// The degree audit (F3, UC-03, ADR 0013): every requirement group with the courses counted in it, its credits and
-// what is missing; the minimums across groups; the graduation conditions with the clause each one cites; each term's
-// load and averages; and the courses that count toward nothing. All of it is the API's answer, shown as it comes
-// (AGENTS.md hard rule 1).
 const locale = useLocale();
 const m = useMessages(AUDIT_MESSAGES);
 const { status, data, error, reload, audit } = useAudit();
 
-// The dashboard links to a group, a combined minimum or the conditions by hash. The router scrolls before the audit
-// has loaded, when the target does not exist yet, so the page scrolls to it once it is drawn. The router has already
-// decoded the hash; decoding it again would throw on a stray %.
 const route = useRoute();
 watch(
   () => [status.value, route.hash] as const,
@@ -36,18 +29,12 @@ watch(
 
 const score = (value: number | null) => formatScore(value, locale.lang) ?? '–';
 
-/** The grade, or the result when there is no grade (exempt, pass, fail), or nothing. */
 function outcome(course: Pick<CourseCoverage, 'grade' | 'result'>): string {
   if (course.grade !== null) return score(course.grade);
   if (course.result === 'exempt' || course.result === 'pass' || course.result === 'fail') return m.value.results[course.result];
   return '–';
 }
 
-/**
- * What a group still needs, in words: the API's remaining credits (none written as 0: what is left may all be in
- * progress), and for a compulsory group its courses not passed, by status. A group with no condition of its own
- * points to the combined minimum that is its rule.
- */
 function missingLine(a: DegreeAudit, group: GroupCoverage): string {
   if (withoutOwnCondition(a, group)) {
     const names = combinedNamesOf(a, group.id);
@@ -63,7 +50,6 @@ function missingLine(a: DegreeAudit, group: GroupCoverage): string {
 
 const groupCondition = (a: DegreeAudit, id: string) => conditionFor(a, `group:${id}`);
 const combinedCondition = (a: DegreeAudit, id: string) => conditionFor(a, `combined:${id}`);
-// The list's heading says the status in words; the glyph repeats it beside each condition.
 const stateGlyph = (condition: GraduationCondition) => (condition.status === 'met' ? '✓' : condition.status === 'not_met' ? '○' : '?');
 
 usePageTitle(() => m.value.auditTitle);
@@ -183,19 +169,19 @@ usePageTitle(() => m.value.auditTitle);
               <tbody>
                 <tr v-for="course in group.courses" :key="course.code" :class="`st-${course.status}`" :data-test="`course-${course.code}`">
                   <td><span class="code">{{ course.code }}</span></td>
-                  <td>
+                  <td class="au-course-name">
                     {{ courseName(course, locale.lang) }}
                     <template v-if="!course.countsTowardTotal">{{ ' ' }}<span class="chip">{{ m.outsideTotal }}</span></template>
                     <template v-if="!course.countsTowardGpa">{{ ' ' }}<span class="chip">{{ m.outsideGpa }}</span></template>
                   </td>
-                  <td class="r">{{ course.credits }}</td>
-                  <td>
+                  <td class="r" :data-label="m.credits">{{ course.credits }}</td>
+                  <td class="au-course-status" :data-label="m.status">
                     <span :class="['status', course.status]">{{ m.statuses[course.status] }}</span>
                     <span v-if="groupName(a, course.countedInGroupId)" class="small t3">
                       · {{ m.countedIn(groupName(a, course.countedInGroupId)!) }}
                     </span>
                   </td>
-                  <td class="r">{{ outcome(course) }}</td>
+                  <td class="r" :data-label="m.grade">{{ outcome(course) }}</td>
                 </tr>
               </tbody>
             </table>
@@ -238,15 +224,15 @@ usePageTitle(() => m.value.auditTitle);
               </thead>
               <tbody>
                 <tr v-for="t in a.terms" :key="`${t.term.year}-${t.term.number}`" :data-test="`term-${t.term.year}-${t.term.number}`">
-                  <td>
+                  <td class="au-term-name">
                     <b>{{ termName(t.term, locale.lang) }}</b>
                     <span v-if="t.kind" class="small t3"><br />{{ m.termKinds[t.kind] }}<template v-if="t.caps"> · {{ m.caps(t.caps.min, t.caps.max) }}</template></span>
                   </td>
-                  <td class="r" data-test="term-credits">{{ t.credits }}</td>
-                  <td class="r" data-test="term-passed">{{ t.passedCredits }}</td>
-                  <td class="r" data-test="term-average">{{ score(t.average) }}</td>
-                  <td class="r" data-test="term-cumulative">{{ score(t.cumulativeAccumulatedAverage) }}</td>
-                  <td>
+                  <td class="r" :data-label="m.load" data-test="term-credits">{{ t.credits }}</td>
+                  <td class="r" :data-label="m.passed" data-test="term-passed">{{ t.passedCredits }}</td>
+                  <td class="r" :data-label="m.termAverage" data-test="term-average">{{ score(t.average) }}</td>
+                  <td class="r" :data-label="m.cumulative" data-test="term-cumulative">{{ score(t.cumulativeAccumulatedAverage) }}</td>
+                  <td class="au-term-status" :data-label="m.status">
                     <span v-if="t.capViolations.length === 0 && t.caps" class="small t3">{{ m.noViolation }}</span>
                     <div v-for="v in t.capViolations" :key="v.rule" class="au-violation" data-test="cap-violation">
                       <span class="chip warn">{{ m.capRules[v.rule](v.credits, v.limit) }}</span>
@@ -283,7 +269,7 @@ usePageTitle(() => m.value.auditTitle);
   </div>
 </template>
 
-<style>
+<style scoped>
 .audit-page .au-sum-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
 .au-fig { display: grid; gap: 6px; align-content: start; min-width: 0; }
 .au-fig .label { font-size: 13px; font-weight: 650; color: var(--ink-3); }
@@ -304,7 +290,6 @@ usePageTitle(() => m.value.auditTitle);
   border: 1px solid var(--edge); white-space: normal; overflow-wrap: anywhere;
 }
 .au-group { display: grid; gap: 12px; }
-/* The dashboard links here by hash: a target keeps clear of the top edge, and of the phone's sticky top bar. */
 .audit-page :is(#graduation, .au-group, .au-list > li[id]) { scroll-margin-top: 16px; }
 .au-group-head { display: flex; gap: 12px; align-items: flex-start; }
 .au-group-title { flex: 1; min-width: 0; display: grid; gap: 2px; }
@@ -329,5 +314,19 @@ usePageTitle(() => m.value.auditTitle);
 }
 @media (max-width: 760px) {
   .audit-page .au-sum-row { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 680px) {
+  :is(.au-courses, .au-terms) thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  :is(.au-courses, .au-courses tbody, .au-terms, .au-terms tbody) { display: block; }
+  .au-courses tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .au-courses tbody tr:first-child { border-top: 0; }
+  .au-terms tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
+  .au-terms tbody tr:first-child { border-top: 0; }
+  :is(.au-courses, .au-terms) td { display: block; padding: 0; border: 0; text-align: left; min-width: 0; }
+  :is(.au-courses, .au-terms) td[data-label]::before { content: attr(data-label) ': '; color: var(--ink-3); font-size: 12.5px; font-weight: 600; }
+  .au-courses td:first-child, .au-courses td.au-course-name, .au-courses td.au-course-status { grid-column: 1 / -1; }
+  .au-courses td.au-course-name { font-weight: 600; overflow-wrap: anywhere; }
+  .au-terms td.au-term-name, .au-terms td.au-term-status { grid-column: 1 / -1; }
+  .au-terms td.au-term-status:empty { display: none; }
 }
 </style>

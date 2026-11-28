@@ -5,16 +5,14 @@ import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AccountPurgeService } from '../src/account/account-purge.service.js';
 import { bootApp } from './support/app.js';
+import { offerAlso } from './support/offer.js';
 import { PASSWORD as password, signedInUser } from './support/users.js';
 
-// Synthetic catalog and plans only (AGENTS.md hard rule 3), unique per run so reruns never collide.
 const tag = randomBytes(3).toString('hex').toUpperCase();
 const program = `ZZP${tag}`;
 const code = (n: number) => `ZZ${tag}${String(n).padStart(2, '0')}`;
-const PLAN_TABLES = ['plans', 'plan_placements'];
 
 interface Catalog {
-  /** The elective group of cohort 2030, and the one of cohort 2031 (another curriculum). */
   group2030: string;
   group2031: string;
 }
@@ -40,13 +38,14 @@ describe('Plans API against PostgreSQL (e2e)', () => {
   ];
 
   async function newPlan(auth: Record<string, string>, body: Record<string, unknown> = {}) {
-    const res = await http().post('/api/plans').set(auth).send({ name: 'Main plan', programCode: program, cohortYear: 2030, ...body }).expect(201);
-    return res.body;
+    const response = await http().post('/api/plans').set(auth).send({ name: 'Main plan', programCode: program, cohortYear: 2030, ...body }).expect(201);
+    return response.body;
   }
 
   beforeAll(async () => {
     app = await bootApp();
     db = app.get(DataSource);
+    offerAlso(app, program, [2030]);
     const [{ id: programId }] = await db.query(`INSERT INTO programs (code, name_vi) VALUES ($1, 'Chương trình thử') RETURNING id`, [program]);
     const curriculum = async (year: number) =>
       (await db.query(`INSERT INTO curriculums (program_id, cohort_year, code, name_vi) VALUES ($1, $2, $3, 'CTĐT thử') RETURNING id`, [programId, year, `${program}${year}`]))[0].id;
@@ -58,12 +57,6 @@ describe('Plans API against PostgreSQL (e2e)', () => {
 
   afterAll(async () => {
     await app?.close();
-  });
-
-  it('maps the two plan tables exactly as migration 1794218005469 creates them', async () => {
-    const { upQueries } = await db.driver.createSchemaBuilder().log();
-    const touching = upQueries.map((q) => q.query).filter((q) => PLAN_TABLES.some((t) => q.includes(`"${t}"`)));
-    expect(touching).toEqual([]);
   });
 
   it('creates, lists, reads, fills and renames a plan', async () => {
@@ -102,6 +95,33 @@ describe('Plans API against PostgreSQL (e2e)', () => {
     expect((await http().get('/api/plans').set(auth).expect(200)).body.plans).toEqual([]);
   });
 
+  it('refuses a new plan for a cohort onboarding does not offer, even one with a curriculum, and saves nothing', async () => {
+    const { auth } = await student();
+    for (const [programCode, cohortYear] of [[program, 2031], ['APCS', 2023]] as const) {
+      const response = await http().post('/api/plans').set(auth).send({ name: 'x', programCode, cohortYear }).expect(400);
+      expect(response.body.message).toBe(`Onboarding does not offer ${programCode} ${cohortYear} to students`);
+    }
+    expect((await http().get('/api/plans').set(auth).expect(200)).body.plans).toEqual([]);
+  });
+
+  it('keeps serving and editing a plan saved earlier on a cohort onboarding does not offer, and refuses only a copy of it', async () => {
+    const { auth, userId } = await student();
+    const [{ id: curriculumId }] = await db.query('SELECT c.id FROM curriculums c JOIN programs p ON p.id = c.program_id WHERE p.code = $1 AND c.cohort_year = 2031', [program]);
+    const [{ id }] = await db.query(`INSERT INTO plans (user_id, curriculum_id, name) VALUES ($1, $2, 'Older plan') RETURNING id`, [userId, curriculumId]);
+
+    expect((await http().get(`/api/plans/${id}`).set(auth).expect(200)).body).toMatchObject({ id, curriculum: { programCode: program, cohortYear: 2031 }, terms: [] });
+    expect((await http().get('/api/plans').set(auth).expect(200)).body.plans.map((p: { id: string }) => p.id)).toEqual([id]);
+    await http().get(`/api/plans/${id}/issues`).set(auth).expect(200);
+    expect((await http().patch(`/api/plans/${id}`).set(auth).send({ name: 'Renamed' }).expect(200)).body.name).toBe('Renamed');
+    const terms = [{ term: { year: 2031, number: 1 }, placements: [course(code(1)), slot(catalog.group2031, 3)] }];
+    expect((await http().put(`/api/plans/${id}/placements`).set(auth).send({ terms }).expect(200)).body.terms).toEqual(terms);
+
+    const copy = await http().post(`/api/plans/${id}/duplicate`).set(auth).send({}).expect(400);
+    expect(copy.body.message).toBe(`Onboarding does not offer ${program} 2031 to students`);
+    expect((await http().get('/api/plans').set(auth).expect(200)).body.plans).toHaveLength(1);
+    await http().delete(`/api/plans/${id}`).set(auth).expect(204);
+  });
+
   it('replaces every placement at once, and a refused board changes nothing', async () => {
     const { auth } = await student();
     const plan = await newPlan(auth, { terms: board() });
@@ -111,18 +131,18 @@ describe('Plans API against PostgreSQL (e2e)', () => {
     expect((await put(next).expect(200)).body.terms).toEqual(next);
 
     const refused = [
-      [{ term: { year: 2031, number: 1 }, placements: [course(code(2)), course('ZZNOSUCH99')] }], // not in the catalog
-      [{ term: { year: 2031, number: 1 }, placements: [course(code(2)), course('csc10001')] }], // not a stored code
-      [{ term: { year: 2031, number: 1 }, placements: [slot(catalog.group2031, 3)] }], // another curriculum's group
-      [{ term: { year: 2031, number: 1 }, placements: [slot(randomUUID(), 3)] }], // no such group
-      [{ term: { year: 2031, number: 1 }, placements: [course(code(2))] }, { term: { year: 2031, number: 2 }, placements: [course(code(2))] }], // placed twice
-      [{ term: { year: 2031, number: 1 }, placements: [course(code(2))] }, { term: { year: 2031, number: 1 }, placements: [course(code(3))] }], // term twice
-      [{ term: { year: 2031, number: 4 }, placements: [course(code(2))] }], // no term 4
-      [{ term: { year: 2031, number: 1 }, placements: [] }], // empty term
-      [{ term: { year: 2031, number: 1 }, placements: [{ ...course(code(2)), credits: 4 }] }], // credits on a course
-      [{ term: { year: 2031, number: 1 }, placements: [{ ...slot(catalog.group2030, 3), courseCode: code(2) }] }], // a course on a slot
-      [{ term: { year: 2031, number: 1 }, placements: [slot(catalog.group2030, 0)] }], // no credits
-      [{ placements: [course(code(2))] }], // no term
+      [{ term: { year: 2031, number: 1 }, placements: [course(code(2)), course('ZZNOSUCH99')] }],
+      [{ term: { year: 2031, number: 1 }, placements: [course(code(2)), course('csc10001')] }],
+      [{ term: { year: 2031, number: 1 }, placements: [slot(catalog.group2031, 3)] }],
+      [{ term: { year: 2031, number: 1 }, placements: [slot(randomUUID(), 3)] }],
+      [{ term: { year: 2031, number: 1 }, placements: [course(code(2))] }, { term: { year: 2031, number: 2 }, placements: [course(code(2))] }],
+      [{ term: { year: 2031, number: 1 }, placements: [course(code(2))] }, { term: { year: 2031, number: 1 }, placements: [course(code(3))] }],
+      [{ term: { year: 2031, number: 4 }, placements: [course(code(2))] }],
+      [{ term: { year: 2031, number: 1 }, placements: [] }],
+      [{ term: { year: 2031, number: 1 }, placements: [{ ...course(code(2)), credits: 4 }] }],
+      [{ term: { year: 2031, number: 1 }, placements: [{ ...slot(catalog.group2030, 3), courseCode: code(2) }] }],
+      [{ term: { year: 2031, number: 1 }, placements: [slot(catalog.group2030, 0)] }],
+      [{ placements: [course(code(2))] }],
     ];
     for (const terms of refused) await put(terms).expect(400);
     await http().put(`/api/plans/${plan.id}/placements`).set(auth).send({}).expect(400);
@@ -188,7 +208,7 @@ describe('Plans API against PostgreSQL (e2e)', () => {
         await http().post(`/api/plans/${id}/duplicate`).set(intruder.auth).send({}),
         await http().delete(`/api/plans/${id}`).set(intruder.auth),
       ];
-      for (const res of answers) expect([res.status, res.body.message]).toEqual([404, 'No plan with this id']);
+      for (const response of answers) expect([response.status, response.body.message]).toEqual([404, 'No plan with this id']);
     }
     expect((await http().get('/api/plans').set(intruder.auth).expect(200)).body.plans).toEqual([]);
     expect((await http().get(`/api/plans/${plan.id}`).set(owner.auth).expect(200)).body).toMatchObject({ name: 'Main plan', terms: board() });

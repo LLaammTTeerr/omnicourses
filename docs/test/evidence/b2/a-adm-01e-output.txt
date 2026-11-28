@@ -1,0 +1,10 @@
+2026-11-25T06:10:05.488Z a-screens 01e
+2026-11-25T06:10:05.733Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+  UI sign-in b2-a1@example.com → 200
+ok   ADM-01e: /admin opens /admin/curriculum | observed: /admin/curriculum
+ok   ADM-01e: Nhóm yêu cầu is the only tab, chip "Quản trị chương trình · APCS" | observed: {"tabs":["Nhóm yêu cầu"],"chips":["Quản trị chương trình · APCS"]}
+ok   ADM-01e: tabs stay as they were | observed: ["Nhóm yêu cầu"]
+ok   ADM-01e: red alert "Mục này cần quyền “Quản lý danh mục học phần”. Tài khoản của bạn không có quyền đó." | observed: Mục này cần quyền “Quản lý danh mục học phần”. Tài khoản của bạn không có quyền đó.
+ok   ADM-01e: no code box and no course card
+ok   ADM-01e: no request to api/courses or api/admin/catalog | observed: POST /api/auth/refresh 200; GET /api/admin/grants 200
+2026-11-25T06:10:10.104Z All checks ok

@@ -1,0 +1,5 @@
+[2026-11-28T07:59:09.560Z] Chromium 156.0.8078.4 headless, Playwright 1.64.1, viewport 1280x800
+[2026-11-28T07:59:10.170Z] signed in b1-run-r28c-p01@example.com: 200
+OK   PLAN-01j | locked: dragging CS160 from the list onto the first row does nothing (no preview request, no PUT, board unchanged) | observed: board HK1 2026–2027: CS163; requests []; row while held: {"classes":"trow has-flag","inViewport":true}
+OK   PLAN-01j | unlocked again at the end | observed: Khóa
+SUMMARY {"PLAN-01j":{"ok":2,"diff":0}} elapsed 8s

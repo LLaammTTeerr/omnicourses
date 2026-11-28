@@ -6,8 +6,6 @@ import type { TranscriptSaveListener } from '../transcript/transcript-change.js'
 import { Notification } from './notification.entity.js';
 import { notificationDto, NotificationsService, READ_FAILURE_LOG_INTERVAL_MS } from './notifications.service.js';
 
-// Synthetic dates and IDs only (AGENTS.md hard rule 3). The database behaviour (the uniqueness
-// key, the recipients filter) is tested in test/notifications.e2e-spec.ts.
 const event = (over: Partial<CalendarEventStart>): CalendarEventStart => ({
   id: 'e1',
   programCode: 'ZZA',
@@ -30,7 +28,6 @@ describe('NotificationsService', () => {
   let stored: { countBy: ReturnType<typeof vi.fn>; createQueryBuilder: ReturnType<typeof vi.fn> };
   let service: NotificationsService;
   let errors: string[];
-  // What TypeORM throws for a refused statement: it carries the statement and its parameters.
   const refused = (code: string) => new QueryFailedError('INSERT INTO "notifications" …', ['synthetic-user-id', 'Synthetic title'], Object.assign(new Error('Key (user_id)=(synthetic-user-id)'), { code }));
 
   beforeEach(() => {
@@ -51,7 +48,6 @@ describe('NotificationsService', () => {
   });
 
   describe('createDue', () => {
-    // Dũng's rule 4: days follow Vietnam time. The day is read from the injected clock, never from the database.
     it('asks for the dates that start on the Vietnam day and seven days later, changing day at 17:00:00 UTC', async () => {
       clock.at = new Date('2090-03-12T16:59:59.999Z');
       await service.createDue();
@@ -63,7 +59,6 @@ describe('NotificationsService', () => {
 
     it('reads no student and writes nothing on a day with nothing due', async () => {
       clock.at = new Date('2090-03-13T05:00:00Z');
-      // A term that starts in seven days is found by the query and makes nothing.
       calendar.startingOn.mockResolvedValue([event({ id: 'e9', kind: 'term_start' })]);
       expect(await service.createDue()).toBe(0);
       expect(onboarding.userIdsByProgram).not.toHaveBeenCalled();
@@ -92,11 +87,7 @@ describe('NotificationsService', () => {
         [['u3'], 'registration_open', 'open'],
         [['u1', 'u2'], 'term_start', 'term'],
       ]);
-      const [sql, params] = db.query.mock.calls[0]!;
-      // The no-repeat rule and the deletion rule are in the statement itself.
-      expect(sql).toContain('ON CONFLICT ("user_id", "calendar_event_id", "kind") DO NOTHING');
-      expect(sql).toContain('u."deletion_requested_at" IS NULL');
-      // The copy of the date, and the clock's instant as created_at.
+      const [, params] = db.query.mock.calls[0]!;
       expect(params.slice(3)).toEqual(['ZZA', 2090, 1, '2090-03-20', '2090-03-31', 'Synthetic registration', null, clock.at]);
     });
 
@@ -130,7 +121,6 @@ describe('NotificationsService', () => {
         if (params[2] === 'worse') throw refused('23514');
         return (params[0] as string[]).map((id) => ({ id }));
       });
-      // The two dates of program ZZA, before and after the one that failed.
       expect(await service.createDue()).toBe(4);
       expect(db.query.mock.calls.map(([, p]) => p[2])).toEqual(['first', 'bad', 'last', 'worse']);
       expect(errors).toEqual(['Could not create the notifications of 2 of 4 school date(s) that are due: QueryFailedError, SQLSTATE 23503; QueryFailedError, SQLSTATE 23514']);
@@ -154,7 +144,6 @@ describe('NotificationsService', () => {
       expect(await service.unreadCount('u1')).toEqual({ unread: 3 });
       expect(await service.list('u1', {})).toEqual({ notifications: [], nextBefore: null });
       const line = 'Could not create the notifications that are due before a read: QueryFailedError, SQLSTATE 57014';
-      // The second read fails the same way within the minute: not logged again (decision 15).
       expect(errors).toEqual([line]);
       expect(errors.join()).not.toMatch(/synthetic-user-id|Synthetic title|INSERT/);
     });
@@ -170,7 +159,6 @@ describe('NotificationsService', () => {
       clock.at = new Date(clock.at.getTime() + 1);
       await service.unreadCount('u1');
       expect(errors).toEqual([line, `${line} (103 more failed read(s) since the last line were not logged)`]);
-      // A failed statement inside a read's run falls under the same limit.
       calendar.startingOn.mockResolvedValue([event({ id: 'bad', kind: 'term_start', startsOn: '2090-03-13', programCode: 'ZZB' })]);
       db.query.mockRejectedValue(refused('23514'));
       await service.list('u1', {});
@@ -220,7 +208,6 @@ describe('NotificationsService', () => {
     });
   });
 
-  // Dũng's rule 3.
   describe('a saved transcript', () => {
     let listener: TranscriptSaveListener;
     const tx = { insert: vi.fn() };

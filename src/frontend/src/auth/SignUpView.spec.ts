@@ -7,6 +7,7 @@ import { setup } from '../testing/signed-in.js';
 import SignUpView from './SignUpView.vue';
 import { useAuth } from './store.js';
 import { authResult } from './testing/fixtures.js';
+import { AUTH_MESSAGES } from './messages.js';
 
 let wrapper: VueWrapper | undefined;
 
@@ -60,18 +61,31 @@ describe('SignUpView (F1, issue #13)', () => {
     await fill(w, { name: '   ', email: 'zz@', password: 'short', consent: false });
     await submit(w);
     expect(fetch).not.toHaveBeenCalled();
-    expect(w.get('#sign-up-displayName-error').text()).toBe('Nhập tên hiển thị.');
-    expect(w.get('#sign-up-email-error').text()).toBe('Email chưa đúng định dạng.');
+    expect(w.get('#sign-up-displayName-error').text()).toBe(AUTH_MESSAGES.vi.displayNameRequired);
+    expect(w.get('#sign-up-email-error').text()).toBe(AUTH_MESSAGES.vi.emailInvalid);
     expect(w.get('#sign-up-password-error').text()).toBe('Còn thiếu 5 ký tự.');
-    expect(w.get('#sign-up-consent-error').text()).toBe('Cần đồng ý xử lý dữ liệu để tạo tài khoản.');
+    expect(w.get('#sign-up-consent-error').text()).toBe(AUTH_MESSAGES.vi.consentRequired);
     expect(w.get('#sign-up-consent').attributes('aria-invalid')).toBe('true');
     expect(document.activeElement?.id).toBe('sign-up-displayName');
+  });
+
+  it('counts the display name in characters as the API does, so 100 emoji pass and 101 do not (#179)', async () => {
+    const fetch = mockApi({ 'POST /auth/sign-up': () => Response.json(authResult(), { status: 201 }) });
+    const { w } = await render();
+    expect(w.get('#sign-up-displayName').attributes('maxlength')).toBeUndefined();
+    await fill(w, { name: '😀'.repeat(101) });
+    await submit(w);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(w.get('#sign-up-displayName-error').text()).toBe(AUTH_MESSAGES.vi.displayNameTooLong);
+    await fill(w, { name: '😀'.repeat(100) });
+    await submit(w);
+    expect(sentBody(fetch.mock.calls[0]![1])).toMatchObject({ displayName: '😀'.repeat(100) });
   });
 
   it('rates the password as the student types, in words as well as colour', async () => {
     const { w } = await render();
     const strength = () => w.get('[data-test="strength"]').text();
-    expect(strength()).toBe('Dùng một mật khẩu riêng, khác mật khẩu cổng trường.');
+    expect(strength()).toBe(AUTH_MESSAGES.vi.passwordHint);
     await w.get('#sign-up-password').setValue('abc');
     expect(strength()).toBe('Còn thiếu 7 ký tự.');
     await w.get('#sign-up-password').setValue('abcdefghij');
@@ -91,7 +105,6 @@ describe('SignUpView (F1, issue #13)', () => {
     const link = w.get('.box [data-test="privacy-link"]');
     expect(link.attributes('href')).toBe('/privacy');
     expect(link.attributes('target')).toBe('_blank');
-    // Outside the label: following the link must not tick the consent box.
     expect(link.element.closest('label')).toBeNull();
     expect(link.text()).toBe('Đọc thông báo quyền riêng tư (mở ở tab mới)');
     useLocale().set('en');
@@ -106,7 +119,7 @@ describe('SignUpView (F1, issue #13)', () => {
     await fill(w);
     await submit(w);
     const alert = w.get('[role="alert"]');
-    expect(alert.text()).toContain('Email này đã có tài khoản.');
+    expect(alert.text()).toContain(AUTH_MESSAGES.vi.emailTaken);
     expect(alert.get('a').attributes('href')).toBe('/sign-in?redirect=/settings');
     expect(useAuth().signedIn).toBe(false);
   });

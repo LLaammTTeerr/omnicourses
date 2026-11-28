@@ -1,8 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { describe, expect, it, vi } from 'vitest';
-import { sharedPlanHeaders } from './shared-plan-headers.js';
 import { ShareBodyPipe } from './sharing.controller.js';
+import { sharedPlanHeaders } from './sharing.module.js';
 
 describe('ShareBodyPipe', () => {
   const pipe = new ShareBodyPipe();
@@ -14,7 +14,6 @@ describe('ShareBodyPipe', () => {
     expect(pipe.transform(body)).toBe(body);
   });
 
-  // An array has no field for the validation to refuse, so it would pass as "no choice".
   it('refuses a body that is not an object', () => {
     for (const body of [[], [{ showName: true }], null, 'showName', 1, true]) {
       expect(() => pipe.transform(body), JSON.stringify(body)).toThrow(new BadRequestException('The body must be a JSON object'));
@@ -24,10 +23,10 @@ describe('ShareBodyPipe', () => {
 
 describe('sharedPlanHeaders', () => {
   it('tells search engines and caches to keep nothing, then lets the request go on', () => {
-    const res = { setHeader: vi.fn() };
+    const response = { setHeader: vi.fn() };
     const next = vi.fn();
-    sharedPlanHeaders({} as Request, res as unknown as Response, next);
-    expect(res.setHeader.mock.calls).toEqual([
+    sharedPlanHeaders({} as Request, response as unknown as Response, next);
+    expect(response.setHeader.mock.calls).toEqual([
       ['X-Robots-Tag', 'noindex, nofollow'],
       ['Cache-Control', 'no-store'],
     ]);

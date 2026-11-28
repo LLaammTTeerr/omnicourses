@@ -4,23 +4,15 @@ import ModalDialog from '../components/ModalDialog.vue';
 import type { CourseDetail } from '../curriculum/api.js';
 import { useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
-import { SHELL_MESSAGES } from '../shell/messages.js';
 import FieldErrors from './FieldErrors.vue';
 import { courseValues, EDITABLE_COURSE_FIELDS, type CourseField, type CourseValues, type ImpactReview } from './forms.js';
 import { ADMIN_MESSAGES } from './messages.js';
-import type { ProblemView } from './problem.js';
+import { fieldDescription, fieldInvalid, type ProblemView } from './problem.js';
 import ProblemNote from './ProblemNote.vue';
-
-// A catalog course, to create one or to correct one (ADR 0011, UC-11 A8; UI prototypes: admin.html, the catalog
-// drawer). The form checks nothing: the API validates the code and the numbers. A correction to a course that
-// curricula link is not saved at once: the API answers with those curricula, and the dialog shows them, with the
-// values now and the values proposed, for the maintainer to confirm. `review` holds that answer.
 
 const props = defineProps<{
   open: boolean;
-  /** The course to correct; null to create one. */
   course: CourseDetail | null;
-  /** The code a new course starts with, such as the code just looked up and not found. */
   startCode: string;
   busy: boolean;
   problem: ProblemView<CourseField> | null;
@@ -28,11 +20,9 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ close: []; save: [values: CourseValues]; confirm: []; back: []; reload: [] }>();
 const m = useMessages(ADMIN_MESSAGES);
-const shell = useMessages(SHELL_MESSAGES);
 const text = computed(() => m.value.catalog);
 
 const values = reactive<CourseValues>(courseValues(null));
-/** The course changed during a review, and the boxes the maintainer had not changed were brought up to date. */
 const rebased = ref(false);
 watch(
   () => props.open,
@@ -50,14 +40,10 @@ watch(
   async (review, before) => {
     if (!props.open) return;
     if (review?.changed && props.course) {
-      // Another session corrected the course meanwhile. The boxes this maintainer did not change follow the
-      // course as it is now; otherwise "Back" and Save would propose the old values again and undo that change.
       const current = courseValues(props.course);
       for (const field of EDITABLE_COURSE_FIELDS) if (!Object.hasOwn(review.body, field)) values[field] = current[field];
       rebased.value = true;
     }
-    // The form and the review replace each other, and the button that had the focus goes with them: the focus
-    // moves to the review's title, which a screen reader then reads, and back into the form on "Back".
     await nextTick();
     if (review) title.value?.focus();
     else if (before) document.getElementById('course-nameVi')?.focus();
@@ -66,10 +52,9 @@ watch(
 
 const NUMBERS = ['credits', 'theoryPeriods', 'labPeriods', 'exercisePeriods', 'projectPeriods'] as const;
 const usedIn = computed(() => [...new Set((props.course?.memberships ?? []).map((item) => item.curriculumCode))]);
-const described = (field: CourseField, hint?: string) => [hint, props.problem?.fields[field] && `course-${field}-error`].filter(Boolean).join(' ') || undefined;
-const invalid = (field: CourseField) => (props.problem?.fields[field] ? 'true' : undefined);
+const described = (field: CourseField, hint?: string) => fieldDescription(props.problem, 'course', field, hint);
+const invalid = (field: CourseField) => fieldInvalid(props.problem, field);
 
-/** A value in the review table: an empty one in words. */
 const shown = (value: unknown) => (value === null || value === undefined || value === '' ? text.value.blank : String(value));
 const changes = computed(() =>
   EDITABLE_COURSE_FIELDS.filter((field) => props.review && Object.hasOwn(props.review.body, field)).map((field) => ({
@@ -81,10 +66,9 @@ const changes = computed(() =>
 </script>
 
 <template>
-  <ModalDialog :open="open" class="course-dialog" labelledby="course-dialog-title" :busy="busy" :busy-text="shell.working" data-test="course-dialog" @close="emit('close')">
+  <ModalDialog :open="open" class="course-dialog" labelledby="course-dialog-title" :busy="busy" data-test="course-dialog" @close="emit('close')">
     <h2 id="course-dialog-title" ref="title" tabindex="-1">{{ review ? text.reviewTitle : course ? text.dialogEdit(course.code) : text.dialogNew }}</h2>
 
-    <!-- The shared-impact review: nothing is saved until it is confirmed. -->
     <div v-if="review && course" class="admin-form" data-test="impact-review">
       <p v-if="review.changed" class="callout bad small" role="alert" data-test="impact-changed"><Icon name="alert" size="sm" /><span>{{ text.reviewChanged }}</span></p>
       <p class="t2 small">{{ text.reviewLead }}</p>
@@ -179,7 +163,7 @@ const changes = computed(() =>
   </ModalDialog>
 </template>
 
-<style>
+<style scoped>
 dialog.modal.course-dialog { width: min(560px, calc(100vw - 24px)); }
 #course-dialog-title:focus { outline: none; }
 .course-numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: start; }

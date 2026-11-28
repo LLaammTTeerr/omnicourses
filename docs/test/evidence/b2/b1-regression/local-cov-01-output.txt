@@ -1,0 +1,117 @@
+# TC-B1-COV-01, tree 1bde552 (main), Node v24.19.0 (repo pins 22.22.1; no Node 22 on this machine), npm 11.21.1, PostgreSQL 18.6 (docker; not used by these unit tests), SWC_NATIVE_BINDING_CACHE=C:\swc-native-cache
+2026-11-27T09:23:35Z
+
+=== COV-01a: production files in src/backend/src/rules (find, without *.spec.ts and testing/)
+src/rules/attempts.ts
+src/rules/audit.ts
+src/rules/coverage.ts
+src/rules/credit-caps.ts
+src/rules/gpa.ts
+src/rules/grades.ts
+src/rules/graduation.ts
+src/rules/plan-issues.ts
+src/rules/prerequisites.ts
+src/rules/rules.module.ts
+src/rules/rules.service.ts
+src/rules/types.ts
+--- test files and helpers, excluded from the threshold
+src/rules/attempts.spec.ts
+src/rules/audit.spec.ts
+src/rules/credit-caps.spec.ts
+src/rules/gpa.spec.ts
+src/rules/grades.spec.ts
+src/rules/plan-issues.spec.ts
+src/rules/prerequisites.spec.ts
+src/rules/rules.service.spec.ts
+src/rules/testing/fixtures.ts
+
+=== COV-01b: npm test -w src/backend (vitest run --coverage), started 2026-11-27T09:23:35Z
+ FAIL  src/openapi-document.spec.ts > openapi.json > matches the contract the code builds (run `npm run build && npm run openapi -w src/backend` after an API change)
+ FAIL  src/openapi-document.spec.ts > openapi.json > does not depend on the order of the feature modules
+ FAIL  src/curriculum-admin/csv-file.spec.ts > readCsv > takes exactly 1 MiB of UTF-8 and refuses one byte more with 413
+ FAIL  src/advisor/regulations/regulation.spec.ts > regulation qd-1175-2021 > is exactly what the extraction script writes from the committed sources
+ FAIL  src/advisor/regulations/regulation.spec.ts > regulation qd-1175-2021 > has a Markdown version generated from the JSON
+ Test Files  3 failed | 64 passed (67)
+      Tests  5 failed | 1025 passed (1030)
+exit 1
+    ^ exit 1 comes from the 5 failed tests above. vitest prints no coverage report when a test fails, so this run gives no
+      threshold result. The failures: regulation.spec.ts (2) and openapi-document.spec.ts (2) are the known local-only CRLF
+      failures (the Windows checkout has CRLF; the generated text has LF). csv-file.spec.ts "takes exactly 1 MiB ..." timed out
+      (5000 ms) under the full parallel run; alone, and alone with coverage, it passes in 1.4 s (below). CI on 1bde552 is green
+      with 1030 of 1030 (local-ci-named-tests.txt).
+
+--- the same suite again, reporting coverage on failure, with the json-summary reporter for the statement counts
+    (cd src/backend && npx vitest run --coverage --coverage.reportOnFailure --coverage.reporter=text --coverage.reporter=json-summary --coverage.reportsDirectory=<scratch>), started 2026-11-27T09:26:15Z
+ FAIL  src/openapi-document.spec.ts > openapi.json > matches the contract the code builds (run `npm run build && npm run openapi -w src/backend` after an API change)
+ FAIL  src/openapi-document.spec.ts > openapi.json > does not depend on the order of the feature modules
+ FAIL  src/curriculum-admin/csv-file.spec.ts > readCsv > takes exactly 1 MiB of UTF-8 and refuses one byte more with 413
+ FAIL  src/curriculum-admin/import-body-limit.spec.ts > JSON body limits > gives a caller without a session, or without the grant of the route, the 100 KiB limit of every other route
+ FAIL  src/curriculum-admin/import-body-limit.spec.ts > JSON body limits > never inflates a body on an import route: 415 for every caller, before the gate is asked
+ FAIL  src/advisor/regulations/regulation.spec.ts > regulation qd-1175-2021 > is exactly what the extraction script writes from the committed sources
+ FAIL  src/advisor/regulations/regulation.spec.ts > regulation qd-1175-2021 > has a Markdown version generated from the JSON
+ Test Files  4 failed | 63 passed (67)
+      Tests  7 failed | 1023 passed (1030)
+exit 1
+    ^ the same 5, plus 2 in import-body-limit.spec.ts: "gives a caller without a session ... 100 KiB limit" timed out (5000 ms),
+      and "never inflates a body ..." then saw the timed-out test's 3 leftover gate calls. Both pass alone (below).
+--- the src/rules rows of the text report (it lists only the files that are not 100% in every column), and the totals
+ src/rules         |     100 |    97.84 |     100 |     100 |                   
+  attempts.ts      |     100 |    96.55 |     100 |     100 | 61                
+  coverage.ts      |     100 |    95.71 |     100 |     100 | 13,23,34          
+  grades.ts        |     100 |    88.88 |     100 |     100 | 26                
+  plan-issues.ts   |     100 |    98.19 |     100 |     100 | 116,316           
+=============================== Coverage summary ===============================
+Statements   : 72.76% ( 2442/3356 )
+Branches     : 74.4% ( 1250/1680 )
+Functions    : 67.67% ( 762/1126 )
+Lines        : 73.37% ( 2004/2731 )
+================================================================================
+All files         |   72.76 |     74.4 |   67.67 |   73.37 |                   
+--- statement counts per rules file (coverage-summary.json)
+src/rules/attempts.ts            statements   38 /   38   100%
+src/rules/audit.ts               statements   83 /   83   100%
+src/rules/coverage.ts            statements   70 /   70   100%
+src/rules/credit-caps.ts         statements   31 /   31   100%
+src/rules/gpa.ts                 statements   12 /   12   100%
+src/rules/grades.ts              statements   18 /   18   100%
+src/rules/graduation.ts          statements   15 /   15   100%
+src/rules/plan-issues.ts         statements  165 /  165   100%
+src/rules/prerequisites.ts       statements   13 /   13   100%
+src/rules/rules.module.ts        statements    0 /    0   100%
+src/rules/rules.service.ts       statements   21 /   21   100%
+src/rules/types.ts               statements   10 /   10   100%
+src/rules/** total               statements  476 /  476   100.00%
+--- no threshold error in this run: src/rules/** is at 100% statements, above 80%
+
+--- the timed-out tests alone: npx vitest run --coverage --reporter=verbose src/curriculum-admin/import-body-limit.spec.ts src/curriculum-admin/csv-file.spec.ts
+ ✓ src/curriculum-admin/csv-file.spec.ts > readCsv > takes exactly 1 MiB of UTF-8 and refuses one byte more with 413 1433ms
+ ✓ src/curriculum-admin/import-body-limit.spec.ts > JSON body limits > gives a caller without a session, or without the grant of the route, the 100 KiB limit of every other route 1419ms
+ ✓ src/curriculum-admin/import-body-limit.spec.ts > JSON body limits > never inflates a body on an import route: 415 for every caller, before the gate is asked 383ms
+ Test Files  2 passed (2)
+      Tests  19 passed (19)
+
+=== COV-01c: the uncovered branch added to the working tree's src/rules/gpa.ts and reverted with git checkout right after the runs
+    (no copy: a copy outside the repository cannot resolve node_modules without a link, and links are not allowed on this machine)
+--- baseline, unmodified tree: npx vitest run --coverage --coverage.reportOnFailure src/rules, started 2026-11-27T09:29:43Z
+ Test Files  8 passed (8)
+      Tests  121 passed (121)
+ src/rules         |     100 |    97.53 |     100 |     100 |                   
+exit 0
+--- appended to src/rules/gpa.ts: an exported function, covUncovered(x), with an if branch of 500 statements that no test calls
+    lines of gpa.ts: before 34, during 541
+--- the same command on the modified tree, started 2026-11-27T09:30:08Z
+ Test Files  8 passed (8)
+      Tests  121 passed (121)
+ src/rules         |   48.62 |    96.94 |   99.38 |   42.25 |                   
+  gpa.ts           |    2.33 |       50 |   85.71 |    1.75 | 37-540            
+ERROR: Coverage for statements (48.62%) does not meet "src/rules/**" threshold (80%)
+exit 1
+    ^ every test passes; exit 1 comes from the threshold alone
+--- the full suite on the modified tree, npx vitest run --coverage, started 2026-11-27T09:30:25Z
+ Test Files  4 failed | 63 passed (67)
+      Tests  7 failed | 1023 passed (1030)
+exit 1
+    ^ exit 1, but not conclusive for COV-01c: the same 7 local-only failures as above, so vitest printed no coverage report
+--- git checkout -- src/backend/src/rules/gpa.ts; lines of gpa.ts after: 34
+--- git status --short after the revert:
+?? docs/test/evidence/b2/b1-regression/

@@ -1,8 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
-// The sidebar narrows to icons (UI prototypes): the button at its foot, or the `[` key. Remembered per browser.
-
 const SIDEBAR_STORAGE_KEY = 'omnicourse.sidebar';
 
 function storedMini(): boolean {
@@ -26,10 +24,15 @@ export const useSidebar = defineStore('sidebar', () => {
   return { mini, toggle };
 });
 
-/** True when `[` should toggle the sidebar: no modifier, and the student is not typing. */
 export function isSidebarKey(event: KeyboardEvent): boolean {
   if (event.key !== '[' || event.ctrlKey || event.metaKey || event.altKey) return false;
+  if (document.querySelector('dialog[open]')) return false;
+  if (document.activeElement?.closest('[role="listbox"], [aria-expanded="true"]')) return false;
   const target = event.target;
   if (!(target instanceof HTMLElement)) return true;
-  return !(target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+  return !(
+    target.isContentEditable ||
+    ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) ||
+    target.closest('[role="listbox"], [aria-expanded="true"]')
+  );
 }

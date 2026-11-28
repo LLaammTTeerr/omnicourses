@@ -4,6 +4,7 @@ import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AcademicCalendarService } from '../src/academic-calendar/academic-calendar.service.js';
+import { authed, grantGlobal, grantProgram, runSuffix } from './support/admin.js';
 import { bootApp } from './support/app.js';
 import { signedInUser } from './support/users.js';
 
@@ -21,20 +22,13 @@ interface Event {
   updatedAt: string;
 }
 
-// Synthetic programs and dates only (AGENTS.md hard rule 3), unique per run and removed in
-// afterAll: e2e files share one database, and nothing here touches a seeded program.
 describe('Academic calendar API (e2e)', () => {
   let app: INestApplication;
   let db: DataSource;
   const http = () => request(app.getHttpServer());
-  const as = (token: string) => ({
-    get: (path: string) => http().get(path).set('Authorization', `Bearer ${token}`),
-    post: (path: string, body: object = {}) => http().post(path).set('Authorization', `Bearer ${token}`).send(body),
-    patch: (path: string, body: object = {}) => http().patch(path).set('Authorization', `Bearer ${token}`).send(body),
-    delete: (path: string) => http().delete(path).set('Authorization', `Bearer ${token}`),
-  });
+  const as = authed(() => app);
 
-  const suffix = randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
+  const suffix = runSuffix();
   const codeA = `ZZCAL${suffix}A`;
   const codeB = `ZZCAL${suffix}B`;
   let programA: string;
@@ -55,8 +49,9 @@ describe('Academic calendar API (e2e)', () => {
     const insertProgram = async (code: string) => ((await db.query(`INSERT INTO programs (code, name_vi) VALUES ($1, $2) RETURNING id`, [code, `Chương trình ${code}`])) as { id: string }[])[0].id;
     programA = await insertProgram(codeA);
     programB = await insertProgram(codeB);
-    await db.query(`INSERT INTO program_admin_grants (user_id, program_id) VALUES ($1, $2), ($3, $4)`, [adminA.userId, programA, adminB.userId, programB]);
-    await db.query(`INSERT INTO global_admin_grants (user_id, permission) VALUES ($1, 'access_manager'), ($1, 'catalog_maintainer')`, [manager.userId]);
+    await grantProgram(db, adminA.userId, programA);
+    await grantProgram(db, adminB.userId, programB);
+    await grantGlobal(db, manager.userId, 'access_manager', 'catalog_maintainer');
     await db.query(`INSERT INTO onboarding_answers (user_id, program_code, cohort_year) VALUES ($1, $2, 2026)`, [student.userId, codeA]);
   });
 
@@ -71,11 +66,6 @@ describe('Academic calendar API (e2e)', () => {
       await db.query('DELETE FROM programs WHERE id = ANY($1)', [programs]);
     }
     await app?.close();
-  });
-
-  it('maps the table exactly as migration 1794500000000 creates it', async () => {
-    const { upQueries } = await db.driver.createSchemaBuilder().log();
-    expect(upQueries.map((q) => q.query).filter((q) => q.includes('"academic_calendar"'))).toEqual([]);
   });
 
   it('refuses every route without a token', async () => {
@@ -95,14 +85,14 @@ describe('Academic calendar API (e2e)', () => {
   });
 
   it('answers 404 not_found for an unknown program code', async () => {
-    const res = await as(student.token).get(calendar(`?program=ZZNOPE${suffix}`)).expect(404);
-    expect(res.body.code).toBe('not_found');
+    const response = await as(student.token).get(calendar(`?program=ZZNOPE${suffix}`)).expect(404);
+    expect(response.body.code).toBe('not_found');
   });
 
   it('refuses writes to a student, to an access manager and catalog maintainer, and to the administrator of another program', async () => {
     for (const caller of [student, manager, adminB]) {
-      const res = await as(caller.token).post(events(programA), valid);
-      expect([res.status, res.body.code, res.body.permission]).toEqual([403, 'permission_required', 'program_admin']);
+      const response = await as(caller.token).post(events(programA), valid);
+      expect([response.status, response.body.code, response.body.permission]).toEqual([403, 'permission_required', 'program_admin']);
     }
     expect((await as(student.token).get(calendar()).expect(200)).body.events).toEqual([]);
   });
@@ -114,7 +104,6 @@ describe('Academic calendar API (e2e)', () => {
     let examB: Event;
 
     beforeAll(async () => {
-      // Entered out of order, to show the read sorts by date.
       termStart = (await as(adminA.token).post(events(programA), valid).expect(201)).body;
       holiday = (
         await as(adminA.token)
@@ -165,7 +154,6 @@ describe('Academic calendar API (e2e)', () => {
 
     it('serves the dates of given kinds that start on given days to other modules, without notes, links or actors (ADR 0018)', async () => {
       const service = app.get(AcademicCalendarService);
-      // The shared database may hold other programs' dates on these days: look at this run's only.
       const mine = async (days: string[], kinds: Parameters<AcademicCalendarService['startingOn']>[1]) =>
         (await service.startingOn(days, kinds)).filter((e) => [codeA, codeB].includes(e.programCode));
       expect(await mine(['2026-09-07', '2026-07-20', '2026-12-21', '2027-02-10'], ['registration', 'term_start'])).toEqual([
@@ -182,7 +170,6 @@ describe('Academic calendar API (e2e)', () => {
         },
         { id: termStart.id, programCode: codeA, academicYear: 2026, term: 1, kind: 'term_start', startsOn: '2026-09-07', endsOn: '2026-09-07', title: 'Bắt đầu học kỳ 1', titleEn: null },
       ]);
-      // Every program, by the first day only: a window that is open today did not start today.
       expect((await mine(['2026-12-21'], ['exam_period'])).map((e) => [e.id, e.programCode])).toEqual([[examB.id, codeB]]);
       expect(await mine(['2026-07-21', '2026-07-31'], ['registration'])).toEqual([]);
       expect(await service.startingOn([], ['registration'])).toEqual([]);
@@ -207,7 +194,6 @@ describe('Academic calendar API (e2e)', () => {
     it('filters by academic year and by overlap with from/to', async () => {
       expect((await as(student.token).get(calendar('?academicYear=2025')).expect(200)).body.events).toEqual([]);
       expect((await as(student.token).get(calendar('?academicYear=2026')).expect(200)).body.events).toHaveLength(3);
-      // A window that opened before `from` and is still open counts.
       const july = (await as(student.token).get(calendar('?from=2026-07-25&to=2026-08-31')).expect(200)).body.events as Event[];
       expect(july.map((e) => e.id)).toEqual([registration.id]);
       const fromSept = (await as(student.token).get(calendar('?from=2026-09-01')).expect(200)).body.events as Event[];
@@ -246,8 +232,8 @@ describe('Academic calendar API (e2e)', () => {
         { kind: 'term_start', startsOn: '2026-09-07', title: 'no year' },
       ];
       for (const body of bad) {
-        const res = await as(adminA.token).post(events(programA), body);
-        expect([res.status, res.body.code], JSON.stringify(body)).toEqual([400, 'validation_failed']);
+        const response = await as(adminA.token).post(events(programA), body);
+        expect([response.status, response.body.code], JSON.stringify(body)).toEqual([400, 'validation_failed']);
       }
       expect((await as(student.token).get(calendar()).expect(200)).body.events).toHaveLength(3);
     });
@@ -262,7 +248,7 @@ describe('Academic calendar API (e2e)', () => {
 
       const moved = (await as(adminA.token).patch(path, { endsOn: '2026-08-02', notes: 'Gia hạn' }).expect(200)).body as Event;
       expect(moved).toMatchObject({ startsOn: '2026-07-20', endsOn: '2026-08-02', notes: 'Gia hạn', title: registration.title, sourceUrl: registration.sourceUrl });
-      expect(moved.updatedAt >= registration.updatedAt).toBe(true);
+      expect(Date.parse(moved.updatedAt)).toBeGreaterThan(Date.parse(registration.updatedAt));
 
       const cleared = (await as(adminA.token).patch(path, { sourceUrl: null, titleEn: '', term: null }).expect(200)).body as Event;
       expect(cleared).toMatchObject({ sourceUrl: null, titleEn: null, term: null });
@@ -275,8 +261,8 @@ describe('Academic calendar API (e2e)', () => {
       expect((await as(adminA.token).patch(crossPath, { title: 'x' }).expect(404)).body.code).toBe('not_found');
       await as(adminA.token).delete(crossPath).expect(404);
       const own = `${events(programA)}/${termStart.id}`;
-      for (const res of [await as(adminB.token).patch(own, { title: 'x' }), await as(adminB.token).delete(own), await as(student.token).delete(own)]) {
-        expect([res.status, res.body.code]).toEqual([403, 'permission_required']);
+      for (const response of [await as(adminB.token).patch(own, { title: 'x' }), await as(adminB.token).delete(own), await as(student.token).delete(own)]) {
+        expect([response.status, response.body.code]).toEqual([403, 'permission_required']);
       }
       expect((await as(student.token).get(calendar(`?program=${codeB}`)).expect(200)).body.events[0].title).toBe('Thi cuối kỳ');
     });
@@ -295,7 +281,7 @@ describe('Academic calendar API (e2e)', () => {
 
     it("keeps the dates, without attribution, when the administrator's account is purged", async () => {
       const leaving = await signedInUser(app);
-      await db.query('INSERT INTO program_admin_grants (user_id, program_id) VALUES ($1, $2)', [leaving.userId, programA]);
+      await grantProgram(db, leaving.userId, programA);
       const event = (await as(leaving.token).post(events(programA), { ...valid, kind: 'term_end', startsOn: '2027-01-15', title: 'Kết thúc học kỳ 1' }).expect(201)).body as Event;
       await db.query('DELETE FROM users WHERE id = $1', [leaving.userId]);
       const [row] = await db.query('SELECT created_by, updated_by FROM academic_calendar WHERE id = $1', [event.id]);

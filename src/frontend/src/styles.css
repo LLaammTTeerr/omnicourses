@@ -1,9 +1,3 @@
-/*
- * The OmniCourse design system, ported from Hoà's prototypes
- * (docs/analysis-and-design/ui-prototypes/assets/style.css): calm surfaces, one colour per requirement group.
- * Only the parts the shipped screens use are here; a screen ported later brings its own page styles.
- */
-
 :root {
   --bg: #f6f7f9;
   --surface: #ffffff;
@@ -11,30 +5,31 @@
   --surface-3: #e8eaef;
   --ink: #111827;
   --ink-2: #414b5c;
-  --ink-3: #6b7383;
+  --ink-3: #525b6c;
   --line: #eaecf0;
   --edge: #e3e6eb;
   --edge-strong: #cdd2da;
+  --field-edge: #848d9f;
   --on-ink: #ffffff;
   --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.05);
   --shadow-lg: 0 16px 40px -12px rgba(16, 24, 40, 0.22), 0 2px 6px rgba(16, 24, 40, 0.06);
 
-  --ok: #12925a;
+  --ok: #0e7d4d;
+  --ok-bg: #0e7d4d;
   --warn: #c56a06;
   --bad: #d83a3a;
   --info: #2f5fe0;
   --hi: #e6edff;
 
-  /* Requirement group colours (groups.ts names them and pairs each with a glyph). */
-  --core: #3a66e0;
-  --math: #e36b33;
-  --phys: #14a08f;
+  --core: #2b56cc;
+  --math: #b54712;
+  --phys: #0c7466;
   --eng: #dca21b;
-  --pol: #d6497c;
-  --gen: #52a743;
-  --elec: #7656dc;
-  --thesis: #4a5366;
+  --pol: #b32b5c;
+  --gen: #2d7722;
+  --elec: #5c3cc4;
+  --thesis: #41495b;
 
   --r: 14px;
   --r-sm: 10px;
@@ -42,12 +37,11 @@
   --display: var(--font);
   --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
   --side: 252px;
-  /* Accent for primary actions and selected states: a clear blue, never black. */
   --acc: #2f5bd8;
   --acc-ink: #ffffff;
   --acc-bg: var(--acc);
-  /* Kept for the guide pages, written before the design system. */
   --accent: var(--acc);
+  --acc-shadow: 0 2px 8px color-mix(in oklab, var(--acc) 32%, transparent);
   --sb: color-mix(in oklab, var(--ink-3) 42%, transparent);
   --sb-hover: color-mix(in oklab, var(--ink-3) 70%, transparent);
   color-scheme: light;
@@ -60,31 +54,33 @@
   --surface-3: #242936;
   --ink: #eceef3;
   --ink-2: #bcc2ce;
-  --ink-3: #8a91a1;
+  --ink-3: #9ba3b4;
   --line: #222734;
   --edge: #262c3a;
   --edge-strong: #363d4e;
+  --field-edge: #687387;
   --on-ink: #111827;
   --hi: #22305a;
-  --thesis: #a9b1c2;
-  --acc: #4b74ec;
+  --thesis: #b8c0d0;
+  --ok: #22b070;
+  --ok-bg: #0e7d4d;
+  --acc: #3661de;
   --info: #6b8ff0;
-  /* Dark surfaces separate by a lighter edge and a faint top highlight instead of shadows. */
   --shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
   --shadow-sm: inset 0 1px 0 rgba(255, 255, 255, 0.03);
   --shadow-lg: 0 20px 48px -12px rgba(0, 0, 0, 0.6);
   color-scheme: dark;
 }
 
-/* Group tokens: --c is the colour, --on the text on it, --c-soft a tint for backgrounds. */
-.g-core { --c: color-mix(in oklab, var(--core), #000 5%); --on: #fff; }
-.g-math { --c: color-mix(in oklab, var(--math), #000 5%); --on: #fff; }
-.g-phys { --c: color-mix(in oklab, var(--phys), #000 5%); --on: #fff; }
-.g-eng { --c: color-mix(in oklab, var(--eng), #000 5%); --on: #2a1d00; }
-.g-pol { --c: color-mix(in oklab, var(--pol), #000 5%); --on: #fff; }
-.g-gen { --c: color-mix(in oklab, var(--gen), #000 5%); --on: #fff; }
-.g-elec { --c: color-mix(in oklab, var(--elec), #000 5%); --on: #fff; }
-.g-thesis { --c: color-mix(in oklab, var(--thesis), #000 5%); --on: var(--surface); }
+.g-core { --c: var(--core); --on: #fff; }
+.g-math { --c: var(--math); --on: #fff; }
+.g-phys { --c: var(--phys); --on: #fff; }
+.g-eng { --c: var(--eng); --on: #231800; }
+.g-pol { --c: var(--pol); --on: #fff; }
+.g-gen { --c: var(--gen); --on: #fff; }
+.g-elec { --c: var(--elec); --on: #fff; }
+.g-thesis { --c: var(--thesis); --on: #ffffff; }
+:root[data-theme='dark'] .g-thesis { --on: #111827; }
 [class*='g-'] {
   --c-soft: color-mix(in oklab, var(--c) 12%, var(--surface));
   --c-ink: color-mix(in oklab, var(--c) 70%, var(--ink));
@@ -127,7 +123,6 @@ input, select, textarea { font: inherit; color: inherit; }
 .skip:focus { top: 12px; }
 ::selection { background: color-mix(in oklab, var(--info) 22%, transparent); }
 
-/* ---------- Text helpers ---------- */
 .t2 { color: var(--ink-2); }
 .t3 { color: var(--ink-3); }
 .small { font-size: 13px; }
@@ -143,7 +138,6 @@ input, select, textarea { font: inherit; color: inherit; }
 .link:hover { text-decoration: underline; text-underline-offset: 3px; }
 button.link { background: none; border: 0; padding: 0; cursor: pointer; }
 
-/* ---------- Surfaces ---------- */
 .card {
   background: var(--surface); border: 1px solid var(--edge); border-radius: var(--r);
   box-shadow: var(--shadow); min-width: 0; padding: 18px 22px;
@@ -153,7 +147,6 @@ button.link { background: none; border: 0; padding: 0; cursor: pointer; }
 .card-head .meta { font-size: 13px; color: var(--ink-3); }
 .box { background: var(--surface-2); border-radius: 14px; padding: 14px 16px; min-width: 0; }
 
-/* ---------- Buttons and chips ---------- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 38px; padding: 0 14px; border-radius: 9px; cursor: pointer; white-space: nowrap;
@@ -164,6 +157,7 @@ button.link { background: none; border: 0; padding: 0; cursor: pointer; }
 .btn:hover { background: var(--surface-2); }
 .btn.primary { background: var(--acc-bg); color: var(--acc-ink); border-color: transparent; }
 .btn.primary:hover { background: color-mix(in oklab, var(--acc) 88%, #fff); }
+:root[data-theme='dark'] .btn.primary:hover { background: #2b54cc; }
 .btn.danger { background: var(--bad); color: #fff; border-color: transparent; }
 .btn.danger:hover { background: color-mix(in oklab, var(--bad) 88%, #000); }
 .btn.ghost { border-color: transparent; box-shadow: none; background: transparent; }
@@ -187,6 +181,7 @@ button.link { background: none; border: 0; padding: 0; cursor: pointer; }
 .chip.bad { background: color-mix(in oklab, var(--bad) 14%, var(--surface)); color: color-mix(in oklab, var(--bad) 80%, var(--ink)); }
 .chip.info { background: color-mix(in oklab, var(--info) 14%, var(--surface)); color: color-mix(in oklab, var(--info) 78%, var(--ink)); }
 .chip.ink { background: var(--acc-bg); color: var(--acc-ink); }
+.chip.line { background: transparent; border: 1px dashed var(--edge-strong); color: var(--ink-2); min-height: 20px; font-size: 12px; }
 
 .glyph {
   display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 9px; flex: none;
@@ -197,15 +192,15 @@ button.link { background: none; border: 0; padding: 0; cursor: pointer; }
 .glyph.xs { width: 20px; height: 20px; border-radius: 6px; font-size: 10.5px; }
 :root[data-theme='dark'] .glyph { box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--c) 30%, transparent); }
 
-/* ---------- Forms ---------- */
 .field { display: grid; gap: 6px; }
 .field > span, .label { font-weight: 650; font-size: 13.5px; }
 .input, .select {
   width: 100%; min-height: 40px; padding: 8px 12px; border-radius: 9px;
-  background: var(--surface); border: 1px solid var(--edge-strong); outline: none;
+  background: var(--surface); border: 1px solid var(--field-edge); outline: none;
 }
 .input:focus, .select:focus { border-color: var(--info); box-shadow: 0 0 0 3px color-mix(in oklab, var(--info) 22%, transparent); }
 .input[aria-invalid='true'], .select[aria-invalid='true'] { border-color: var(--bad); border-width: 2px; }
+.input:disabled, .select:disabled { opacity: 0.55; cursor: not-allowed; background: var(--surface-2); }
 .hint { font-size: 12.5px; color: var(--ink-3); }
 .field-error { font-size: 12.5px; color: color-mix(in oklab, var(--bad) 85%, var(--ink)); font-weight: 600; }
 .check { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; cursor: pointer; }
@@ -213,10 +208,10 @@ button.link { background: none; border: 0; padding: 0; cursor: pointer; }
 .seg { display: inline-flex; padding: 4px; gap: 4px; background: var(--surface-3); border-radius: 12px; flex-wrap: wrap; }
 .seg button { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 7px 14px; border-radius: 9px; font-weight: 650; font-size: 13.5px; cursor: pointer; color: var(--ink-2); }
 .seg button[aria-pressed='true'] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); outline: 1px solid var(--edge); }
+.seg button:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
 .meter { height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
 .meter > i { display: block; height: 100%; transition: width 0.2s; }
 
-/* ---------- Page scaffolding ---------- */
 .page { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
 .page > * { min-width: 0; }
 .stack { display: grid; gap: 22px; }
@@ -228,7 +223,6 @@ button.link { background: none; border: 0; padding: 0; cursor: pointer; }
 .crumbs a { text-decoration: none; font-weight: 600; }
 .crumbs a:hover { color: var(--ink); }
 
-/* ---------- Status, tables, callouts ---------- */
 .table-wrap { overflow-x: auto; position: relative; }
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .table th { text-align: left; font-size: 12.5px; font-weight: 650; color: var(--ink-3); padding: 10px 14px; border-bottom: 1px solid var(--edge); white-space: nowrap; }
@@ -245,7 +239,6 @@ button.link { background: none; border: 0; padding: 0; cursor: pointer; }
 .callout b { display: block; }
 .callout p { font-size: 14px; color: var(--ink-2); }
 
-/* ---------- Dialogs and toasts ---------- */
 dialog.modal {
   width: min(480px, calc(100vw - 24px)); max-height: calc(100vh - 24px); padding: 24px; overflow-y: auto;
   background: var(--surface); color: var(--ink); border: 1px solid var(--edge); border-radius: 16px; box-shadow: var(--shadow-lg);
@@ -262,6 +255,9 @@ dialog.modal .acts { display: flex; justify-content: flex-end; gap: 10px; flex-w
   background: var(--ink); color: var(--on-ink); box-shadow: var(--shadow-lg); transition: 0.2s; width: max-content; max-width: calc(100vw - 32px);
 }
 .toast.show { opacity: 1; transform: translateX(-50%); }
+@media (max-width: 960px) {
+  .toast { bottom: calc(78px + env(safe-area-inset-bottom, 0px)); }
+}
 
 @media (max-width: 620px) {
   body { font-size: 14.5px; }
@@ -273,7 +269,6 @@ dialog.modal .acts { display: flex; justify-content: flex-end; gap: 10px; flex-w
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
-/* ---------- Attention: a found element glows, a refused drop shakes (planner, explorer) ---------- */
 .flash { animation: flash 1.4s ease-out; }
 .shake { animation: shake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
 @keyframes flash {

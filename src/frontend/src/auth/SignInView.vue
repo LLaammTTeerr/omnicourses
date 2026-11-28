@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nextTick, reactive, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { statusOf } from '../api.js';
+import { failureKind } from '../api.js';
 import { useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
@@ -10,7 +10,6 @@ import { AUTH_MESSAGES, looksLikeEmail } from './messages.js';
 import { afterSignIn } from './redirect.js';
 import { useAuth } from './store.js';
 
-// F1 sign-in (issue #13). Then the page the guard came from, or the transcript.
 const auth = useAuth();
 const route = useRoute();
 const router = useRouter();
@@ -36,11 +35,10 @@ async function submit(): Promise<void> {
     await auth.signIn({ email: email.value.trim(), password: password.value });
     await router.replace(afterSignIn(route.query.redirect));
   } catch (e) {
-    const status = statusOf(e);
-    // ADR 0002: one answer for an unknown email and a wrong password.
-    if (status === 401) failure.value = m.value.wrongCredentials;
-    else if (status === 429) failure.value = m.value.rateLimited;
-    else if (status === 400) failure.value = m.value.checkFields;
+    const kind = failureKind(e);
+    if (kind === 'unauthorized') failure.value = m.value.wrongCredentials;
+    else if (kind === 'rate_limited') failure.value = m.value.rateLimited;
+    else if (kind === 'invalid') failure.value = m.value.checkFields;
     else {
       console.error('Signing in failed:', e);
       failure.value = m.value.unreachable;
@@ -107,8 +105,8 @@ usePageTitle(() => m.value.signIn);
   </AuthFrame>
 </template>
 
-<style>
+<style scoped>
 .auth-fields { display: grid; gap: 14px; }
 .auth-fields .field > label { font-weight: 650; font-size: 13.5px; }
-.auth-form .lead { margin-top: 8px; }
+.lead { margin-top: 8px; }
 </style>

@@ -23,7 +23,6 @@ describe('curriculum schema migration', () => {
         )
       )[0].id as string;
 
-      // A second cohort of the same program is allowed.
       await dataSource.query(
         `INSERT INTO curriculums (program_id, cohort_year, code, name_vi) VALUES ($1,$2,$3,$4)`,
         [programId, 2025, programCode, 'Curriculum 2025'],
@@ -86,6 +85,31 @@ describe('curriculum schema migration', () => {
         `INSERT INTO requirement_group_courses (requirement_group_id, course_code) VALUES ($1,$2)`,
         [group2, courseCode],
       );
+
+      const minimumId = (
+        await dataSource.query(
+          `INSERT INTO combined_minimums (curriculum_id, name, credits_min) VALUES ($1,$2,$3) RETURNING id`,
+          [curriculum1, 'Combined', 30],
+        )
+      )[0].id as string;
+      await dataSource.query(
+        `INSERT INTO combined_minimum_groups (combined_minimum_id, requirement_group_id) VALUES ($1,$2)`,
+        [minimumId, group2],
+      );
+      await dataSource.query(
+        `INSERT INTO requirement_group_overflows (from_group_id, to_group_id) VALUES ($1,$2)`,
+        [group1, group2],
+      );
+
+      await expect(dataSource.query(`DELETE FROM requirement_groups WHERE id = $1`, [group1])).rejects.toThrow(
+        /requirement_group_overflows_from_group_id_fkey/,
+      );
+      await expect(dataSource.query(`DELETE FROM requirement_groups WHERE id = $1`, [group2])).rejects.toThrow(
+        /combined_minimum_groups_requirement_group_id_fkey|requirement_group_overflows_to_group_id_fkey/,
+      );
+
+      await dataSource.query(`DELETE FROM curriculums WHERE id = $1`, [curriculum1]);
+      expect(await dataSource.query(`SELECT id FROM requirement_groups WHERE curriculum_id = $1`, [curriculum1])).toEqual([]);
     } finally {
       await drop();
     }

@@ -10,7 +10,6 @@ const item = (id: string, vi: Words | null, en: Words | null): GuideListItem => 
   texts: { ...(vi ? { vi: listText(vi) } : {}), ...(en ? { en: listText(en) } : {}) },
 });
 
-// Synthetic entries shaped like the B1 batch, so the GUIDE-01c queries have something to find.
 const GUIDES = [
   item('accounts-and-portals', { title: 'Tài khoản và cổng thông tin', keywords: ['email', 'moodle'] }, { title: 'Your school accounts and portals', keywords: ['account'] }),
   item('register-courses', { title: 'Đăng ký học phần', keywords: ['dkhp'] }, { title: 'Register for courses', keywords: ['registration'] }),

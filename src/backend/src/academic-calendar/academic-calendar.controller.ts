@@ -1,17 +1,15 @@
 import { Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiBody, ApiCreatedResponse, ApiNoContentResponse, ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Authenticated, CurrentUser } from '../auth/auth.decorators.js';
-import { AdminErrorDto } from '../curriculum-admin/admin-errors.js';
-import { AdminErrors, uuidParam } from '../curriculum-admin/admin-params.js';
-import { StrictBody } from '../curriculum-admin/strict-body.js';
+import { AdminErrorDto } from '../common/api-errors.js';
+import { StrictBody, uuidParam } from '../common/api-requests.js';
+import { AdminErrors } from '../admin-access/admin-error-responses.js';
 import { User } from '../users/user.entity.js';
 import { AcademicCalendarDto, AcademicCalendarEventDto, AcademicCalendarQueryDto, CreateCalendarEventDto, UpdateCalendarEventDto } from './academic-calendar.dto.js';
 import { AcademicCalendarService } from './academic-calendar.service.js';
 
 const EVENTS = 'admin/programs/:programId/calendar-events';
 
-// F10 school dates (ADR 0017). Every signed-in user reads; only an administrator of the
-// program writes, checked by the service inside the F12 write transaction (ADR 0011).
 @ApiTags('academic-calendar')
 @Authenticated()
 @Controller()

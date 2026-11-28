@@ -1,28 +1,44 @@
-import { request, send } from '../api.js';
+import { segment } from '../api.js';
+import type { Session, User } from '../auth/api.js';
+import { requestAsUser, sendAsUser } from '../auth/store.js';
 
-// The account DTOs of the API (ADR 0004), written by hand; api.spec.ts checks them against src/backend/openapi.json.
+export interface AccountExport {
+  exportedAt: string;
+  user: Record<string, unknown>;
+  tables: Record<string, Record<string, unknown>[]>;
+}
 
 export interface DeleteAccountBody {
-  /** The current password, asked again before deleting. */
   password: string;
 }
 
 export interface DeletionScheduled {
-  /** Signing in before this time cancels the deletion. */
   purgeAfter: string;
 }
 
-export const EXPORT_FILE_NAME = 'omnicourse-account.json';
-
-/** Everything OmniCourse holds about the student, as the JSON file the API sends. */
-export async function exportAccount(token: string): Promise<Blob> {
-  return (await send('GET', '/users/me/export', { token })).blob();
+export interface ProfileBody {
+  studentId?: string | null;
+  className?: string | null;
 }
 
-/** Signs the student out everywhere; the account is purged after the grace period unless they sign in again. 403: wrong password. */
-export const deleteAccount = (token: string, body: DeleteAccountBody) => request<DeletionScheduled>('DELETE', '/users/me', { token, body });
+export const STUDENT_ID_PATTERN = /^[0-9]{8}$/;
+export const CLASS_NAME_MAX_LENGTH = 32;
 
-/** Hands a file to the browser's downloads, as a link the student clicked would. */
+export const DELETION_GRACE_DAYS = 30;
+
+export const listSessions = () => requestAsUser<Session[]>('GET', '/auth/sessions');
+export const revokeSession = (id: string) => requestAsUser<void>('DELETE', `/auth/sessions/${segment(id)}`);
+
+export const EXPORT_FILE_NAME = 'omnicourse-account.json';
+
+export async function exportAccount(): Promise<Blob> {
+  return (await sendAsUser('GET', '/users/me/export')).blob();
+}
+
+export const updateProfile = (body: ProfileBody) => requestAsUser<User>('PATCH', '/users/me', { body });
+
+export const deleteAccount = (body: DeleteAccountBody) => requestAsUser<DeletionScheduled>('DELETE', '/users/me', { body });
+
 export function saveFile(blob: Blob, name: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -31,6 +47,5 @@ export function saveFile(blob: Blob, name: string): void {
   document.body.append(link);
   link.click();
   link.remove();
-  // Revoke after the click has been handled, or some browsers cancel the download.
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }

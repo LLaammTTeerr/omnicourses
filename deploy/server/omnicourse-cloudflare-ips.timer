@@ -1,0 +1,11 @@
+# Runs Cloudflare origin-gate IP refresh once a week.
+[Unit]
+Description=Weekly refresh of Cloudflare IP ranges for OmniCourse nginx
+
+[Timer]
+OnCalendar=Sun *-*-* 20:30:00 UTC
+Persistent=true
+RandomizedDelaySec=15m
+
+[Install]
+WantedBy=timers.target

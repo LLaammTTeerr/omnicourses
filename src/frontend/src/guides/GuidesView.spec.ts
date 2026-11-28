@@ -8,8 +8,10 @@ import { createAppRouter } from '../router.js';
 import { fetchGuides, type GuideListItem, type GuideListText } from './api.js';
 import GuidesView from './GuidesView.vue';
 import { listText } from './testing/guide-fixtures.js';
+import { GUIDE_MESSAGES } from './messages.js';
 
-vi.mock('./api.js', async (importOriginal) => ({ ...(await importOriginal<typeof import('./api.js')>()), fetchGuides: vi.fn() }));
+const { mockedFetchGuides } = vi.hoisted(() => ({ mockedFetchGuides: vi.fn() }));
+vi.mock('./api.js', async (importOriginal) => ({ ...(await importOriginal<typeof import('./api.js')>()), fetchGuides: mockedFetchGuides }));
 
 const PORTAL = { name: 'Cổng thử', url: 'https://example.com/portal?x=1', account: 'Tài khoản thử' };
 const text = (title: string, keywords: string[], extra: Partial<GuideListText> = {}) =>
@@ -77,9 +79,8 @@ describe('GuidesView (UC-10 steps 1–3)', () => {
     const w = await render();
     await w.get('input[type="search"]').setValue('xyzzy');
     const empty = w.get('[data-test="no-match"]');
-    expect(empty.text()).toContain('Chưa có hướng dẫn cho việc này.');
+    expect(empty.text()).toContain(GUIDE_MESSAGES.vi.noMatch);
     expect(empty.findAll('button').map((b) => b.text())).toEqual(['Đăng ký học phần', 'Học phí và lệ phí']);
-    // B1: no Suggest a guide and no advisor link (UC-10 A2, B3).
     expect(empty.findAll('a')).toHaveLength(0);
 
     await empty.findAll('button')[1].trigger('click');
@@ -92,14 +93,14 @@ describe('GuidesView (UC-10 steps 1–3)', () => {
 
   it('marks an out-of-date guide, and a guide written in one language only', async () => {
     const w = await render();
-    expect(w.get('[data-test="guide-zz-vi-only"]').text()).toContain('Có thể đã cũ');
+    expect(w.get('[data-test="guide-zz-vi-only"]').text()).toContain(GUIDE_MESSAGES.vi.outOfDateChip);
     expect(w.get('[data-test="guide-register-courses"]').text()).toContain('Kiểm tra ngày 01/11/2026');
 
     useLocale().set('en');
     await nextTick();
     const viOnly = w.get('[data-test="guide-zz-vi-only"]');
-    expect(viOnly.text()).toContain('Vietnamese only');
-    expect(viOnly.text()).toContain('May be out of date');
+    expect(viOnly.text()).toContain(GUIDE_MESSAGES.en.onlyOtherLanguage);
+    expect(viOnly.text()).toContain(GUIDE_MESSAGES.en.outOfDateChip);
     expect(viOnly.get('[data-test="title"]').attributes('lang')).toBe('vi');
     expect(w.get('[data-test="guide-register-courses"]').text()).toContain('Checked on 1 Nov 2026');
   });
@@ -109,7 +110,7 @@ describe('GuidesView (UC-10 steps 1–3)', () => {
     useLocale().set('en');
     await nextTick();
     expect(w.get('h1').text()).toBe('School task guides');
-    expect(w.get('label').text()).toBe('What do you need to do?');
+    expect(w.get('label').text()).toBe(GUIDE_MESSAGES.en.searchLabel);
     expect(headings(w)).toEqual(['Registration', 'Tuition and fees']);
     expect(titles(w)).toEqual(['Hướng dẫn thử zz-vi-only', 'Register for courses', 'Pay tuition']);
     expect(document.title).toBe('School task guides · OmniCourse');
@@ -120,7 +121,7 @@ describe('GuidesView (UC-10 steps 1–3)', () => {
     const failure = new Error('GET /guides failed: 503');
     vi.mocked(fetchGuides).mockRejectedValueOnce(failure);
     const w = await render();
-    expect(w.get('[role="alert"]').text()).toContain('Chưa tải được hướng dẫn. Hãy thử lại sau ít phút.');
+    expect(w.get('[role="alert"]').text()).toContain(GUIDE_MESSAGES.vi.loadFailed);
     expect(w.get('[role="alert"]').text()).not.toContain('503');
     expect(consoleError).toHaveBeenCalledWith(expect.any(String), failure);
     await w.get('[role="alert"] button').trigger('click');
@@ -131,6 +132,6 @@ describe('GuidesView (UC-10 steps 1–3)', () => {
   it('says when no guide is published yet', async () => {
     vi.mocked(fetchGuides).mockResolvedValue([]);
     const w = await render();
-    expect(w.text()).toContain('Chưa có hướng dẫn nào được đăng.');
+    expect(w.text()).toContain(GUIDE_MESSAGES.vi.noGuides);
   });
 });

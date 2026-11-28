@@ -1,40 +1,42 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { RouterLink } from 'vue-router';
 import { useAsyncLoad } from '../async-load.js';
-import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
-import { fetchCourse, type CurriculumCourse } from '../curriculum/api.js';
+import { fetchCourse, type Course, type CourseStanding, type CurriculumCourse, type TranscriptCourseStatus } from '../curriculum/api.js';
 import { courseName } from '../curriculum/present.js';
-import { GROUPS, groupClass, type GroupId } from '../groups.js';
+import { groupClass, groupGlyph, type GroupId } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
 import { EXPLORER_MESSAGES } from './messages.js';
 
-// One course, opened from a tile (UI prototypes: explorer.html, the drawer). What the catalog stores, the groups
-// that list it, and a neutral mark when the student's own transcript has it. No offering term is recorded yet
-// (ADR 0011), so the drawer says so. A course its curriculum records as having no prerequisite (every APCS course
-// but CS470) says that, one with recorded prerequisites (CS470: CS469) lists them, and one with nothing recorded says
-// "not recorded", which is not the same.
-const props = defineProps<{ course: CurriculumCourse | null; group: { id: GroupId; name: string } | null; inTranscript: boolean }>();
+const props = defineProps<{
+  course: CurriculumCourse | null;
+  group: { id: GroupId; name: string } | null;
+  standing: CourseStanding | null;
+  unlocks: readonly CurriculumCourse[];
+}>();
 const emit = defineEmits<{ close: [] }>();
 
-const auth = useAuth();
 const locale = useLocale();
 const m = useMessages(EXPLORER_MESSAGES);
 
 const detail = useAsyncLoad(
   'the course',
-  async () => (props.course ? auth.authed((token) => fetchCourse(token, props.course!.code)) : null),
+  async () => (props.course ? fetchCourse(props.course!.code) : null),
   () => props.course?.code,
 );
 const prerequisiteNote = computed(() => {
-  const prerequisites = props.course?.prerequisites;
-  if (!prerequisites || props.course?.offeringTerms !== null) return m.value.noPrerequisites;
-  return prerequisites.length ? m.value.prerequisitesListed(prerequisites) : m.value.prerequisitesNone;
+  const prerequisites = props.course?.prerequisites ?? null;
+  const terms = props.course?.offeringTerms ?? null;
+  const said = prerequisites === null ? m.value.noPrerequisites : prerequisites.length ? m.value.prerequisitesListed(prerequisites) : m.value.prerequisitesNone;
+  return `${said} ${terms === null ? m.value.termsUnknown : m.value.termsListed(terms)}`;
 });
-const glyph = computed(() => GROUPS.find((g) => g.id === props.group?.id)?.glyph ?? '');
+const glyph = computed(() => props.group ? groupGlyph(props.group.id) : '');
 const name = computed(() => (props.course ? courseName(props.course, locale.lang) : ''));
 const other = computed(() => (props.course ? (locale.lang === 'en' ? props.course.nameVi : props.course.nameEn) : null));
+const nameOf = (item: Course) => courseName(item, locale.lang);
+const transcriptChip = (status: TranscriptCourseStatus) => (status === 'passed' ? 'ok' : status === 'in_progress' ? 'info' : 'bad');
 const periods = computed(() => {
   const course = props.course;
   if (!course) return [];
@@ -61,7 +63,7 @@ const periods = computed(() => {
         </div>
         <button class="btn sm icon-only" type="button" :aria-label="m.close" @click="emit('close')"><Icon name="x" size="sm" /></button>
       </div>
-      <dl class="kv">
+      <dl class="kv drawer-part">
         <dt>{{ m.code }}</dt>
         <dd><span class="code">{{ course.code }}</span></dd>
         <dt>{{ m.creditsLabel }}</dt>
@@ -70,9 +72,29 @@ const periods = computed(() => {
           <dt>{{ m.periods }}</dt>
           <dd>{{ periods.map(([kind, n]) => `${kind} ${n}`).join(' · ') }}</dd>
         </template>
-        <template v-if="inTranscript">
+        <template v-if="standing?.transcriptStatus">
           <dt>{{ m.inTranscript }}</dt>
-          <dd class="small t2" data-test="transcript-note">{{ m.inTranscriptNote }}</dd>
+          <dd class="standing-cell" data-test="transcript-note">
+            <span :class="['chip', transcriptChip(standing.transcriptStatus)]">{{ m.transcriptStatuses[standing.transcriptStatus] }}</span>
+            <span class="small t2">{{ m.transcriptNotes[standing.transcriptStatus] }}</span>
+          </dd>
+        </template>
+        <template v-if="standing?.readiness">
+          <dt>{{ m.readiness }}</dt>
+          <dd class="standing-cell" data-test="readiness-note">
+            <span :class="['chip', standing.readiness === 'available' ? 'ok' : 'warn']">{{ m.readinessStatuses[standing.readiness] }}</span>
+            <span v-if="standing.missingPrerequisites.length" class="small t2">{{ m.missingPrerequisites(standing.missingPrerequisites) }}</span>
+          </dd>
+        </template>
+        <template v-if="unlocks.length">
+          <dt>{{ m.unlocks }}</dt>
+          <dd data-test="unlocks">
+            <ul class="memberships">
+              <li v-for="item in unlocks" :key="item.code">
+                <span class="code">{{ item.code }}</span> {{ nameOf(item) }}
+              </li>
+            </ul>
+          </dd>
         </template>
         <dt>{{ m.memberships }}</dt>
         <dd data-test="memberships">
@@ -86,25 +108,32 @@ const periods = computed(() => {
           </ul>
         </dd>
       </dl>
-      <p class="small t3" data-test="no-prerequisites"><Icon name="info" size="sm" class="inline" />{{ prerequisiteNote }}</p>
-      <p class="xs t3">{{ m.source }}</p>
+      <p class="small t3 drawer-part" data-test="no-prerequisites"><Icon name="info" size="sm" class="inline" />{{ prerequisiteNote }}</p>
+      <div class="drawer-acts drawer-part">
+        <RouterLink class="btn sm" :to="{ name: 'plans' }" data-test="open-planner" @click="emit('close')">
+          <Icon name="columns" size="sm" />{{ m.openPlanner }}
+        </RouterLink>
+      </div>
+      <p class="xs t3 drawer-part">{{ m.source }}</p>
     </template>
   </ModalDialog>
 </template>
 
-<style>
+<style scoped>
 dialog.modal.drawer {
   margin: 0 0 0 auto; width: min(460px, 100vw); height: 100vh; max-height: 100vh; border-radius: 0; border-width: 0 0 0 1px;
   align-content: start; padding: 0 0 24px;
 }
-dialog.modal.drawer > :not(.drawer-head) { margin: 0 22px; }
+.drawer-part { margin: 0 22px; }
 .drawer-head { display: flex; align-items: flex-start; gap: 14px; padding: 20px 22px; border-bottom: 1px solid var(--edge); }
 .drawer-title { flex: 1; min-width: 0; }
 .drawer-title h2 { overflow-wrap: anywhere; }
 .drawer .eyebrow { margin-bottom: 4px; }
-.kv { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px 16px; font-size: 14px; margin: 0; }
+.kv { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px 16px; font-size: 14px; }
 .kv dt { color: var(--ink-3); font-weight: 600; }
 .kv dd { margin: 0; min-width: 0; }
+.standing-cell { display: grid; gap: 4px; justify-items: start; }
 .memberships { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.icon.inline { display: inline-block; vertical-align: -3px; margin-right: 6px; }
+.drawer-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+:deep(.icon.inline) { display: inline-block; vertical-align: -3px; margin-right: 6px; }
 </style>

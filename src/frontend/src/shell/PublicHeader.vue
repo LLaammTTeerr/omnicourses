@@ -9,7 +9,6 @@ import { SHELL_MESSAGES } from './messages.js';
 import { PUBLIC_NAV } from './nav.js';
 import ThemeButton from './ThemeButton.vue';
 
-// The header of the pages a visitor can open without an account (UI prototypes: public header).
 const auth = useAuth();
 const locale = useLocale();
 const m = useMessages(SHELL_MESSAGES);
@@ -33,7 +32,7 @@ const m = useMessages(SHELL_MESSAGES);
   </header>
 </template>
 
-<style>
+<style scoped>
 .pub-head {
   position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap;
   padding: 12px clamp(16px, 4vw, 48px); background: color-mix(in oklab, var(--bg) 85%, transparent);
@@ -44,15 +43,16 @@ const m = useMessages(SHELL_MESSAGES);
 .pub-nav a:hover, .pub-nav a.router-link-active { background: var(--surface); color: var(--ink); }
 .pub-head .end { margin-left: auto; display: flex; align-items: center; gap: 6px; }
 .lang-btn, .theme-btn { cursor: pointer; }
-.pub-head .ico, .mobile-top .ico { display: grid; place-items: center; }
-.pub-head .ico .icon, .mobile-top .ico .icon { width: 16px; height: 16px; }
+.pub-head :deep(.ico) { display: grid; place-items: center; }
+.pub-head :deep(.ico .icon) { width: 16px; height: 16px; }
 @media (max-width: 620px) {
-  /* A phone keeps the brand, Guides, theme, language and one way in; sign-up is one tap away on sign-in. */
-  .pub-head .end .sign-in { display: none; }
-  .pub-head .brand .name { font-size: 15px; }
-  .pub-nav a { padding: 8px; }
+  .pub-head { gap: 6px 8px; padding: 10px 12px; }
+  .pub-head .end { gap: 4px; }
+  .pub-head .end .sign-in { padding: 0 9px; font-size: 12.5px; }
+  .pub-head :deep(.brand .name) { font-size: 15px; }
+  .pub-nav a { padding: 6px 8px; font-size: 13.5px; }
 }
 @media (max-width: 420px) {
-  .pub-head .brand .name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .pub-head :deep(.brand .name) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
 </style>

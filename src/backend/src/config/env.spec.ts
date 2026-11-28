@@ -1,8 +1,9 @@
+import { Logger } from '@nestjs/common';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { accountDeletionGraceDays, aiConfig, apiDocs, loadEnvFiles, port } from './env.js';
+import { accountDeletionGraceDays, aiConfig, apiDocs, corsOrigin, loadEnvFiles, port, sessionTtlDays, trustProxy } from './env.js';
 
 describe('loadEnvFiles', () => {
   const cwd = process.cwd();
@@ -44,7 +45,6 @@ describe('settings', () => {
     expect(port()).toBe(4000);
   });
 
-  // '' would read as 0 (a 0 ms timeout, purge at once, a random port) and a typo as NaN (a cap that never triggers).
   it.each(['', ' ', 'abc', '0', '-1', '1.5'])('falls back to the defaults when a number is %j', (value) => {
     vi.stubEnv('AI_TIMEOUT_MS', value);
     vi.stubEnv('AI_DAILY_CALLS_PER_USER', value);
@@ -67,5 +67,69 @@ describe('settings', () => {
     vi.stubEnv('NODE_ENV', env);
     vi.stubEnv('API_DOCS', flag);
     expect(apiDocs()).toBe(expected);
+  });
+
+  it.each([
+    [undefined, undefined, false],
+    ['', undefined, false],
+    ['   ', undefined, false],
+    ['true', undefined, true],
+    ['TRUE', undefined, true],
+    [' true ', undefined, true],
+    ['false', undefined, true],
+    ['FALSE', undefined, true],
+    [' false ', undefined, true],
+    ['loopback', 'loopback', false],
+    [' 1 ', '1', false],
+    ['127.0.0.1', '127.0.0.1', false],
+    ['loopback, linklocal', 'loopback, linklocal', false],
+  ])('trustProxy with TRUST_PROXY=%j returns %j (warns=%s)', (raw, expected, warns) => {
+    const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    vi.stubEnv('TRUST_PROXY', raw);
+    expect(trustProxy()).toBe(expected);
+    expect(warn.mock.calls.length > 0).toBe(warns);
+    warn.mockRestore();
+  });
+
+  it.each([
+    [undefined, 'http://localhost:5173'],
+    ['', 'http://localhost:5173'],
+    ['   ', 'http://localhost:5173'],
+    [' , , ', 'http://localhost:5173'],
+    ['https://app.omnicourse.vn', 'https://app.omnicourse.vn'],
+    [' https://app.omnicourse.vn , ', 'https://app.omnicourse.vn'],
+    ['https://app.omnicourse.vn, https://staging.omnicourse.vn', ['https://app.omnicourse.vn', 'https://staging.omnicourse.vn']],
+  ])('corsOrigin with CORS_ORIGIN=%j returns %j', (raw, expected) => {
+    vi.stubEnv('CORS_ORIGIN', raw);
+    expect(corsOrigin()).toEqual(expected);
+  });
+
+  it('reads AI provider credentials and models with null fallbacks when unset', () => {
+    vi.stubEnv('OPENROUTER_API_KEY', '');
+    vi.stubEnv('AI_MODEL_STRUCTURED', '');
+    vi.stubEnv('AI_MODEL_CHAT', '');
+    expect(aiConfig()).toEqual({
+      apiKey: null,
+      structuredModel: null,
+      chatModel: null,
+      timeoutMs: 30_000,
+      dailyCallsPerUser: 20,
+    });
+
+    vi.stubEnv('OPENROUTER_API_KEY', 'sk-or-test');
+    vi.stubEnv('AI_MODEL_STRUCTURED', 'openai/gpt-4.1-mini');
+    vi.stubEnv('AI_MODEL_CHAT', 'openai/gpt-4.1');
+    expect(aiConfig()).toMatchObject({
+      apiKey: 'sk-or-test',
+      structuredModel: 'openai/gpt-4.1-mini',
+      chatModel: 'openai/gpt-4.1',
+    });
+  });
+
+  it('reads SESSION_TTL_DAYS with default 7', () => {
+    vi.stubEnv('SESSION_TTL_DAYS', undefined);
+    expect(sessionTtlDays()).toBe(7);
+    vi.stubEnv('SESSION_TTL_DAYS', '14');
+    expect(sessionTtlDays()).toBe(14);
   });
 });

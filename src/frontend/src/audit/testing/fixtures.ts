@@ -1,8 +1,5 @@
 import type { CourseCoverage, DegreeAudit, GraduationCondition, GroupCoverage } from '../api.js';
 
-// A synthetic degree audit: made-up ZZ codes and names, the group headings of the real APCS tables, and figures
-// written by hand as the API would answer them. Nothing here comes from a real transcript.
-
 export const GROUP_A = '00000000-0000-4000-8000-000000000a01';
 export const GROUP_C = '00000000-0000-4000-8000-000000000a02';
 export const GROUP_MATH = '00000000-0000-4000-8000-000000000a03';
@@ -56,13 +53,13 @@ const NOT_CHECKED: GraduationCondition[] = [
   condition('study_time_limit', 'Finishing within the maximum study time', 'not_checked', 'QĐ 1175/QĐ-KHTN Điều 2.7'),
 ];
 
-/** A student part way through: one group met, one short, one without a minimum of its own, one term saved. */
 export function degreeAudit(overrides: Partial<DegreeAudit> = {}): DegreeAudit {
   return {
     programCode: 'APCS',
     trainingType: 'advanced',
     cohortYear: 2024,
     curriculumCode: 'APCS2024',
+    asOfTerm: null,
     credits: { accumulated: 9, towardTotal: 8, inProgressTowardTotal: 4, totalRequired: 20, remaining: 12, yearLevel: 1 },
     gpa: { average: 7.75, accumulatedAverage: 8, accumulatedAverageFourPoint: 3.5, classification: 'very_good', gradedCredits: 4 },
     terms: [
@@ -74,6 +71,11 @@ export function degreeAudit(overrides: Partial<DegreeAudit> = {}): DegreeAudit {
         average: 7.75,
         accumulatedAverage: 8,
         cumulativeAccumulatedAverage: 8,
+        cumulativeAccumulatedAverageChange: null,
+        cumulativeAccumulatedCredits: 9,
+        cumulativeTowardTotal: 8,
+        cumulativeYearLevel: 1,
+        cumulativeClassification: 'very_good',
         failedCourseCodes: [],
         inProgressCourseCodes: [],
         caps: { min: 10, max: 22 },
@@ -85,6 +87,11 @@ export function degreeAudit(overrides: Partial<DegreeAudit> = {}): DegreeAudit {
             citation: 'QĐ 1175/QĐ-KHTN Điều 7.2',
             petition: 'Allowed by a petition that the faculty supports and the Rector approves (QĐ 1175/QĐ-KHTN Điều 7.2.b).',
           },
+        ],
+        attempts: [
+          { code: 'ZZ090', name: 'Học phần thử ZZ090', credits: 1, result: 'pass', grade: null, passed: true, inProgress: false, requirementGroupId: GROUP_MATH },
+          { code: 'ZZ101', name: 'Học phần thử ZZ101', credits: 4, result: 'exempt', grade: null, passed: true, inProgress: false, requirementGroupId: GROUP_MATH },
+          { code: 'ZZ201', name: 'Học phần thử ZZ201', credits: 4, result: 'graded', grade: 8, passed: true, inProgress: false, requirementGroupId: GROUP_A },
         ],
       },
     ],
@@ -129,7 +136,6 @@ export function degreeAudit(overrides: Partial<DegreeAudit> = {}): DegreeAudit {
     unmatchedCourses: [{ code: 'ZZ999', name: 'Môn ngoài chương trình thử', credits: 3, result: 'graded', grade: 9, passed: true, inProgress: false }],
     graduation: {
       status: 'not_yet',
-      // (C) has no minimum of its own, so the API lists no condition for it: its rule is the combined minimum.
       met: [condition(`group:${GROUP_MATH}`, 'Requirement group "Kiến thức Math"', 'met')],
       unmet: [
         condition(`group:${GROUP_A}`, 'Requirement group "Kiến thức Computer Science (A): bắt buộc"', 'not_met'),
@@ -151,7 +157,6 @@ export function degreeAudit(overrides: Partial<DegreeAudit> = {}): DegreeAudit {
   };
 }
 
-/** The audit of a student with no transcript saved: every figure at zero, as the API answers it (ACAD-01a). */
 export function emptyAudit(): DegreeAudit {
   const base = degreeAudit();
   return {

@@ -1,0 +1,18 @@
+[2026-11-27T09:25:57.761Z] Chromium 156.0.8078.4 headless, Playwright 1.64.1, viewport 1280x800
+[2026-11-27T09:25:58.371Z] signed in b1-run-r27a-p01@example.com: 200
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+locator.click: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('[data-test="plan-tab"]').filter({ hasText: 'Lock 01j' }).filter({ hasNotText: 'What-if' }).first()[22m
+
+    at E:\Project\omnicourses\docs\test\evidence\b2\b1-regression\p-plan-01j-locked-drag.mjs:14:113 {
+  log: [
+    `  - waiting for locator('[data-test="plan-tab"]').filter({ hasText: 'Lock 01j' }).filter({ hasNotText: 'What-if' }).first()`
+  ],
+  name: 'TimeoutError'
+}
+
+Node.js v24.19.0

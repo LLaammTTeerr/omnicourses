@@ -1,7 +1,6 @@
 import { ServiceUnavailableException } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 
-/** Every reason the gateway gives. Safe to show and log: none carries the prompt. */
 export const AI_REASONS = {
   unavailable: 'AI is unavailable',
   notConfigured: 'AI is not configured',
@@ -14,11 +13,6 @@ export const AI_REASONS = {
   dailyLimit: 'Daily AI limit reached, try again tomorrow',
 } as const;
 
-// The one failure type of the AI gateway (ADR 0003): no key, timeout, provider
-// error after one retry, an unusable reply, or a spent cap. Callers show their
-// manual path. `billed` is false only when the provider refused the request
-// outright (wrong key, no credit, rate limit), so the gateway can release the
-// reserved call.
 export class AiUnavailableError extends ServiceUnavailableException {
   readonly billed: boolean;
 
@@ -31,7 +25,6 @@ export class AiUnavailableError extends ServiceUnavailableException {
   }
 }
 
-/** Document it on AI routes: `@ApiServiceUnavailableResponse({ type: AiUnavailableDto })`. */
 export class AiUnavailableDto {
   @ApiProperty({ example: 503 })
   statusCode!: number;

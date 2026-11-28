@@ -2,7 +2,8 @@ import { Check, Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, 
 import { Curriculum } from '../curriculum/curriculum.entity.js';
 import { User } from '../users/user.entity.js';
 
-// Table `plans` of migration 1794218005469 (ADR 0014): one of a student's plans.
+export const PLAN_NAME_MAX_LENGTH = 100;
+
 @Entity({ name: 'plans' })
 @Unique('uq_plans_id_user', ['id', 'userId'])
 @Check('ck_plans_name', `length(btrim("name")) > 0`)
@@ -22,12 +23,11 @@ export class Plan {
   @Column({ name: 'curriculum_id', type: 'uuid' })
   curriculumId!: string;
 
-  // RESTRICT: F12 refuses to delete a curriculum a saved plan uses (ADR 0011).
   @ManyToOne(() => Curriculum, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'curriculum_id', foreignKeyConstraintName: 'plans_curriculum_id_fkey' })
   curriculum!: Curriculum;
 
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: 'varchar', length: PLAN_NAME_MAX_LENGTH })
   name!: string;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

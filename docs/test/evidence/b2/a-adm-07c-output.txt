@@ -1,0 +1,14 @@
+ADM 07c run at 2026-11-25T06:05:24.984Z
+POST /auth/sign-in (b2-a3@example.com) → 200
+POST /admin/catalog/imports/preview → 400 {"statusCode":400,"code":"validation_failed","message":"The CSV does not have the header of this template","errors":[{"record":1,"field":null,"message":"the header must be exactly: code,name_vi,name_en,credits,theory_periods,lab_periods,exercise_periods,project_periods"}]}
+  OK  (1) swapped header: 400 validation_failed "The CSV does not have the header of this template", one error record 1 null "the header must be exactly: code,name_vi,name_en,credits,theory_periods,lab_periods,exercise_periods,project_periods"
+POST /admin/catalog/imports/preview → 400 {"statusCode":400,"code":"validation_failed","message":"The CSV does not have the header of this template","errors":[{"record":1,"field":null,"message":"the header must be exactly: code,name_vi,name_en,credits,theory_periods,lab_periods,exercise_periods,project_periods"}]}
+  OK  (2) F5, a group-link file: 400 validation_failed "The CSV does not have the header of this template", one error record 1 null "the header must be exactly: code,name_vi,name_en,credits,theory_periods,lab_periods,exercise_periods,project_periods"
+POST /admin/catalog/imports/preview → 400 {"statusCode":400,"code":"validation_failed","message":"The CSV does not have the header of this template","errors":[{"record":1,"field":null,"message":"the header must be exactly: code,name_vi,name_en,credits,theory_periods,lab_periods,exercise_periods,project_periods"}]}
+  OK  (4) empty: 400 validation_failed "The CSV does not have the header of this template", one error record 1 null "the header must be exactly: code,name_vi,name_en,credits,theory_periods,lab_periods,exercise_periods,project_periods"
+POST /admin/catalog/imports/preview → 400 {"statusCode":400,"code":"validation_failed","message":"The CSV is malformed; nothing was read from it","errors":[{"record":2,"field":null,"message":"text follows a closing quote; a quoted field ends at the comma or at the end of the line"}]}
+  OK  (3) 400 "The CSV is malformed; nothing was read from it", one error record 2 null
+  OK  no message quotes the cell ("thử" / "Học phần")
+GET /courses/ZZADM07A → 404 {"message":"No course has this code","error":"Not Found","statusCode":404}
+  OK  GET /courses/ZZADM07A 404
+All checks OK

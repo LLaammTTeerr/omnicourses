@@ -1,35 +1,27 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { groupColour } from '../curriculum/present.js';
-import { GROUPS, groupClass } from '../groups.js';
+import { groupClass, groupGlyph } from '../groups.js';
 import { useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
 import type { PlanGroupCoverage } from './api.js';
 import type { AttachedIssues } from './board.js';
 import { PLANNER_MESSAGES } from './messages.js';
 
-// The plan at a glance (the prototype's status strip): how many violations the rule engine finds in the terms and how
-// many rules it could not check, its graduation status as it reports it, each requirement group's credits with the
-// plan completed, and the save state. Every figure is read from the engine's report; nothing is judged here (AGENTS.md
-// hard rule 1). No graduation term is shown: the engine does not report one yet, and the client must not guess it.
-// An unknown is never worded as a pass (#80): with none found, the strip says "no violation found", not "valid".
 const props = defineProps<{
   attached: AttachedIssues | null;
   fresh: boolean;
-  saveState: 'saved' | 'saving' | 'failed';
+  saveState: 'saved' | 'saving' | 'failed' | 'signed_out';
 }>();
 const m = useMessages(PLANNER_MESSAGES);
 
 const report = computed(() => props.attached?.report ?? null);
-/** Violations about a term or a course. Coverage shortfalls show in the groups beside. */
 const placementViolations = computed(() => report.value?.issues.filter((i) => i.kind === 'violation' && i.term !== null).length ?? 0);
-/** Rules the engine could not check for lack of data. */
 const unknowns = computed(() => report.value?.issues.filter((i) => i.kind === 'unknown').length ?? 0);
-/** The engine's own graduation status. */
 const graduation = computed(() => report.value?.coverage.graduation ?? null);
 const glyphOf = (group: Pick<PlanGroupCoverage, 'name' | 'kind'>) => {
   const colour = groupColour(group);
-  return { colour, glyph: GROUPS.find((g) => g.id === colour)!.glyph };
+  return { colour, glyph: groupGlyph(colour) };
 };
 </script>
 
@@ -55,14 +47,19 @@ const glyphOf = (group: Pick<PlanGroupCoverage, 'name' | 'kind'>) => {
         <span aria-hidden="true"><b class="num">{{ g.credits }}</b><template v-if="g.requiredCredits !== null">/{{ g.requiredCredits }}</template></span>
       </li>
     </ul>
-    <span class="chip" :class="{ bad: saveState === 'failed', ok: saveState === 'saved' }" role="status" data-test="save-state">
-      <Icon :name="saveState === 'failed' ? 'alert' : saveState === 'saved' ? 'check' : 'info'" size="sm" />
-      {{ saveState === 'saving' ? m.saving : saveState === 'saved' ? m.saved : m.notSaved }}
+    <span
+      class="chip"
+      :class="{ bad: saveState === 'failed', warn: saveState === 'signed_out', ok: saveState === 'saved' }"
+      role="status"
+      data-test="save-state"
+    >
+      <Icon :name="saveState === 'failed' || saveState === 'signed_out' ? 'alert' : saveState === 'saved' ? 'check' : 'info'" size="sm" />
+      {{ saveState === 'saving' ? m.saving : saveState === 'saved' ? m.saved : saveState === 'signed_out' ? m.signedOutNotSaved : m.notSaved }}
     </span>
   </section>
 </template>
 
-<style>
+<style scoped>
 .status-strip { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 18px; align-items: center; padding: 14px 18px; }
 .status-strip .est { display: flex; gap: 12px; align-items: center; }
 .status-strip .est-ic { width: 46px; height: 46px; flex: none; border-radius: 14px; display: grid; place-items: center; background: var(--ok); color: #fff; border: 1px solid var(--edge); transition: background 0.25s; }

@@ -27,7 +27,6 @@ describe('addMonths', () => {
 });
 
 describe('isOutOfDate (UC-10 A5)', () => {
-  // GUIDE-01j, run on 13 November 2026.
   it('keeps a guide checked exactly 6 months ago fresh', () => {
     expect(isOutOfDate('2026-05-13', '2026-11-13')).toBe(false);
   });
@@ -41,7 +40,6 @@ describe('isOutOfDate (UC-10 A5)', () => {
   });
 
   it('counts the Vietnam date, not the UTC date', () => {
-    // 00:30 on 14 November in Vietnam is still 13 November in UTC.
     expect(isOutOfDate('2026-05-13', vietnamDate(new Date('2026-11-13T17:30:00Z')))).toBe(true);
   });
 

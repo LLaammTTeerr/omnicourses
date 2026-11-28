@@ -1,0 +1,56 @@
+# The 'read the CI result' cases (DATA-01c, DATA-01d, AI-01a-g, GUIDE-01n's allow-list test), tree 1bde552 (main), Node v24.19.0 locally (repo pins 22.22.1; no Node 22 on this machine), npm 11.21.1, PostgreSQL 18.6 in docker (omni-b1r-db, port 55432)
+2026-11-27T09:52:41Z
+
+=== CI on 1bde552: gh run view 45959333443 --json conclusion,headSha,jobs
+run 45959333443  headSha 1bde552902c72f09a8af719d5317a2b3d9b50053  conclusion success
+  job changeset: success
+  job signed-commits: success
+  job scope: success
+  job backend: success
+  job frontend: success
+--- its log (gh run view 45959333443 --log) gives totals per suite, and the src/rules coverage row:
+backend	 Test Files  67 passed (67)
+backend	      Tests  1030 passed (1030)
+backend	 src/rules         |     100 |    97.84 |     100 |     100 |                   
+backend	 Test Files  23 passed (23)
+backend	      Tests  345 passed (345)
+frontend	 Test Files  71 passed (71)
+frontend	      Tests  1072 passed (1072)
+frontend	 Test Files  11 passed (11)
+frontend	      Tests  63 passed (63)
+    (backend: npm run test -w src/backend, then npm run test:e2e -w src/backend; frontend: npm run test -w src/frontend, then npm run test:browser)
+
+=== The same suites run locally with the verbose reporter, to see each named test
+--- npm run test:e2e -w src/backend -- --reporter=verbose --hookTimeout=60000 (database omnicourse_e2e2), started 2026-11-27T09:41:03Z; whole run in local-e2e-output.txt
+ Test Files  1 failed | 22 passed (23)
+      Tests  1 failed | 344 passed (345)
+exit 1
+    (the 1 failure is audit.e2e-spec.ts 'is the version the test cases record', the known CRLF fixture hash; not a test the cases below name)
+--- the tests the cases name
+ ✓ test/curriculum-seed.e2e-spec.ts > db:seed > keeps an admin edit to a group, and aborts on a catalog course edited to a new name 18348ms
+ ✓ test/curriculum-seed.e2e-spec.ts > db:seed > rolls back everything when one insert fails 558ms
+ ✓ test/account.e2e-spec.ts > Account export and deletion against PostgreSQL (e2e) > every user_id key to users cascades, and every other key cascades or sets null (AGENTS.md rule) 7ms
+ ✓ test/account.e2e-spec.ts > Account export and deletion against PostgreSQL (e2e) > purges only the accounts whose deadline has passed, with their rows 33ms
+ ✓ test/public-routes.e2e-spec.ts > Public routes (e2e) > documents every route the app serves, except the docs pages 4ms
+ ✓ test/public-routes.e2e-spec.ts > Public routes (e2e) > finds every listed public route in the OpenAPI document 0ms
+ ✓ test/public-routes.e2e-spec.ts > Public routes (e2e) > answers 401 without a token on every route that is not listed 969ms
+ ✓ test/public-routes.e2e-spec.ts > Public routes (e2e) > keeps the listed public routes open 54ms
+ ✓ test/public-routes.e2e-spec.ts > Public routes (e2e) > lets a signed-out caller write only to sign-up and sign-in 0ms
+ ✓ test/ai.e2e-spec.ts > AI gateway against PostgreSQL (e2e) > boots without a key and answers ai_unavailable before reserving, so the attempt does not count 1056ms
+ ✓ test/ai.e2e-spec.ts > AI gateway against PostgreSQL (e2e) > counts a call the student stopped, and refuses once the daily cap is reached 1120ms
+ ✓ test/ai.e2e-spec.ts > AI gateway against PostgreSQL (e2e) > lets exactly the cap through when calls arrive in parallel 691ms
+
+--- (cd src/backend && npx vitest run --reporter=verbose src/ai/sse.spec.ts src/ai/gateway-llm.service.spec.ts), started 2026-11-27T09:52:25Z
+ Test Files  2 passed (2)
+      Tests  30 passed (30)
+exit 0
+--- the tests the cases name
+ ✓ src/ai/sse.spec.ts > streamChat > throws a failure before the first event, so Nest can still answer 503 2ms
+ ✓ src/ai/sse.spec.ts > streamChat > turns a failure after the first event into an error event 1ms
+ ✓ src/ai/gateway-llm.service.spec.ts > GatewayLlmService > structured > returns the parsed reply and sends a strict schema without $schema 13ms
+ ✓ src/ai/gateway-llm.service.spec.ts > GatewayLlmService > structured > retries once when the reply misses the schema, and meters both attempts as one call 2ms
+ ✓ src/ai/gateway-llm.service.spec.ts > GatewayLlmService > structured > gives up after two unusable replies with ai_unavailable 2ms
+ ✓ src/ai/gateway-llm.service.spec.ts > GatewayLlmService > structured > keeps the reserved call when the provider may have billed it (a timeout) 1ms
+ ✓ src/ai/gateway-llm.service.spec.ts > GatewayLlmService > chat > streams text and ends with done 1ms
+ ✓ src/ai/gateway-llm.service.spec.ts > GatewayLlmService > chat > passes only user and assistant messages from the client to the model 1ms
+ ✓ src/ai/gateway-llm.service.spec.ts > GatewayLlmService > chat > throws ai_unavailable mid-stream after the text already sent 1ms

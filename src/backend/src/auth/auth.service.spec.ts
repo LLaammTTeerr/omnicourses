@@ -1,15 +1,16 @@
 import { ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { hash, verify } from '@node-rs/argon2';
-import { QueryFailedError } from 'typeorm';
+import { Algorithm, hash, parseOptions, verify } from '@node-rs/argon2';
+import { IsNull, LessThanOrEqual, QueryFailedError } from 'typeorm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Clock } from '../config/clock.js';
 import { DAY_MS } from '../config/time.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
-import { AuthService, hashToken } from './auth.service.js';
+import { ARGON2_OPTIONS, AuthService, hashToken } from './auth.service.js';
 import { Session } from './session.entity.js';
 
+const THIRTY_DAYS_MS = 30 * DAY_MS;
 
-// Only the fields AuthService reads, so a new column doesn't break this spec.
 function makeUser(overrides: Partial<User> = {}): User {
   return {
     id: '00000000-0000-4000-8000-000000000001',
@@ -38,41 +39,80 @@ function makeSession(overrides: Partial<Session> = {}): Session {
 }
 
 describe('AuthService', () => {
-  let sessions: { create: ReturnType<typeof vi.fn>; save: ReturnType<typeof vi.fn>; findOne: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn>; find: ReturnType<typeof vi.fn> };
-  let users: { findByEmail: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>; cancelDeletion: ReturnType<typeof vi.fn> };
+  let sessions: {
+    create: ReturnType<typeof vi.fn>;
+    save: ReturnType<typeof vi.fn>;
+    findOne: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    find: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
+  };
+  let signInLimiter: { reserve: ReturnType<typeof vi.fn>; clear: ReturnType<typeof vi.fn> };
+  let users: {
+    findByEmail: ReturnType<typeof vi.fn>;
+    findByEmailForAuth: ReturnType<typeof vi.fn>;
+    findPasswordHash: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    cancelDeletion: ReturnType<typeof vi.fn>;
+  };
+  let currentNow: Date;
+  let clock: Clock;
   let service: AuthService;
 
   beforeEach(() => {
+    currentNow = new Date('2026-11-27T08:00:00Z');
+    clock = { now: () => new Date(currentNow) };
     sessions = {
       create: vi.fn((fields: Partial<Session>) => fields),
       save: vi.fn(async (s: Partial<Session>) => s),
       findOne: vi.fn(),
       update: vi.fn(async () => ({ affected: 1 })),
       find: vi.fn(async () => []),
+      delete: vi.fn(async () => ({ affected: 0 })),
     };
-    users = { findByEmail: vi.fn(async () => null), create: vi.fn(async (f: Partial<User>) => makeUser(f)), cancelDeletion: vi.fn(async () => true) };
-    service = new AuthService(sessions as never, users as unknown as UsersService);
+    signInLimiter = { reserve: vi.fn(async () => undefined), clear: vi.fn(async () => undefined) };
+    users = {
+      findByEmail: vi.fn(async () => null),
+      findByEmailForAuth: vi.fn(async () => null),
+      findPasswordHash: vi.fn(async () => null),
+      create: vi.fn(async (f: Partial<User>) => makeUser(f)),
+      cancelDeletion: vi.fn(async () => true),
+    };
+    service = new AuthService(
+      sessions as never,
+      signInLimiter as unknown as never,
+      users as unknown as UsersService,
+      clock,
+    );
   });
 
   describe('signUp', () => {
-    it('stores an argon2id hash, never the password, and records consent', async () => {
+    it('stores an explicit argon2id hash (m=19456, t=2, p=1), never the password, and records consent', async () => {
       const result = await service.signUp(
         { email: 'student@example.com', password: 'correct horse battery', displayName: 'Test Student', acceptedTerms: true },
         'vitest',
       );
       const stored = users.create.mock.calls[0]![0] as User;
-      expect(stored.passwordHash).toMatch(/^\$argon2id\$/);
+      expect(stored.passwordHash).toMatch(/^\$argon2id\$v=19\$m=19456,t=2,p=1\$/);
+      expect(parseOptions(stored.passwordHash!)).toMatchObject({
+        algorithm: Algorithm.Argon2id,
+        memoryCost: ARGON2_OPTIONS.memoryCost,
+        timeCost: ARGON2_OPTIONS.timeCost,
+        parallelism: ARGON2_OPTIONS.parallelism,
+      });
       expect(await verify(stored.passwordHash!, 'correct horse battery')).toBe(true);
       expect(stored.consentAt).toBeInstanceOf(Date);
       expect(result.user).not.toHaveProperty('passwordHash');
     });
 
-    it('stores only the SHA-256 of the issued token', async () => {
+    it('stores only the SHA-256 of the issued token, sets createdAt from Clock, and cleans up expired sessions', async () => {
       const result = await service.signUp(
         { email: 'student@example.com', password: 'correct horse battery', displayName: 'Test Student', acceptedTerms: true },
       );
       const saved = sessions.save.mock.calls[0]![0] as Session;
       expect(saved.tokenHash).toBe(hashToken(result.token));
+      expect(saved.createdAt).toEqual(currentNow);
+      expect(sessions.delete).toHaveBeenCalledExactlyOnceWith({ userId: result.user.id, expiresAt: LessThanOrEqual(currentNow) });
     });
 
     it('rejects an email that is already registered', async () => {
@@ -82,7 +122,6 @@ describe('AuthService', () => {
       ).rejects.toBeInstanceOf(ConflictException);
     });
 
-    // Issue #28: two sign-ups racing past the check; the database's unique email decides.
     it('answers 409, not 500, when a concurrent sign-up took the email first', async () => {
       const duplicate = Object.assign(new Error('duplicate key'), { code: '23505', constraint: 'uq_users_email' });
       users.create.mockRejectedValueOnce(new QueryFailedError('INSERT INTO "users"', [], duplicate));
@@ -106,23 +145,28 @@ describe('AuthService', () => {
 
     const issuedFor = async (ttlDays: string): Promise<number> => {
       vi.stubEnv('SESSION_TTL_DAYS', ttlDays);
-      const before = Date.now();
-      const { expiresAt } = await new AuthService(sessions as never, users as unknown as UsersService).signUp(
-        { email: 'student@example.com', password: 'correct horse battery', displayName: 'Test Student', acceptedTerms: true },
-      );
-      return expiresAt.getTime() - before;
+      const issuedAt = new Date('2026-11-26T03:00:00Z');
+      const { expiresAt } = await new AuthService(
+        sessions as never,
+        signInLimiter as unknown as never,
+        users as unknown as UsersService,
+        { now: () => new Date(issuedAt) } as Clock,
+      ).signUp({
+        email: 'student@example.com',
+        password: 'correct horse battery',
+        displayName: 'Test Student',
+        acceptedTerms: true,
+      });
+      return expiresAt.getTime() - issuedAt.getTime();
     };
 
-    it('lasts SESSION_TTL_DAYS days', async () => {
-      expect(await issuedFor('3')).toBeGreaterThanOrEqual(3 * DAY_MS);
-      expect(await issuedFor('3')).toBeLessThan(3 * DAY_MS + 1000);
+    it('lasts SESSION_TTL_DAYS days, including multi-semester values above 30 days', async () => {
+      expect(await issuedFor('3')).toBe(3 * DAY_MS);
+      expect(await issuedFor('1000')).toBe(1000 * DAY_MS);
     });
 
-    // Issue #37: a blank value read as 0, so every token expired as it was issued.
     it.each(['', ' ', 'abc', '0'])('lasts 7 days when SESSION_TTL_DAYS is %j', async (value) => {
-      const lifetime = await issuedFor(value);
-      expect(lifetime).toBeGreaterThanOrEqual(7 * DAY_MS);
-      expect(lifetime).toBeLessThan(7 * DAY_MS + 1000);
+      expect(await issuedFor(value)).toBe(7 * DAY_MS);
     });
   });
 
@@ -131,28 +175,28 @@ describe('AuthService', () => {
       const passwordHash = (await service.signUp(
         { email: 'student@example.com', password: 'correct horse battery', displayName: 'X', acceptedTerms: true },
       ), (users.create.mock.calls[0]![0] as User).passwordHash);
-      users.findByEmail.mockResolvedValueOnce(makeUser({ passwordHash }));
+      users.findByEmailForAuth.mockResolvedValueOnce(makeUser({ passwordHash }));
       const wrongPassword = service.signIn({ email: 'student@example.com', password: 'wrong password!' });
       await expect(wrongPassword).rejects.toThrow(new UnauthorizedException('Invalid email or password'));
 
-      users.findByEmail.mockResolvedValueOnce(null);
+      users.findByEmailForAuth.mockResolvedValueOnce(null);
       const unknownEmail = service.signIn({ email: 'nobody@example.com', password: 'whatever123' });
       await expect(unknownEmail).rejects.toThrow(new UnauthorizedException('Invalid email or password'));
     });
 
     it('cancels a pending deletion and says so', async () => {
       const passwordHash = await hash('correct horse battery');
-      users.findByEmail.mockResolvedValueOnce(makeUser({ passwordHash, deletionRequestedAt: new Date() }));
+      users.findByEmailForAuth.mockResolvedValueOnce(makeUser({ passwordHash, deletionRequestedAt: new Date() }));
       const result = await service.signIn({ email: 'student@example.com', password: 'correct horse battery' });
       expect(result.accountRestored).toBe(true);
       expect(users.cancelDeletion).toHaveBeenCalledWith(makeUser().id, expect.any(Date));
     });
 
-    // cancelDeletion matches nothing once the stored deadline has passed, or when the
-    // purge deleted the row after findByEmail: the account is gone, so no session.
     it('refuses, without issuing a session, when the deletion can no longer be cancelled', async () => {
       const passwordHash = await hash('correct horse battery');
-      users.findByEmail.mockResolvedValueOnce(makeUser({ passwordHash, deletionRequestedAt: new Date(Date.now() - 31 * DAY_MS), purgeAfter: new Date(Date.now() - DAY_MS) }));
+      users.findByEmailForAuth.mockResolvedValueOnce(
+        makeUser({ passwordHash, deletionRequestedAt: new Date(currentNow.getTime() - 31 * DAY_MS), purgeAfter: new Date(currentNow.getTime() - DAY_MS) }),
+      );
       users.cancelDeletion.mockResolvedValueOnce(false);
       await expect(service.signIn({ email: 'student@example.com', password: 'correct horse battery' })).rejects.toThrow(
         new UnauthorizedException('Invalid email or password'),
@@ -161,7 +205,7 @@ describe('AuthService', () => {
     });
 
     it('does not touch deletion state on a normal sign-in', async () => {
-      users.findByEmail.mockResolvedValueOnce(makeUser({ passwordHash: await hash('correct horse battery') }));
+      users.findByEmailForAuth.mockResolvedValueOnce(makeUser({ passwordHash: await hash('correct horse battery') }));
       const result = await service.signIn({ email: 'student@example.com', password: 'correct horse battery' });
       expect(result.accountRestored).toBe(false);
       expect(users.cancelDeletion).not.toHaveBeenCalled();
@@ -175,44 +219,85 @@ describe('AuthService', () => {
       await expect(service.verifyPassword(user, 'wrong password!')).resolves.toBe(false);
       await expect(service.verifyPassword(makeUser({ passwordHash: null }), 'anything')).resolves.toBe(false);
     });
+
+    it('loads passwordHash via UsersService.findPasswordHash when omitted on request.user', async () => {
+      const storedHash = await hash('correct horse battery', ARGON2_OPTIONS);
+      const userWithoutHash = makeUser({ passwordHash: undefined as unknown as null });
+      users.findPasswordHash.mockResolvedValueOnce(storedHash);
+      await expect(service.verifyPassword(userWithoutHash, 'correct horse battery')).resolves.toBe(true);
+      expect(users.findPasswordHash).toHaveBeenCalledWith(userWithoutHash.id);
+
+      users.findPasswordHash.mockResolvedValueOnce(storedHash);
+      await expect(service.verifyPassword(userWithoutHash, 'wrong password!')).resolves.toBe(false);
+    });
   });
 
   describe('authenticate', () => {
     it('returns the user for a live session', async () => {
-      const session = makeSession();
+      const session = makeSession({ createdAt: new Date(currentNow.getTime() - DAY_MS), expiresAt: new Date(currentNow.getTime() + DAY_MS) });
       sessions.findOne.mockResolvedValue(session);
       await expect(service.authenticate('token')).resolves.toEqual({ user: session.user, session });
     });
 
     it.each([
-      ['unknown', null],
-      ['expired', makeSession({ expiresAt: new Date(Date.now() - 1) })],
-      ['revoked', makeSession({ revokedAt: new Date() })],
-      ['pending-deletion', makeSession({ user: makeUser({ deletionRequestedAt: new Date() }) })],
-    ])('returns null for an %s session', async (_, session) => {
-      sessions.findOne.mockResolvedValue(session);
+      ['unknown', () => null],
+      ['expired', (now: Date) => makeSession({ expiresAt: new Date(now.getTime() - 1) })],
+      ['revoked', (now: Date) => makeSession({ expiresAt: new Date(now.getTime() + DAY_MS), revokedAt: new Date(now) })],
+      ['pending-deletion', (now: Date) => makeSession({ expiresAt: new Date(now.getTime() + DAY_MS), user: makeUser({ deletionRequestedAt: new Date(now) }) })],
+      [
+        'beyond 30-day max lifetime',
+        (now: Date) =>
+          makeSession({
+            createdAt: new Date(now.getTime() - THIRTY_DAYS_MS),
+            expiresAt: new Date(now.getTime() + DAY_MS),
+          }),
+      ],
+    ])('returns null for an %s session', async (_, build) => {
+      sessions.findOne.mockResolvedValue(build(currentNow));
       await expect(service.authenticate('token')).resolves.toBeNull();
     });
   });
 
   describe('refresh', () => {
     it('retires the old token at once and gives a new one a full lifetime', async () => {
-      const session = makeSession({ expiresAt: new Date(Date.now() + 1000) });
-      // One stored session: looked up by token hash, changed in place.
+      const session = makeSession({
+        createdAt: new Date(currentNow.getTime() - DAY_MS),
+        expiresAt: new Date(currentNow.getTime() + 1000),
+      });
       sessions.findOne.mockImplementation(async ({ where }: { where: { tokenHash: string } }) => (where.tokenHash === session.tokenHash ? session : null));
       sessions.update.mockImplementation(async (_id: string, changes: Partial<Session>) => Object.assign(session, changes));
 
       const result = await service.refresh(session);
       await expect(service.authenticate('token')).resolves.toBeNull();
       await expect(service.authenticate(result.token)).resolves.toMatchObject({ session: { id: session.id } });
-      expect(session.expiresAt.getTime()).toBeGreaterThan(Date.now() + 6 * DAY_MS);
+      expect(session.expiresAt.getTime()).toBeGreaterThan(currentNow.getTime() + 6 * DAY_MS);
+    });
+
+    it('caps refreshed expiry at 30 days from session.createdAt and rejects once 30 days have elapsed', async () => {
+      const createdAt = new Date(currentNow.getTime() - 26 * DAY_MS);
+      const session = makeSession({
+        createdAt,
+        expiresAt: new Date(currentNow.getTime() + DAY_MS),
+      });
+
+      const capped = await service.refresh(session);
+      expect(capped.expiresAt.getTime()).toBe(createdAt.getTime() + THIRTY_DAYS_MS);
+      expect(sessions.update).toHaveBeenCalledWith(
+        session.id,
+        expect.objectContaining({ expiresAt: new Date(createdAt.getTime() + THIRTY_DAYS_MS) }),
+      );
+
+      sessions.update.mockClear();
+      currentNow = new Date(createdAt.getTime() + THIRTY_DAYS_MS);
+      await expect(service.refresh(session)).rejects.toThrow(new UnauthorizedException('Session expired'));
+      expect(sessions.update).not.toHaveBeenCalled();
     });
   });
 
   describe('revoke', () => {
     it('only touches sessions owned by the caller', async () => {
       await service.revoke('user-1', 'session-1');
-      expect(sessions.update.mock.calls[0]![0]).toMatchObject({ id: 'session-1', userId: 'user-1' });
+      expect(sessions.update).toHaveBeenCalledExactlyOnceWith({ id: 'session-1', userId: 'user-1', revokedAt: IsNull() }, { revokedAt: currentNow });
     });
 
     it('404s when nothing matched', async () => {

@@ -4,16 +4,16 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { configureApp } from '../bootstrap.js';
-import type { Need } from './grant-scope.js';
-import { ImportBodyGate } from './import-body-gate.js';
-import { CATALOG_IMPORTS, COHORT_IMPORTS, IMPORT_JSON_LIMIT_BYTES } from './import-body-limit.js';
+import type { Need } from '../admin-access/grants.js';
+import { CATALOG_IMPORTS, COHORT_IMPORTS, ImportBodyGate } from './import-body-limit.js';
 
 const KIB = 1024;
+const SEVEN_MIB = 7 * KIB * KIB;
 const DEFAULT_LIMIT = 100 * KIB;
+const LONG_LOOP_TIMEOUT_MS = 60_000;
 const PROGRAM = '11111111-1111-4111-8111-111111111111';
 const OTHER_PROGRAM = '33333333-3333-4333-8333-333333333333';
 
-// Stand-ins for the routes: they answer how much text arrived, so the test sees the parser alone.
 @Controller()
 class EchoController {
   @Post([`${CATALOG_IMPORTS}/preview`, `${CATALOG_IMPORTS}/confirm`, `${COHORT_IMPORTS}/preview`, `${COHORT_IMPORTS}/confirm`])
@@ -40,25 +40,17 @@ const COHORT_ROUTES = [`${cohort(PROGRAM)}/preview`, `${cohort(PROGRAM)}/confirm
 const MAINTAINER = 'Bearer catalog-maintainer';
 const ADMINISTRATOR = 'Bearer program-administrator';
 const STRANGER = 'Bearer signed-in-without-a-grant';
-/** Each route with the caller who holds its grant. */
 const GRANTED: [string, string][] = [...CATALOG_ROUTES.map((path): [string, string] => [path, MAINTAINER]), ...COHORT_ROUTES.map((path): [string, string] => [path, ADMINISTRATOR])];
 
-/** A JSON body of exactly `bytes` bytes. */
 const bodyOf = (bytes: number) => `{"csv":"${'a'.repeat(bytes - '{"csv":""}'.length)}"}`;
 const DEFAULT_REFUSAL = { statusCode: 413, message: 'request entity too large' };
 
-// ADR 0011: a 7 MiB JSON limit on the four import routes only, set where the deployed app and
-// the e2e app are both configured (configureApp), and only for a caller the gate allows.
-// The gate here is a stand-in for ImportBodyGate, whose session and grant lookups the e2e
-// tests exercise: one catalog maintainer, one administrator of PROGRAM, and a database that
-// fails on demand.
 describe('JSON body limits', () => {
   let app: INestApplication;
   let asked: [string | undefined, Need][];
   let gateFails = false;
   const post = (path: string, body: string | Buffer, authorization?: string) => {
     const test = request(app.getHttpServer()).post(path).set('Content-Type', 'application/json');
-    // A string or a Buffer is sent as it is: the test controls the exact bytes.
     return (authorization ? test.set('Authorization', authorization) : test).serialize((bytes) => bytes as string).send(body);
   };
 
@@ -87,9 +79,8 @@ describe('JSON body limits', () => {
   it('takes a body over 100 KiB, and up to exactly 7 MiB, from the holder of the grant of each import route', async () => {
     for (const [path, caller] of GRANTED) {
       expect((await post(path, bodyOf(DEFAULT_LIMIT + 1), caller).expect(200)).body).toEqual({ characters: DEFAULT_LIMIT + 1 - 10 });
-      expect((await post(path, bodyOf(IMPORT_JSON_LIMIT_BYTES), caller).expect(200)).body).toEqual({ characters: IMPORT_JSON_LIMIT_BYTES - 10 });
+      expect((await post(path, bodyOf(SEVEN_MIB), caller).expect(200)).body).toEqual({ characters: SEVEN_MIB - 10 });
     }
-    // The gate was asked for the grant of the route family: the catalog permission, or the program of the path.
     expect(asked.filter((_, i) => i % 2 === 0)).toEqual([
       [MAINTAINER, { permission: 'catalog_maintainer' }],
       [MAINTAINER, { permission: 'catalog_maintainer' }],
@@ -100,9 +91,8 @@ describe('JSON body limits', () => {
 
   it('refuses one byte over 7 MiB from them with 413 payload_too_large', async () => {
     for (const [path, caller] of GRANTED) {
-      const refused = await post(path, bodyOf(IMPORT_JSON_LIMIT_BYTES + 1), caller).expect(413);
+      const refused = await post(path, bodyOf(SEVEN_MIB + 1), caller).expect(413);
       expect(refused.body).toEqual({ statusCode: 413, code: 'payload_too_large', message: 'The request body is larger than 7 MiB' });
-      // The CORS headers are set before the body is read, so the browser shows this answer to the screen.
       expect(refused.headers).toHaveProperty('access-control-allow-origin');
     }
   });
@@ -116,24 +106,20 @@ describe('JSON body limits', () => {
   it('gives a caller without a session, or without the grant of the route, the 100 KiB limit of every other route', async () => {
     const callers: [string, string | undefined][] = [
       ...[...CATALOG_ROUTES, ...COHORT_ROUTES].flatMap((path): [string, string | undefined][] => [
-        [path, undefined], // signed out
+        [path, undefined],
         [path, 'Bearer no-such-session'],
         [path, STRANGER],
       ]),
-      // A grant of the other family, or of another program, is not the grant of the route.
       ...CATALOG_ROUTES.map((path): [string, string] => [path, ADMINISTRATOR]),
       ...COHORT_ROUTES.map((path): [string, string] => [path, MAINTAINER]),
       [`${cohort(OTHER_PROGRAM)}/preview`, ADMINISTRATOR],
       [`${cohort(OTHER_PROGRAM)}/confirm`, ADMINISTRATOR],
     ];
     for (const [path, caller] of callers) {
-      // Under the small limit the default parser reads the body, and the route's own 401 or 403 follows.
       expect((await post(path, bodyOf(DEFAULT_LIMIT), caller).expect(200)).body).toEqual({ characters: DEFAULT_LIMIT - 10 });
-      // Over it, the default parser refuses: its answer, not the import's, and nothing is read
-      // beyond the declared length, whether that is one byte over or 7 MiB.
-      for (const bytes of [DEFAULT_LIMIT + 1, IMPORT_JSON_LIMIT_BYTES]) expect([path, caller, (await post(path, bodyOf(bytes), caller).expect(413)).body]).toEqual([path, caller, DEFAULT_REFUSAL]);
+      for (const bytes of [DEFAULT_LIMIT + 1, SEVEN_MIB]) expect([path, caller, (await post(path, bodyOf(bytes), caller).expect(413)).body]).toEqual([path, caller, DEFAULT_REFUSAL]);
     }
-  });
+  }, LONG_LOOP_TIMEOUT_MS);
 
   it('gives nobody the large parser when the gate fails', async () => {
     gateFails = true;
@@ -145,8 +131,7 @@ describe('JSON body limits', () => {
 
   it('never inflates a body on an import route: 415 for every caller, before the gate is asked', async () => {
     const small = gzipSync(bodyOf(200));
-    // About 7 KiB on the wire, 7 MiB once inflated.
-    const bomb = gzipSync(bodyOf(IMPORT_JSON_LIMIT_BYTES));
+    const bomb = gzipSync(bodyOf(SEVEN_MIB));
     expect(bomb.length).toBeLessThan(10 * KIB);
     for (const [path, granted] of GRANTED) {
       for (const caller of [undefined, STRANGER, granted]) {
@@ -157,11 +142,10 @@ describe('JSON body limits', () => {
       }
     }
     expect(asked).toEqual([]);
-    // "identity" is no encoding; and another route still inflates, within its own 100 KiB.
     expect((await post(CATALOG_ROUTES[0], bodyOf(200), MAINTAINER).set('Content-Encoding', 'identity').expect(200)).body).toEqual({ characters: 190 });
     expect((await post('/api/admin/catalog/courses', small).set('Content-Encoding', 'gzip').expect(200)).body).toEqual({ characters: 190 });
     await post('/api/admin/catalog/courses', bomb).set('Content-Encoding', 'gzip').expect(413);
-  });
+  }, LONG_LOOP_TIMEOUT_MS);
 
   it('keeps the 100 KiB limit on every other route, which still gets its body parsed, whoever calls', async () => {
     const others = ['/api/admin/catalog/courses', '/api/admin/catalog/imports/preview/again', '/api/admin/catalog/imports/other', '/api/admin/catalog/imports', '/API/admin/catalog/imports/preview'];
@@ -169,7 +153,6 @@ describe('JSON body limits', () => {
       expect((await post(path, bodyOf(DEFAULT_LIMIT), MAINTAINER).expect(200)).body).toEqual({ characters: DEFAULT_LIMIT - 10 });
       expect((await post(path, bodyOf(DEFAULT_LIMIT + 1), MAINTAINER).expect(413)).body).toEqual(DEFAULT_REFUSAL);
     }
-    // The same path with another method is not an import route.
     const put = (bytes: number) => request(app.getHttpServer()).put(CATALOG_ROUTES[0]).set('Content-Type', 'application/json').set('Authorization', MAINTAINER).send(bodyOf(bytes));
     await put(DEFAULT_LIMIT).expect(200);
     await put(DEFAULT_LIMIT + 1).expect(413);

@@ -1,9 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { pointerDrag, type DropTarget } from './drag.js';
 
-// The pointer drag of the planner (drag.ts): a ghost follows the pointer, the target under it is the element with
-// `data-drop`, and the wheel scrolls the page meanwhile, since nothing captures it.
-
 let source: HTMLElement;
 let row: HTMLElement;
 let under: Element | null;
@@ -69,12 +66,10 @@ describe('pointerDrag', () => {
     const ghost = document.querySelector<HTMLElement>('.ghost-tile')!;
     const pos = () => ghost.style.transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\) rotate\(([-\d.]+)deg\)/)!.slice(1).map(Number);
     run(1);
-    expect(pos()[2]).not.toBe(0); // a fast move to the right tilts it
+    expect(pos()[2]).not.toBe(0);
     run(40);
-    // The grab point has slid to the middle: 300 − 200/2, 300 − 100/2.
     expect(pos()[0]).toBeCloseTo(200, 0);
     expect(pos()[1]).toBeCloseTo(250, 0);
-    // A jump of the pointer moves the ghost the whole way in the next frame: it never trails behind.
     window.dispatchEvent(at('pointermove', 700, 500));
     run(1);
     expect(pos()[0]).toBeCloseTo(600, 0);
@@ -161,5 +156,33 @@ describe('pointerDrag', () => {
     drag.down(at('pointerdown', 10, 10, { button: 2 }), source, 'ZZ101');
     window.dispatchEvent(at('pointermove', 40, 40));
     expect(calls).toEqual([]);
+  });
+
+  it('never scrolls the window when hovering over the bottom trash bin', () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (f: FrameRequestCallback) => frames.push(f));
+    vi.stubGlobal('cancelAnimationFrame', () => {});
+    const scroll = vi.spyOn(window, 'scrollBy').mockImplementation(() => {});
+    const bin = document.createElement('div');
+    bin.className = 'drop-bin';
+    bin.dataset.drop = 'bin';
+    const binIcon = document.createElement('span');
+    bin.append(binIcon);
+    document.body.append(bin);
+
+    const drag = setup();
+    drag.down(at('pointerdown', 10, 10), source, 'ZZ101');
+    under = binIcon;
+    window.dispatchEvent(at('pointermove', 200, window.innerHeight - 10));
+    frames.shift()?.(0);
+    expect(scroll).not.toHaveBeenCalled();
+
+    under = row;
+    window.dispatchEvent(at('pointermove', 200, window.innerHeight - 10));
+    frames.shift()?.(0);
+    expect(scroll).toHaveBeenCalled();
+
+    drag.stop();
+    vi.unstubAllGlobals();
   });
 });

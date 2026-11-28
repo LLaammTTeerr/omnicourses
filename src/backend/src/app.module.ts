@@ -4,18 +4,15 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthGuard } from './auth/auth.guard.js';
 import { THROTTLERS } from './auth/rate-limits.js';
-import { databaseUrl } from './config/env.js';
-import { dataSourceOptions } from './database/data-source.js';
-import { FEATURE_MODULES } from './features.js';
+import { connectionOptions } from './database/data-source.js';
+import { platformImports } from './features.js';
 
 @Module({
   imports: [
-    TypeOrmModule.forRootAsync({ useFactory: () => ({ ...dataSourceOptions, url: databaseUrl(), autoLoadEntities: true }) }),
     ThrottlerModule.forRoot(THROTTLERS),
-    ...FEATURE_MODULES,
+    ...platformImports(TypeOrmModule.forRootAsync({ useFactory: () => ({ ...connectionOptions(), autoLoadEntities: true }) })),
   ],
   providers: [
-    // Order matters: rate-limit first, then authenticate.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useExisting: AuthGuard },
   ],

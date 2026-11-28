@@ -1,0 +1,29 @@
+# DB-01c and DB-01d, tree 1bde552 (main): API node dist/main.js on :3055, Vite dev frontend on :5175 (VITE_API_URL=http://localhost:3055/api), Node v24.19.0 (repo pins 22.22.1; no Node 22 on this machine), npm 11.21.1, PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2) in docker (omni-b1r-db)
+2026-11-27T09:59:19Z
+=== DB-01d: the rendered Swagger page
+chromium 156.0.8078.4 | Authorize buttons: 1 | groups: health, users, auth, guides, curriculum, plans, curriculum-admin, academic-calendar, sharing, notifications
+docs-json starts with: {"openapi":"3.2.0",
+=== DB-01c, part 1: stop the database
+API pid before: 24056 (node.exe)
+health (db up): {"status":"ok","database":"up"} HTTP 200
+chromium 156.0.8078.4 | home page shows: "API ok · database up"
+docker stop: exit 0; container state: exited
+health (db stopped): {"status":"degraded","database":"down"} HTTP 200
+chromium 156.0.8078.4 | home page shows: "API degraded · database down"
+=== DB-01c, part 2: start the database, health every 5 s for 60 s
+docker start: exit 0; container state: running
++0s {"status":"ok","database":"up"}
++5s {"status":"ok","database":"up"}
++10s {"status":"ok","database":"up"}
++15s {"status":"ok","database":"up"}
++20s {"status":"ok","database":"up"}
++26s {"status":"ok","database":"up"}
++31s {"status":"ok","database":"up"}
++36s {"status":"ok","database":"up"}
++41s {"status":"ok","database":"up"}
++46s {"status":"ok","database":"up"}
++51s {"status":"ok","database":"up"}
++56s {"status":"ok","database":"up"}
++61s {"status":"ok","database":"up"}
+API pid after: 24056 (node.exe)
+chromium 156.0.8078.4 | home page shows: "API ok · database up"

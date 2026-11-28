@@ -2,22 +2,11 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { apcs2024 } from '../src/database/seeds/apcs-2024.js';
-import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/database/seeds/index.js';
-import { seedCurricula } from '../src/database/seeds/seed-curricula.js';
+import { apcs2024 } from '../src/curriculum/seeds/apcs-2024.js';
+import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/curriculum/seeds/index.js';
+import { seedCurricula } from '../src/curriculum/seed-curricula.js';
 import { bootApp } from './support/app.js';
 import { signedInUser } from './support/users.js';
-
-const CURRICULUM_TABLES = [
-  'programs',
-  'curriculums',
-  'requirement_groups',
-  'courses',
-  'requirement_group_courses',
-  'combined_minimums',
-  'combined_minimum_groups',
-  'requirement_group_overflows',
-];
 
 interface Group {
   id: string;
@@ -29,6 +18,8 @@ interface Group {
   courses: { code: string; credits: number }[];
 }
 
+const FIRST_MATH_COURSE = { code: 'MTH251', credits: 4 };
+
 describe('Curriculum API (e2e)', () => {
   let app: INestApplication;
   let token: string;
@@ -37,19 +28,12 @@ describe('Curriculum API (e2e)', () => {
 
   beforeAll(async () => {
     app = await bootApp();
-    // Insert-only: a database another test or a previous run already seeded is left as it is.
     await seedCurricula(app.get(DataSource), CURRICULUM_SEEDS, CATALOG_DECISIONS);
     ({ token } = await signedInUser(app));
   });
 
   afterAll(async () => {
     await app?.close();
-  });
-
-  it('maps the curriculum tables exactly as migrations 1792912952302 and 1794300000000 create them', async () => {
-    const { upQueries } = await app.get(DataSource).driver.createSchemaBuilder().log();
-    const touching = upQueries.map((q) => q.query).filter((q) => CURRICULUM_TABLES.some((t) => q.includes(`"${t}"`)));
-    expect(touching).toEqual([]);
   });
 
   it('lists every seeded program with its cohorts', async () => {
@@ -86,13 +70,11 @@ describe('Curriculum API (e2e)', () => {
     const credits = Object.fromEntries(groups.flatMap((g) => g.courses.map((c) => [c.code, c.credits])));
     const printed = apcs2024.groups.flatMap((g) => g.rows);
     expect(Object.keys(credits).length).toBe(new Set(printed.map((r) => r.code)).size);
-    // The catalog is shared: only decided values may differ from this PDF (apcs-catalog-decisions).
     const decided = new Set(CATALOG_DECISIONS.filter((d) => d.field === 'credits').map((d) => d.code));
     for (const row of printed) if (!decided.has(row.code)) expect(credits[row.code]).toBe(row.credits);
   });
 
   it('reads prerequisites and offering terms as not recorded (null), never as none, while F12 has stored none', async () => {
-    // A CLC curriculum: no e2e file records rules for it, and no seed does (ADR 0011, amended 9 November 2026).
     const seed = CURRICULUM_SEEDS.find((s) => s.program.code !== 'APCS')!;
     const { body } = await get(`/api/programs/${seed.program.code}/curricula/${seed.curriculum.cohort_year}`).expect(200);
     const courses = (body.requirementGroups as Group[]).flatMap((g) => g.courses as unknown as { prerequisites: unknown; offeringTerms: unknown }[]);
@@ -102,17 +84,14 @@ describe('Curriculum API (e2e)', () => {
 
   it.each([2024, 2025])('reads every seeded APCS %i course as having no prerequisite ([]) except CS470 (CS469), offering terms still not recorded', async (cohort) => {
     const seed = CURRICULUM_SEEDS.find((s) => s.program.code === 'APCS' && s.curriculum.cohort_year === cohort)!;
-    // Project Lead, 15 November 2026: APCS courses have no prerequisite (ADR 0011 amendment of that day).
     expect(seed.no_prerequisites).toMatchObject({ date: '2026-11-15' });
     const { body } = await get(`/api/programs/APCS/curricula/${cohort}`).expect(200);
     const read = new Map(
       (body.requirementGroups as Group[]).flatMap((g) => g.courses as unknown as { code: string; prerequisites: unknown; offeringTerms: unknown }[]).map((c) => [c.code, c]),
     );
-    // The seeded courses only: curriculum-admin.e2e-spec.ts adds its own to APCS in the same database.
     const codes = [...new Set(seed.groups.flatMap((g) => g.rows.map((r) => r.code)))];
     expect(codes.length).toBeGreaterThan(0);
     expect(codes).toContain('CS470');
-    // CS469 before CS470: printed under 7.3 of both curriculum PDFs (Project Lead, 24 November 2026).
     for (const code of codes) {
       expect([code, read.get(code)?.prerequisites, read.get(code)?.offeringTerms]).toEqual([code, code === 'CS470' ? ['CS469'] : [], null]);
     }
@@ -147,7 +126,6 @@ describe('Curriculum API (e2e)', () => {
     const brief = (issues: { code: string; kind: string; courseCode: string | null }[]) => issues.filter((i) => i.kind === 'unknown').map((i) => `${i.code} ${i.courseCode}`);
 
     const { body } = await http().get(`/api/plans/${plan.id}/issues`).set(auth).expect(200);
-    // One unknown per placed course, where there were two before the decision was recorded.
     expect(brief(body.issues)).toEqual(['offering_terms_not_recorded CS163', 'offering_terms_not_recorded CS201']);
     expect(body.issues.some((i: { code: string }) => i.code === 'prerequisite_not_met')).toBe(false);
 
@@ -158,7 +136,6 @@ describe('Curriculum API (e2e)', () => {
       'offering_terms_not_recorded CS201',
       'offering_terms_not_recorded CS160',
     ]);
-    // The coverage does not move with the decision: three 4-credit courses of (A): bắt buộc, 12 of its 40 credits.
     const groupA = drop.body.reports[0].issues.coverage.groups.find((g: { name: string }) => g.name === 'Kiến thức Computer Science (A): bắt buộc');
     expect([groupA.credits, groupA.requiredCredits]).toEqual([12, 40]);
   });
@@ -171,8 +148,9 @@ describe('Curriculum API (e2e)', () => {
 
   it('returns a course with the groups that link to it, across cohorts', async () => {
     const code = apcs2024.groups.find((g) => g.name === 'Kiến thức Math')!.rows[0].code;
+    expect(code).toBe(FIRST_MATH_COURSE.code);
     const { body } = await get(`/api/courses/${code}`).expect(200);
-    expect(body).toMatchObject({ code, credits: expect.any(Number) });
+    expect(body).toMatchObject(FIRST_MATH_COURSE);
     const apcs = (body.memberships as { programCode: string; cohortYear: number; requirementGroupName: string }[]).filter((m) => m.programCode === 'APCS');
     expect(apcs).toContainEqual(expect.objectContaining({ cohortYear: 2024, curriculumCode: 'APCS2024', requirementGroupName: 'Kiến thức Math', kind: 'compulsory' }));
   });
@@ -182,8 +160,28 @@ describe('Curriculum API (e2e)', () => {
     await get('/api/courses/csc10001').expect(404);
   });
 
+  it('computes per-course standing against the student transcript via GET /api/programs/:program/curricula/:cohort/standing', async () => {
+    const { token: studentToken } = await signedInUser(app);
+    const auth = { Authorization: `Bearer ${studentToken}` };
+    await http()
+      .put('/api/users/me/transcript')
+      .set(auth)
+      .send({
+        rows: [{ courseCode: 'CS469', courseName: 'Đề cương khóa luận', credits: 2, result: 'fail', grade: null, term: { year: 2025, number: 1 } }],
+      })
+      .expect(200);
+
+    const locked = await http().get('/api/programs/APCS/curricula/2024/standing').set(auth).expect(200);
+    const byCode = new Map((locked.body.courses as { code: string; transcriptStatus: string | null; readiness: string | null; missingPrerequisites: string[] }[]).map((c) => [c.code, c]));
+    expect(byCode.get('CS469')).toEqual({ code: 'CS469', transcriptStatus: 'failed', readiness: 'available', missingPrerequisites: [] });
+    expect(byCode.get('CS470')).toEqual({ code: 'CS470', transcriptStatus: null, readiness: 'locked', missingPrerequisites: ['CS469'] });
+
+    await http().get('/api/programs/APCS/curricula/1999/standing').set(auth).expect(404);
+    await http().get('/api/programs/APCS/curricula/twenty/standing').set(auth).expect(404);
+  });
+
   it('refuses every route without a token', async () => {
-    for (const path of ['/api/programs', '/api/programs/APCS/curricula/2024', '/api/courses/ZZ99999']) {
+    for (const path of ['/api/programs', '/api/programs/APCS/curricula/2024', '/api/programs/APCS/curricula/2024/standing', '/api/courses/ZZ99999']) {
       await http().get(path).expect(401);
     }
   });

@@ -3,11 +3,10 @@ import { RequirementGroup } from '../curriculum/requirement-group.entity.js';
 import { User } from '../users/user.entity.js';
 import { Plan } from './plan.entity.js';
 
-// Table `plan_placements` of migration 1794218005469 (ADR 0014): a course, or a slot that holds
-// credits for a requirement group until a course is chosen, in one term of a plan.
 @Entity({ name: 'plan_placements' })
 @Unique('uq_plan_placements_term_position', ['planId', 'termYear', 'termNumber', 'position'])
 @Index('uq_plan_placements_course', ['planId', 'courseCode'], { unique: true, where: `"course_code" IS NOT NULL` })
+@Index('idx_plan_placements_course_code', ['courseCode'], { where: `"course_code" IS NOT NULL` })
 @Index('ix_plan_placements_user_id', ['userId'])
 @Index('ix_plan_placements_requirement_group_id', ['requirementGroupId'])
 @Check('ck_plan_placements_term_year', `"term_year" BETWEEN 2000 AND 2100`)
@@ -24,7 +23,6 @@ export class PlanPlacement {
   @Column({ name: 'plan_id', type: 'uuid' })
   planId!: string;
 
-  // Composite key: the placement's user_id is always its plan's.
   @ManyToOne(() => Plan, { onDelete: 'CASCADE' })
   @JoinColumn([
     { name: 'plan_id', referencedColumnName: 'id', foreignKeyConstraintName: 'plan_placements_plan_fkey' },
@@ -54,7 +52,6 @@ export class PlanPlacement {
   @Column({ name: 'requirement_group_id', type: 'uuid', nullable: true })
   requirementGroupId!: string | null;
 
-  // RESTRICT: F12 refuses to delete a requirement group a saved plan uses (ADR 0011).
   @ManyToOne(() => RequirementGroup, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'requirement_group_id', foreignKeyConstraintName: 'plan_placements_requirement_group_id_fkey' })
   requirementGroup!: RequirementGroup | null;

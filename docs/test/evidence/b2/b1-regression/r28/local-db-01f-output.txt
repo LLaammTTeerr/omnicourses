@@ -1,0 +1,41 @@
+# DB-01f, local disposable PostgreSQL 18.6 (docker), migrated and seeded, tree 4b038fe (omni-b1r28-db, port 55432)
+2026-11-28T07:45:37Z
+--- shared-data counts before
+ programs | curriculums | groups | courses | links 
+----------+-------------+--------+---------+-------
+       10 |          11 |    133 |     249 |  1823
+(1 row)
+
+--- psql -f local-db-01f.sql (fed on stdin to psql inside the container)
+BEGIN
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+ERROR:  duplicate key value violates unique constraint "uq_curriculums_program_cohort"
+DETAIL:  Key (program_id, cohort_year)=(80949d51-e71c-45dc-90f9-5d3f381a578c, 2024) already exists.
+ERROR:  new row for relation "courses" violates check constraint "ck_courses_code_format"
+DETAIL:  Failing row contains (zz-1, ZZ bad code, null, 3, 0, 0, 0, 0, 2026-11-28 07:45:37.770068+00, 2026-11-28 07:45:37.770068+00).
+ERROR:  new row for relation "requirement_group_courses" violates check constraint "ck_requirement_group_courses_code_format"
+DETAIL:  Failing row contains (1691cbe5-8538-4325-885f-1decbb6c1e9a, zz-1, 2026-11-28 07:45:37.770068+00, t, t).
+ERROR:  duplicate key value violates unique constraint "uq_requirement_groups_curriculum_name"
+DETAIL:  Key (curriculum_id, name)=(ecdaa915-536b-4b3d-9201-0f0eabb2d485, ZZ group) already exists.
+ERROR:  new row for relation "requirement_groups" violates check constraint "ck_requirement_groups_kind"
+DETAIL:  Failing row contains (0c9676c4-aedc-4322-8ef2-7f63aca016b8, ecdaa915-536b-4b3d-9201-0f0eabb2d485, ZZ other group, optional, null, null, null, 2026-11-28 07:45:37.770068+00, 2026-11-28 07:45:37.770068+00).
+ERROR:  new row for relation "curriculums" violates check constraint "ck_curriculums_cohort_year_range"
+DETAIL:  Failing row contains (7474122c-1916-4397-a9a6-42a45e490e5a, 80949d51-e71c-45dc-90f9-5d3f381a578c, 1999, ZZTEST1999, ZZ test 1999, null, null, null, 2026-11-28 07:45:37.770068+00, 2026-11-28 07:45:37.770068+00).
+ERROR:  new row for relation "courses" violates check constraint "ck_courses_credits_positive"
+DETAIL:  Failing row contains (ZZ002, ZZ no credits, null, 0, 0, 0, 0, 0, 2026-11-28 07:45:37.770068+00, 2026-11-28 07:45:37.770068+00).
+ROLLBACK
+ zztest_programs_left 
+----------------------
+                    0
+(1 row)
+
+--- shared-data counts after
+ programs | curriculums | groups | courses | links 
+----------+-------------+--------+---------+-------
+       10 |          11 |    133 |     249 |  1823
+(1 row)
+

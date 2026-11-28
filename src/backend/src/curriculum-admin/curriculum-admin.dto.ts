@@ -1,21 +1,37 @@
+import { applyDecorators } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { ArrayMaxSize, ArrayNotEmpty, ArrayUnique, buildMessage, IsArray, IsIn, IsInt, IsNotEmpty, IsString, MaxLength, Min, ValidateBy, ValidateIf } from 'class-validator';
-import { trimString } from '../common/transforms.js';
-import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
-import { GLOBAL_PERMISSIONS, type GlobalPermission } from './admin-grant.entities.js';
+import { ArrayMaxSize, ArrayNotEmpty, ArrayUnique, buildMessage, IsArray, IsIn, IsInt, IsNotEmpty, IsString, Min, ValidateBy } from 'class-validator';
+import { ifPresent, ifSet, MaxCodePoints, NoNullCharacter, NullableTextField, RequiredTextField } from '../common/field-validators.js';
+import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/curriculum-rules.js';
+import { TERM_NUMBERS } from '../terms/term.js';
+import { GLOBAL_PERMISSIONS, type GlobalPermission } from '../admin-access/admin-grant.entities.js';
+import { NAME_MAX_LENGTH } from '../common/column-limits.js';
 
-// Request and response shapes of F12 (ADR 0011). Requests go through StrictBody: a field not
-// declared here (an identifier, a parent, a gated credit total) is a 400, never ignored.
+const MAX_PREREQUISITES = 50;
+export const OFFICIAL_NOTES_MAX_LENGTH = 2000;
+export const CONFIRM_IMPACT_MAX_LENGTH = 128;
 
-/** Present: validated. Absent: left as it is. */
-export const ifPresent = ValidateIf((_: object, value: unknown) => value !== undefined);
-/** Present and not null: validated. null clears the column. */
-export const ifSet = ValidateIf((_: object, value: unknown) => value !== undefined && value !== null);
+export const MAX_INTEGER = 2_147_483_647;
 
-// ---- Programs the caller administers -------------------------------------------------------
+const StorableInteger = () =>
+  ValidateBy({
+    name: 'storableInteger',
+    validator: {
+      validate: (value: unknown) => !Number.isInteger(value) || (value as number) <= MAX_INTEGER,
+      defaultMessage: buildMessage((eachPrefix) => `${eachPrefix}$property must not be greater than ${MAX_INTEGER}`),
+    },
+  });
 
-export class AdminCurriculumDto {
+export const CreditTotalField = (description: string) =>
+  applyDecorators(
+    ApiProperty({ type: 'integer', nullable: true, required: false, minimum: 0, maximum: MAX_INTEGER, description }),
+    ifSet,
+    IsInt(),
+    Min(0),
+    StorableInteger(),
+  );
+
+class AdminCurriculumDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 
@@ -45,44 +61,50 @@ export class AdminProgramListDto {
   programs!: AdminProgramDto[];
 }
 
-// ---- Requirement groups --------------------------------------------------------------------
-
 export class CreateRequirementGroupDto {
-  @ApiProperty({ example: 'Kiến thức Math', maxLength: 255, description: 'The heading as printed; unique within the curriculum' })
-  @Transform(trimString)
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(255)
+  @RequiredTextField({ example: 'Kiến thức Math', maxLength: NAME_MAX_LENGTH, description: 'The heading as printed; unique within the curriculum' })
   name!: string;
 
   @ApiProperty({ enum: REQUIREMENT_GROUP_KINDS })
   @IsIn(REQUIREMENT_GROUP_KINDS)
   kind!: RequirementGroupKind;
 
-  @ApiProperty({ type: String, nullable: true, required: false, description: 'The printed rule text' })
+  @ApiProperty({ type: String, nullable: true, required: false, maxLength: OFFICIAL_NOTES_MAX_LENGTH, description: 'The printed rule text' })
   @ifSet
   @IsString()
+  @NoNullCharacter
+  @MaxCodePoints(OFFICIAL_NOTES_MAX_LENGTH)
   officialNotes?: string | null;
+
+  @CreditTotalField('A compulsory group only: the fixed credit total it prints (ADR 0005). null clears it.')
+  creditsTotal?: number | null;
+
+  @CreditTotalField('An elective group only: the minimum credits a student takes from it (ADR 0005). null clears it.')
+  creditsTotalMin?: number | null;
 }
 
 export class UpdateRequirementGroupDto {
-  @ApiProperty({ required: false, maxLength: 255 })
   @ifPresent
-  @Transform(trimString)
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(255)
+  @RequiredTextField({ required: false, maxLength: NAME_MAX_LENGTH })
   name?: string;
 
-  @ApiProperty({ enum: REQUIREMENT_GROUP_KINDS, required: false, description: 'Refused while the group stores a credit total' })
+  @ApiProperty({ enum: REQUIREMENT_GROUP_KINDS, required: false, description: 'Refused when the group would then store the other kind\'s credit total; clear it in the same request' })
   @ifPresent
   @IsIn(REQUIREMENT_GROUP_KINDS)
   kind?: RequirementGroupKind;
 
-  @ApiProperty({ type: String, nullable: true, required: false })
+  @ApiProperty({ type: String, nullable: true, required: false, maxLength: OFFICIAL_NOTES_MAX_LENGTH })
   @ifSet
   @IsString()
+  @NoNullCharacter
+  @MaxCodePoints(OFFICIAL_NOTES_MAX_LENGTH)
   officialNotes?: string | null;
+
+  @CreditTotalField('A compulsory group only: the fixed credit total it prints (ADR 0005). null clears it.')
+  creditsTotal?: number | null;
+
+  @CreditTotalField('An elective group only: the minimum credits a student takes from it (ADR 0005). null clears it.')
+  creditsTotalMin?: number | null;
 }
 
 export class RequirementGroupAdminDto {
@@ -101,17 +123,15 @@ export class RequirementGroupAdminDto {
   @ApiProperty({ type: String, nullable: true })
   officialNotes!: string | null;
 
-  @ApiProperty({ type: Number, nullable: true, description: 'Read-only here until the rule-engine handoff (ADR 0011)' })
+  @ApiProperty({ type: Number, nullable: true, description: 'Set on a compulsory group only; null: not recorded' })
   creditsTotal!: number | null;
 
-  @ApiProperty({ type: Number, nullable: true, description: 'Read-only here until the rule-engine handoff (ADR 0011)' })
+  @ApiProperty({ type: Number, nullable: true, description: 'Set on an elective group only; null: no minimum recorded' })
   creditsTotalMin!: number | null;
 
   @ApiProperty({ type: String, format: 'date-time' })
   updatedAt!: Date;
 }
-
-// ---- Prerequisites and offering terms ------------------------------------------------------
 
 export class SetPrerequisitesDto {
   @ApiProperty({
@@ -120,7 +140,7 @@ export class SetPrerequisitesDto {
     description: 'Every course that must be passed first; [] records "none". Codes are trimmed and upper-cased, then must be courses of this curriculum.',
   })
   @IsArray()
-  @ArrayMaxSize(50)
+  @ArrayMaxSize(MAX_PREREQUISITES)
   @IsString({ each: true })
   prerequisites!: string[];
 }
@@ -139,7 +159,7 @@ export class SetOfferingTermsDto {
   @ArrayNotEmpty()
   @ArrayUnique()
   @IsInt({ each: true })
-  @IsIn([1, 2, 3], { each: true })
+  @IsIn(TERM_NUMBERS, { each: true })
   terms!: number[];
 }
 
@@ -151,30 +171,6 @@ export class OfferingTermsDto {
   terms!: number[] | null;
 }
 
-// ---- Catalog courses -----------------------------------------------------------------------
-
-/** The largest value an `integer` column of PostgreSQL stores: above it a credit or period count is a 400, not a storage error. */
-export const MAX_INTEGER = 2_147_483_647;
-
-/**
- * Refuses a whole number above MAX_INTEGER, and nothing else: a value that is not a whole
- * number passes here and is refused by @IsInt and @Min with the messages it always had.
- */
-const StorableInteger = () =>
-  ValidateBy({
-    name: 'storableInteger',
-    validator: {
-      validate: (value: unknown) => !Number.isInteger(value) || (value as number) <= MAX_INTEGER,
-      defaultMessage: buildMessage((eachPrefix) => `${eachPrefix}$property must not be greater than ${MAX_INTEGER}`),
-    },
-  });
-
-/**
- * A whole number written as text (a CSV cell), as the number the DTOs below validate: digits
- * only. Anything else ("3.0", "1e2", "+3", "0x10", "-1") stays text, so @IsInt refuses it
- * exactly as it refuses a string in a JSON body. This is the only conversion a CSV value
- * gets (ADR 0011: no parser casting); whether the number is acceptable is decided below.
- */
 export const wholeNumberOrText = (text: string): number | string => (/^[0-9]+$/.test(text) ? Number(text) : text);
 
 export class CreateCourseDto {
@@ -182,18 +178,10 @@ export class CreateCourseDto {
   @IsString()
   code!: string;
 
-  @ApiProperty({ maxLength: 255 })
-  @Transform(trimString)
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(255)
+  @RequiredTextField({ maxLength: NAME_MAX_LENGTH })
   nameVi!: string;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255 })
-  @Transform(trimString)
-  @ifSet
-  @IsString()
-  @MaxLength(255)
+  @NullableTextField({ maxLength: NAME_MAX_LENGTH })
   nameEn?: string | null;
 
   @ApiProperty({ minimum: 1, maximum: MAX_INTEGER })
@@ -231,24 +219,15 @@ export class CreateCourseDto {
   projectPeriods?: number | null;
 }
 
-/** The editable course fields. The code is not one of them (ADR 0011). */
 export const COURSE_FIELDS = ['nameVi', 'nameEn', 'credits', 'theoryPeriods', 'labPeriods', 'exercisePeriods', 'projectPeriods'] as const;
 export type CourseField = (typeof COURSE_FIELDS)[number];
 
 export class UpdateCourseDto {
-  @ApiProperty({ required: false, maxLength: 255 })
   @ifPresent
-  @Transform(trimString)
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(255)
+  @RequiredTextField({ required: false, maxLength: NAME_MAX_LENGTH })
   nameVi?: string;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255 })
-  @Transform(trimString)
-  @ifSet
-  @IsString()
-  @MaxLength(255)
+  @NullableTextField({ maxLength: NAME_MAX_LENGTH })
   nameEn?: string | null;
 
   @ApiProperty({ required: false, minimum: 1, maximum: MAX_INTEGER })
@@ -288,16 +267,16 @@ export class UpdateCourseDto {
 
   @ApiProperty({
     required: false,
+    maxLength: CONFIRM_IMPACT_MAX_LENGTH,
     description:
       'The reviewVersion of a 409 impact_confirmation_required answer: confirms the change for exactly the curricula it listed. Needed whenever the course is linked to a curriculum.',
   })
   @ifPresent
   @IsString()
   @IsNotEmpty()
+  @MaxCodePoints(CONFIRM_IMPACT_MAX_LENGTH)
   confirmImpact?: string;
 }
-
-// ---- Access management ---------------------------------------------------------------------
 
 export class AccessProgramDto {
   @ApiProperty({ format: 'uuid' })
@@ -315,7 +294,7 @@ export class AccessProgramListDto {
   programs!: AccessProgramDto[];
 }
 
-export class ProgramGrantDto {
+class ProgramGrantDto {
   @ApiProperty({ format: 'uuid' })
   programId!: string;
 
@@ -329,7 +308,7 @@ export class ProgramGrantDto {
   grantedBy!: string | null;
 }
 
-export class GlobalGrantDto {
+class GlobalGrantDto {
   @ApiProperty({ enum: GLOBAL_PERMISSIONS })
   permission!: GlobalPermission;
 

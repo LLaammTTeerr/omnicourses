@@ -1,0 +1,30 @@
+2026-11-27T09:12:32.658Z Chromium 156.0.8078.4 (headless, playwright-core 1.64.1)
+2026-11-27T09:12:37.695Z ACAD-01a API credits: {"accumulated":0,"towardTotal":0,"inProgressTowardTotal":0,"totalRequired":163,"remaining":163,"yearLevel":1} gpa: {"average":null,"accumulatedAverage":null,"accumulatedAverageFourPoint":null,"classification":null,"gradedCredits":0} graduation: not_yet
+2026-11-27T09:12:37.696Z ACAD-01a dashboard figures: {"graduation-status":"Chưa đủ điều kiện tốt nghiệp","credits-toward-total":"0 / 163 TC","credits-remaining":"còn 163 TC","credits-in-progress":"0 TC đang học","credits-accumulated":"0 TC tích lũy","gpa-accumulated-average":"Chưa có","gpa-average":"Chưa có","gpa-classification":null,"gpa-four-point":null}
+2026-11-27T09:12:37.696Z ACAD-01a dashboard groups: ["</> Kiến thức Computer Science (A): bắt buộc 0 / 40 TC ○ Chưa đạt· còn 40 TC","∑ Kiến thức Math 0 / 16 TC ○ Chưa đạt· còn 16 TC","∑ Tự chọn Math (B) 0 / 8 TC ○ Chưa đạt· còn 8 TC","ℏ Kiến thức Physics 0 / 12 TC ○ Chưa đạt· còn 12 TC","& Kiến thức Non Computer Science 0 / 26 TC ○ Chưa đạt· còn 26 TC","★ Kiến thức Computer Science (A): tự chọn 0 / 16 TC ○ Chưa đạt· còn 16 TC","★ Tự chọn Computer Science (C) 0 TC Không có tối thiểu riêng · tính trong Kiến thức tự chọn","∎ Kiến thức tốt nghiệp 0 / 10 TC ○ Chưa đạt· còn 10 TC","+ Kiến thức tự chọn 0 / 43 TC ○ Chưa đạt· còn 43 TC"]
+ok   ACAD-01a: the dashboard shows 0 / 163, 163 remaining and "not yet", like the API | observed: {"graduation-status":"Chưa đủ điều kiện tốt nghiệp","credits-toward-total":"0 / 163 TC","credits-remaining":"còn 163 TC","credits-in-progress":"0 TC đang học","credits-accumulated":"0 TC tích lũy","gpa-accumulated-average":"Chưa có","gpa-average":"Chưa có","gpa-classification":null,"gpa-four-point":null}
+ok   ACAD-01a: each group with a minimum shows 0 of its requirement; the combined minimum 0 of 43 | observed: all 7 groups and Kiến thức tự chọn 0 / 43
+ok   ACAD-01a: group (C) is shown without a minimum, never as "0 / 0" | observed: ★ Tự chọn Computer Science (C) 0 TC Không có tối thiểu riêng · tính trong Kiến thức tự chọn
+ok   ACAD-01a: the page says the audit assumes no course is passed, with a link to enter a transcript | observed: {"notice":"Chưa có bảng điểm. | Kết quả dưới đây coi như bạn chưa đạt học phần nào. Nhập bảng điểm để xét đúng tiến độ của bạn. | Nhập bảng điểm","link":"/transcript"}
+ok   ACAD-01a: no estimated graduation term on the dashboard | observed: Điều kiện tốt nghiệp | Chưa đủ điều kiện tốt nghiệp | Còn 9 điều kiện chưa đạt.
+2026-11-27T09:12:39.421Z ACAD-01g explorer summary: Chương trình đào tạo - Chương trình Tiên tiến ngành Khoa học máy tính - Khóa tuyển 2024 · 69 học phần · 163 TC để tốt nghiệp | groups: ["Kiến thức Computer Science (A): bắt buộc [10 courses]","Kiến thức Math [4 courses]","Tự chọn Math (B) [4 courses]","Kiến thức Physics [3 courses]","Kiến thức Non Computer Science [12 courses]","Kiến thức Computer Science (A): tự chọn [6 courses]","Tự chọn Computer Science (C) [27 courses]","Kiến thức tốt nghiệp [3 courses]"] | tiles: 69
+ok   ACAD-01g: courses are listed by group (8 groups of APCS 2024); both searches find CS163; clearing brings the full list back | observed: {"groups":8,"found":{"cau truc du lieu":["CS163"],"cấu trúc dữ liệu":["CS163"]},"tilesAfterClear":69,"tilesBefore":69}
+ok   ACAD-01g: the CS163 drawer shows the code, name "Cấu trúc dữ liệu", 4 credits and its group, and says prerequisites/offering terms are not recorded, never "none" | observed: </> | Kiến thức Computer Science (A): bắt buộc | Cấu trúc dữ liệu | Data Structures | Mã học phần | CS163 | Tín chỉ | 4 TC | Số tiết | LT 40 · TH 30 | Thuộc nhóm | APCS2024 Kiến thức Computer Science (A): bắt buộc · bắt buộc | APCS2025 Kiến thức Computer Science (A): bắt buộc · bắt buộc | Không có môn tiên quyết. Chưa ghi nhận học kỳ mở môn. | Dữ liệu CTĐT nhập theo văn bản gốc của trường, không do AI trích xuất.
+ok   ACAD-02d: first save: the dashboard shows 4 credits and 8,0 | observed: {"put":200,"graduation-status":"Chưa đủ điều kiện tốt nghiệp","credits-toward-total":"4 / 163 TC","credits-remaining":"còn 159 TC","credits-in-progress":"0 TC đang học","credits-accumulated":"4 TC tích lũy","gpa-accumulated-average":"8","gpa-average":"8","gpa-classification":"Giỏi","gpa-four-point":null}
+ok   ACAD-02d: after the second save (made outside the page) and a reload, the dashboard shows 8 credits and 7,0; (A) bắt buộc 8 / 40 | observed: {"put":200,"beforeReload":"4 / 163 TC","afterReload":{"graduation-status":"Chưa đủ điều kiện tốt nghiệp","credits-toward-total":"8 / 163 TC","credits-remaining":"còn 155 TC","credits-in-progress":"0 TC đang học","credits-accumulated":"8 TC tích lũy","gpa-accumulated-average":"7","gpa-average":"7","gpa-classification":"Khá","gpa-four-point":null},"api":{"accumulated":8,"average":7}}
+ok   ACAD: no console error on these screens (a03) | observed: []
+node:fs:622
+  return binding.open(
+                 ^
+
+Error: ENOENT: no such file or directory, open 'E:\Project\omnicourses\docs\src\backend\test\fixtures\apcs-2024-completion.json'
+    at Object.openSync (node:fs:622:18)
+    at readFileSync (node:fs:488:35)
+    at file:///E:/Project/omnicourses/docs/test/evidence/b2/b1-regression/a-acad-screens.mjs:83:15 {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'E:\\Project\\omnicourses\\docs\\src\\backend\\test\\fixtures\\apcs-2024-completion.json'
+}
+
+Node.js v24.19.0

@@ -4,7 +4,6 @@ import type { TranscriptEntry } from './transcript-entry.js';
 import { TranscriptRow } from './transcript-row.entity.js';
 import { TranscriptService } from './transcript.service.js';
 
-// Synthetic rows only (AGENTS.md hard rule 3).
 const USER = '00000000-0000-4000-8000-000000000001';
 const entry: TranscriptEntry = { courseCode: 'ZZ101', courseName: 'Synthetic One', credits: 4, result: 'graded', grade: 8, term: { year: 2025, number: 1 } };
 const stored = { userId: USER, courseCode: 'ZZ101', courseName: 'Synthetic One', credits: 4, result: 'graded', grade: 8, termYear: 2025, termNumber: 1 } as TranscriptRow;
@@ -40,6 +39,13 @@ describe('TranscriptService.replace', () => {
     expect(tx.query.mock.invocationCallOrder[0]).toBeLessThan(tx.findBy.mock.invocationCallOrder[0]);
     expect(tx.findBy.mock.invocationCallOrder[0]).toBeLessThan(tx.delete.mock.invocationCallOrder[0]);
     expect(listener).toHaveBeenCalledWith(tx, { userId: USER, wasEmpty: false, changed: true });
+  });
+
+  it('locks the student row FOR NO KEY UPDATE before it writes', async () => {
+    const { service, tx } = setup([]);
+    await service.replace(USER, [entry]);
+    expect(tx.query.mock.calls[0]).toEqual(['SELECT 1 FROM "users" WHERE "id" = $1 FOR NO KEY UPDATE', [USER]]);
+    expect(tx.query.mock.invocationCallOrder[0]).toBeLessThan(tx.delete.mock.invocationCallOrder[0]);
   });
 
   it('reads no rows again once the last listener is removed', async () => {

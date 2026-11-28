@@ -1,31 +1,35 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
+import type { NextFunction, Request, Response } from 'express';
 import { apiDocs, corsOrigin, trustProxy } from './config/env.js';
-import { ImportBodyGate } from './curriculum-admin/import-body-gate.js';
-import { importJsonBody } from './curriculum-admin/import-body-limit.js';
+import { FEATURE_SETUPS } from './features.js';
 
 const API_PREFIX = 'api';
 const OPENAPI_VERSION = '3.2.0';
 
-// Shared by main.ts and the e2e tests, so the app under test is configured
-// exactly like the deployed one.
 export function configureApp(app: INestApplication): OpenAPIObject {
   app.setGlobalPrefix(API_PREFIX);
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.enableCors({ origin: corsOrigin() });
-  // Here, so that the deployed app and the e2e app get the same limits: 7 MiB of JSON on the
-  // four CSV import routes for a caller who holds the grant (ADR 0011), the default 100 KiB
-  // for everyone and everything else. After CORS, so that a browser can read its 413.
-  // The gate is looked up per request: providers do not exist yet when this runs.
-  // An app without the curriculum-admin module has no gate: the lookup throws, and nobody gets the large parser.
-  app.use(importJsonBody(API_PREFIX, async (authorization, need) => app.get(ImportBodyGate, { strict: false }).allows(authorization, need)));
-  const proxy = trustProxy();
-  if (proxy) app.getHttpAdapter().getInstance().set('trust proxy', proxy);
-  // Express answers `X-Powered-By: Express` unless told not to.
-  app.getHttpAdapter().getInstance().disable('x-powered-by');
+  configureExpress(app);
+  for (const setup of FEATURE_SETUPS) setup(app, API_PREFIX);
+  return buildDocument(app);
+}
 
-  // The document is always built (openapi.json, the e2e tests); the docs
-  // pages are served only where apiDocs() allows (not in production by default).
+function configureExpress(app: INestApplication): void {
+  const express = app.getHttpAdapter().getInstance();
+  const proxy = trustProxy();
+  if (proxy) express.set('trust proxy', proxy);
+  express.disable('x-powered-by');
+  express.use((_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+  });
+}
+
+function buildDocument(app: INestApplication): OpenAPIObject {
   const document = SwaggerModule.createDocument(app, buildOpenApiConfig());
   if (apiDocs()) SwaggerModule.setup(`${API_PREFIX}/docs`, app, document);
   return document;

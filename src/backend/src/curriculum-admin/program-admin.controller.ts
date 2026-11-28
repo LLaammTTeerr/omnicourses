@@ -1,25 +1,19 @@
 import { applyDecorators, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { ApiBody, ApiConflictResponse, ApiCreatedResponse, ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
 import { Authenticated, CurrentUser } from '../auth/auth.decorators.js';
+import { AdminErrorDto } from '../common/api-errors.js';
+import { StrictBody, uuidParam } from '../common/api-requests.js';
 import { User } from '../users/user.entity.js';
-import { AdminErrorDto } from './admin-errors.js';
-import { AdminErrors, uuidParam } from './admin-params.js';
+import { AdminErrors } from '../admin-access/admin-error-responses.js';
 import { CohortDetailsDto, CohortListDto, CreateCohortDto, CreateProgramDto, ProgramDetailsDto, UpdateCohortDto, UpdateProgramDto } from './program-admin.dto.js';
 import { ProgramAdminService } from './program-admin.service.js';
-import { StrictBody } from './strict-body.js';
 
 const PROGRAM = 'admin/programs/:programId';
 const COHORT = `${PROGRAM}/cohorts/:curriculumId`;
 
-/** The path IDs of a route, documented as UUIDs, with the F12 errors of a route that looks one up. */
 const ProgramRoute = () => applyDecorators(AdminErrors(), ApiParam({ name: 'programId', type: String, format: 'uuid' }));
 const CohortRoute = () => applyDecorators(ProgramRoute(), ApiParam({ name: 'curriculumId', type: String, format: 'uuid' }));
 
-// F12 program and cohort routes (ADR 0011, UC-11 A1 and A2). Signed-in through the global
-// AuthGuard; the service checks the caller's current grant inside each transaction. Creating a
-// program needs the access-manager permission and grants nothing; every other route needs the
-// program grant of :programId. A cohort is a `curriculums` row; :curriculumId must belong to
-// :programId. GET admin/programs, the caller's editable programs, is in CurriculumAdminController.
 @ApiTags('curriculum-admin')
 @Authenticated()
 @Controller()

@@ -7,9 +7,9 @@ import type { Guide, GuideListItem } from './guides/api.js';
 import { guideText, listText } from './guides/testing/guide-fixtures.js';
 import { createAppRouter } from './router.js';
 import { HEALTHY } from './testing/health.js';
+import { restoreMocksAfterCheckingCalls } from './testing/fetch.js';
 
 const title = (n: string) => `Hướng dẫn thử ${n}`;
-// Enough guides that the list scrolls on a phone.
 const LIST: GuideListItem[] = Array.from({ length: 20 }, (_, i) => {
   const n = String(i + 1).padStart(2, '0');
   return { id: `zz-guide-${n}`, group: 'registration', texts: { vi: listText({ title: title(n) }) } };
@@ -29,7 +29,7 @@ afterEach(() => {
   window.history.replaceState(originalHistoryState, '', originalUrl);
   window.scrollTo(0, 0);
   localStorage.clear();
-  vi.restoreAllMocks();
+  restoreMocksAfterCheckingCalls();
 });
 
 async function openApp(path: string): Promise<Router> {
@@ -64,7 +64,6 @@ it('goes back to the same place in the guide list after reading a guide', async 
   await last.click();
   await expect.element(page.getByRole('heading', { level: 1, name: 'Hướng dẫn thử 20' })).toBeVisible();
   await expect.poll(() => window.scrollY).toBe(0);
-  // The list, kept alive out of sight, leaves the title of the guide on screen alone.
   await page.getByRole('button', { name: 'English', exact: true }).click();
   await expect.element(page.getByRole('link', { name: 'Guides', exact: true }).first()).toBeVisible();
   expect(document.title).toBe('Hướng dẫn thử 20 · OmniCourse');

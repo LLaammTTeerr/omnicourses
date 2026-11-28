@@ -6,8 +6,6 @@ import { User } from '../users/user.entity.js';
 import { OnboardingDto } from './onboarding.dto.js';
 import { OnboardingService } from './onboarding.service.js';
 
-// UC-01 steps 6–10 and A9; B1 test cases §6 item 3. Only the signed-in student's own answers:
-// no route takes a user id (USER-01m).
 @ApiTags('users')
 @ApiExtraModels(TermDto)
 @Authenticated()

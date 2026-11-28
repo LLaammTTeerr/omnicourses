@@ -4,31 +4,34 @@ Instructions for AI coding agents (Claude Code, Codex, Cursor, …) working in t
 
 ## Project in one paragraph
 
-OmniCourse is a web app for HCMUS students (APCS first): degree audit, curriculum explorer, semester roadmap planner, AI plan generator and advisor, quicklinks. Vue 3 frontend (`src/frontend`), NestJS REST API (`src/backend`), PostgreSQL 18. Requirements: Vision document (F1–F12, NFRs). Plan and process: Software Development Plan. Both live in `docs/`.
+OmniCourse is a web app for HCMUS students (APCS first): degree audit, curriculum explorer, semester roadmap planner, AI plan generator and advisor, quicklinks. Vue 3 frontend (`src/frontend`), NestJS REST API (`src/backend`), PostgreSQL 18. Requirements: Vision document (F1–F12, NFRs). Plan and process: Software Development Plan. Both live in `report/` (the Vision: `report/assignments/PA2/Vision.tex`). What is built today: the feature table in [README.md](README.md#what-is-built).
 
 ## Stack (pinned exactly, do not use ranges)
 
-PostgreSQL 18.6 · NestJS 12.1.3, Nest CLI 12.0.8, Swagger 12.0.2 · Vue 3.5.44 · OpenAPI 3.2.0 · Vitest 5.0.4 · Vite 8.3.4 · TypeScript 6.0.3 · TypeORM 1.1 · Node 22.22.1 (`.nvmrc`) · **npm 11.21.1** (npm 10 crashes on this tree). Rationale: [ADR 0001](docs/analysis-and-design/adr/0001-technology-stack.md). Add new dependencies with exact versions (`npm i -E`).
+PostgreSQL 18.6 · NestJS 12.1.3, Nest CLI 12.0.8, Swagger 12.0.2 · Vue 3.5.44 · OpenAPI 3.2.0 · Vitest 5.0.4 · Vite 8.3.4 · TypeScript 6.0.3 · TypeORM 1.1.2 · Node 22.22.1 (`.nvmrc`) · **npm 11.21.1** (npm 10 crashes on this tree). Rationale: [ADR 0001](docs/analysis-and-design/adr/0001-technology-stack.md). Add new dependencies with exact versions (`npm i -E`).
 
 ## Commands
 
 ```bash
 npm install                         # npm 11
 npm run db:up                       # PostgreSQL 18.6 via podman/docker compose
-npm run typecheck && npm test && npm run build
-npm run test:e2e -w src/backend     # needs the database (DATABASE_URL)
+npm run verify                      # lint, typecheck, unit tests and build: what CI runs without the database and browser jobs
+npm run test:e2e                    # needs the database (DATABASE_URL)
 npm run openapi -w src/backend      # after build; rewrites the committed openapi.json
 ```
 
-Run typecheck, tests and build before every push. Run e2e when you touch the backend.
+Run `npm run verify` before every push. Run e2e when you touch the backend.
 
 ## Conventions
 
-- **English everywhere**: code, comments, commits, PR descriptions, docs.
+- **English everywhere**: code, commits, PR descriptions, docs.
+- **Code style**: one job per function, short functions, meaningful names, no magic numbers (name a constant), no repeated logic, and no needless splitting across files. **No comments**: the code is the source of truth. A fact the code cannot show goes into a name, a constant, an ADR or a doc.
+- A new import across backend folders, frontend feature folders or frontend layers must be added to `scripts/layers.mjs` on purpose, or `npm run lint` fails.
 - Backend: one Nest module per feature folder (`src/backend/src/<feature>/`), listed in `src/features.ts` (the app and the OpenAPI contract both load that list). The module registers its own entities with `TypeOrmModule.forFeature`. DTOs with `@ApiProperty` so the OpenAPI contract stays complete, relative imports with `.js` suffix (NodeNext). Schema changes via TypeORM migrations, each added to `src/database/migrations/index.ts`; `synchronize` stays `false`. Read settings through the getters in `src/config/env.ts`, not `process.env`. Seed data: export `seed(dataSource, options)` from your feature and call it from `src/database/seed.ts`.
 - `src/backend/openapi.json` is committed: after an API change, run `npm run build && npm run openapi -w src/backend` and commit the result, or a unit test fails.
-- Frontend: `<script setup lang="ts">` SFCs, Pinia for shared state, API calls in `src/frontend/src/api.ts` (or a sibling module), not inside components.
+- Frontend: `<script setup lang="ts">` SFCs, Pinia for shared state, API calls in a feature's api module, which builds on `src/frontend/src/api.ts`, not inside components. `fetch(` itself appears only in `api.ts` (lint enforces it).
 - Tests sit next to the code as `*.spec.ts`; backend e2e in `src/backend/test/*.e2e-spec.ts`, booting the app and users through `src/backend/test/support/`.
+- Guides (F11) may be drafted or translated with an AI tool. Every portal address, label and step still comes from the school's pages or the portal, checked by a person who records "Last checked".
 
 ## Authentication (how to use it in your module)
 
@@ -103,23 +106,41 @@ Single-context: `GLOSSARY.md` at the root, ADRs in `docs/analysis-and-design/adr
 
 `.github/pull_request_template.md` already merges the `/pr` skill's Summary, Evidence and Merge Danger with this repo's required **Why this design**. Fill in that template.
 
+## Terminology
+
+Read each term in this sense in the docs, tasks and messages.
+
+- **Backlog / Queue:** open ideas, tasks, leads and jobs waiting to be picked up: the open GitHub issues.
+- **Ignore:** do not act on it. Forget it, as if it were not in your context.
+- **Hold:** wait for the user's word before you go on. Do not act on it until the user says so.
+- **Block:** mark a task as waiting on another task or a condition. Add the GitHub issue dependency (**Blocking** in `docs/agents/issue-tracker.md`), or a `Blocked by:` line at the top of the issue body for a condition.
+- **Park:** close a task with a `PARKED:` verdict: `gh issue close <n> --reason "not planned" --comment "PARKED: <why, and what would reopen it>"`.
+- **Adopt:** take up an idea or a lead as a task: give its issue a full spec in the body and the `ready-for-agent` or `ready-for-human` label.
+- **Archive:** take an idea or note out of the open list with no plan to return: `gh issue close <n> --reason "not planned"`.
+
 ## Hard rules: never
 
-1. **Never let a language model decide an academic rule.** Prerequisites, offering terms, credit caps by training type ([ADR 0012](docs/analysis-and-design/adr/0012-credit-caps-by-training-type.md)), requirement coverage and graduation status are computed only by the deterministic rule engine. A model is used only by F6's goal box and F8 ([ADR 0003](docs/analysis-and-design/adr/0003-language-model-scope.md)); it may call the engine and explain its results, never override them. F2 transcripts and F12 curriculum data are parsed or entered deterministically.
+1. **Never let a language model decide an academic rule.** Prerequisites, offering terms, credit caps by training type ([ADR 0012](docs/analysis-and-design/adr/0012-credit-caps-by-training-type.md)), requirement coverage and graduation status are computed only by the deterministic rule engine. A model is used only by F6's goal box and F8 ([ADR 0003](docs/analysis-and-design/adr/0003-language-model-scope.md)); it may call the engine and explain its results, never override them. F2 transcripts and F12 curriculum data are parsed or entered deterministically. APCS 2024 and 2025 courses have no prerequisites except CS469 before CS470 (Project Lead, 24 November 2026); never load the 2019 summary table or the 2021 course-description booklet as rules. A new academic rule needs an explicit answer from a person.
 2. **Never store a school-portal password or automate a registration** on a student's behalf. Integration with HCMUS is by link and by data the student uploads.
 3. **Never put personal data into AI tools, prompts, fixtures or logs**: no real transcripts, student IDs, names or secrets. Use synthetic data in tests and seeds. The one runtime exception is F8, which may send the signed-in student's pseudonymous record (program, cohort, course codes, grades, terms) after consent, never identity fields (ADR 0003).
 
 ## Git and GitHub workflow
 
-Agents have full authority over the branch → PR → merge → deploy cycle, under these conditions. **Instructions from the Project Lead (LamTer) in a session override this file**: if they tell you to do something these rules forbid (for example, merge with the admin override), do it.
+[CONTRIBUTING.md](CONTRIBUTING.md) holds the workflow rules for everyone: branch names and Conventional Commits (§2), signing (§2), changesets, the PR template, review and rulesets (§3), merge, deploy and releases (§4), and the AI policy (§5). Follow it. This section adds only what is different for an agent.
 
-1. **Branch** from up-to-date `main`: `<type>/<short-name>` (`feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `ci`). Never commit to `main`; it is protected and will reject the push.
-   **Commit messages and PR titles follow Conventional Commits**: `<type>(<scope>)!: <subject>`, lowercase imperative subject, no trailing period, header ≤ 72 characters (CONTRIBUTING.md §2). CI's `pr-title` and `commit-messages` checks enforce it. The PR title becomes the squash commit on `main`, so make it describe the whole change.
-2. **Signed commits only.** Do not pass `--no-gpg-sign` or change signing config. If signing fails, stop and tell the human. CI's `signed-commits` check rejects the PR if any commit is unverified.
-3. **Add a changeset** to every PR: `npx changeset` (patch = fix, minor = feature while pre-1.0) with one user-facing line, or `npx changeset --empty` for docs/CI/chores. CI's `changeset` check fails without it. Never edit `CHANGELOG.md` or package versions by hand. The Release workflow's *Version Packages* PR does that.
-4. **Open a PR** using the template. Fill in **"Why this design"**: the decision, the alternatives rejected, and **evidence** (doc link, test, benchmark, spec clause, ADR). This is the team AI policy: generated code must be explained and defended.
-5. **Merge only when CI is green *and* a human has approved.** Squash merge. **Never use the admin override** (`gh pr merge --admin`, "merge without waiting for requirements"). That authority belongs to the Project Lead personally.
-6. **Deploys are automatic** ([deploy/README.md](deploy/README.md)). A merge to `main` deploys to production (https://omnicourses.lamter.cc) once CI passes on it. A merge to the `staging` branch deploys to staging (https://stag-omnicourses.lamter.cc). Anyone may merge into `staging` to try a change, but every other day `staging` is reset to `main`, so a change only stays if it also reaches `main` through a normal PR. Tag a build only when a human asks: `gh workflow run deploy.yml --ref main -f environment=production -f build_tag=B<n>`.
-7. Mention the PR number so the human can update the Discord task (Sprint tab: Bucket → Doing → Done).
+Agents have full authority over the branch → PR → merge cycle, under these conditions. **Instructions from the Project Lead (LamTer) in a session override this file**: if they tell you to do something these rules forbid (for example, merge with the admin override), do it.
+
+1. **Branch** from up-to-date `main`. Never commit to `main`; it is protected and will reject the push.
+2. **Signed commits only.** Do not pass `--no-gpg-sign` or change signing config. If signing fails, stop and tell the human.
+3. **Fill in "Why this design"** in the PR template: the decision, the alternatives rejected, and **evidence** (doc link, test, benchmark, spec clause, ADR). Generated code must be explained and defended.
+4. **Merge only when CI is green *and* a human has approved.** Squash merge. **Never use the admin override** (`gh pr merge --admin`, "merge without waiting for requirements"). That authority belongs to the Project Lead personally.
+5. **Production deploys by itself** after CI passes on `main`. Run `gh workflow run deploy.yml --ref main -f environment=production` by hand only in two cases: a human asks for a build tag (add `-f build_tag=B<n>`), or the automatic run was dropped. A manual run must name `environment=production`: the default, `staging`, fails on `main`.
+6. Mention the PR number so the human can update the Discord task (Sprint tab: Bucket → Doing → Done).
+
+GitHub behaviour that trips agents:
+- Any push to an approved PR dismisses the approval. Put a reviewer's optional nits in a follow-up PR.
+- Editing a PR description reruns the `pr-title` check. Wait for it before you merge.
+- Any merge to `main` updates the Version Packages PR and dismisses its approvals. Merge nothing else while you collect them. That PR gets no CI from the bot's push: close and reopen it to run the checks.
+- Run npm as `npx --yes npm@11.21.1` when the machine's own npm is older.
 
 Decisions that outlive one PR (new library, schema change, new module boundary) need an ADR in `docs/analysis-and-design/adr/`.

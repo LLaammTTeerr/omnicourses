@@ -8,8 +8,10 @@ import { createAppRouter } from '../router.js';
 import { fetchGuide, type Guide, type GuideText } from './api.js';
 import GuideView from './GuideView.vue';
 import { guideText } from './testing/guide-fixtures.js';
+import { GUIDE_MESSAGES } from './messages.js';
 
-vi.mock('./api.js', async (importOriginal) => ({ ...(await importOriginal<typeof import('./api.js')>()), fetchGuide: vi.fn() }));
+const { mockedFetchGuide } = vi.hoisted(() => ({ mockedFetchGuide: vi.fn() }));
+vi.mock('./api.js', async (importOriginal) => ({ ...(await importOriginal<typeof import('./api.js')>()), fetchGuide: mockedFetchGuide }));
 
 const text = (lang: 'vi' | 'en', extra: Partial<GuideText> = {}): GuideText =>
   guideText({
@@ -109,7 +111,7 @@ describe('GuideView (UC-10 steps 4–6)', () => {
     const w = await render({ ...GUIDE, texts: { vi: text('vi') } }, 'en');
     expect(w.get('h1').text()).toBe('Hướng dẫn thử');
     expect(w.get('h1').attributes('lang')).toBe('vi');
-    expect(w.text()).toContain('This guide is only available in Vietnamese.');
+    expect(w.text()).toContain(GUIDE_MESSAGES.en.fallbackNote);
   });
 
   it('switches language without changing the address', async () => {
@@ -124,7 +126,7 @@ describe('GuideView (UC-10 steps 4–6)', () => {
   it('shows "guide not found" with a link back to Guides', async () => {
     const w = await render(null, 'vi');
     const notFound = w.get('[data-test="not-found"]');
-    expect(notFound.get('h1').text()).toBe('Không tìm thấy hướng dẫn');
+    expect(notFound.get('h1').text()).toBe(GUIDE_MESSAGES.vi.notFoundTitle);
     expect(notFound.get('a').attributes('href')).toBe('/guides');
     expect(document.title).toBe('Không tìm thấy hướng dẫn · OmniCourse');
   });
@@ -148,7 +150,7 @@ describe('GuideView (UC-10 steps 4–6)', () => {
     const failure = new Error('GET /guides/zz-fresh failed: 500');
     vi.mocked(fetchGuide).mockRejectedValueOnce(failure);
     const w = await render();
-    expect(w.get('[role="alert"]').text()).toContain('Could not load the guides right now. Please try again in a moment.');
+    expect(w.get('[role="alert"]').text()).toContain(GUIDE_MESSAGES.en.loadFailed);
     expect(w.get('[role="alert"]').text()).not.toContain('500');
     expect(consoleError).toHaveBeenCalledWith(expect.any(String), failure);
     await w.get('[role="alert"] button').trigger('click');
@@ -163,5 +165,18 @@ describe('GuideView (UC-10 steps 4–6)', () => {
     expect(entry.text()).toContain('Board portal');
     expect(entry.text()).toContain('Registration and grades');
     expect(entry.get('a').attributes('target')).toBe('_blank');
+  });
+
+  it('falls back to the raw address string when a portal URL is not a valid URL', async () => {
+    const w = await render({
+      ...GUIDE,
+      texts: {
+        en: text('en', {
+          portal: { name: 'Relative portal', url: 'not-a-valid-url', account: 'Student account' },
+          portals: [{ name: 'Board relative', url: 'also-not-a-url', account: 'Student account', purpose: 'Testing' }],
+        }),
+      },
+    });
+    expect(w.findAll('.host').map((el) => el.text())).toEqual(['also-not-a-url', 'not-a-valid-url']);
   });
 });

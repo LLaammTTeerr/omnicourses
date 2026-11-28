@@ -1,0 +1,439 @@
+# UI-01q: npm run test:browser, tree 1bde552 (main), Node v24.19.0 (repo pins 22.22.1; no Node 22 on this machine), npm 11.21.1, Playwright 1.64.1, chromium-headless-shell revision 1248; PostgreSQL 18.6 in docker (not used: the browser suite mocks the API)
+2026-11-27T09:50:47Z
+
+> test:browser
+> npm run test:browser -w src/frontend
+
+
+> @omnicourse/frontend@0.6.0 test:browser
+> vitest run --config vitest.browser.config.ts
+
+
+ RUN  v5.0.4 E:/Project/omnicourses/src/frontend
+
+ ❯ |chromium| src/calendar/Calendar.browser.spec.ts (0 test)
+ ❯ |chromium| src/notifications/Notifications.browser.spec.ts (0 test)
+ ❯ |chromium| src/views/HomeView.browser.spec.ts (0 test)
+ ❯ |chromium| src/privacy/Privacy.browser.spec.ts (0 test)
+ ❯ |chromium| src/guides/Guides.browser.spec.ts (0 test)
+ ❯ |chromium| src/auth/SignIn.browser.spec.ts (0 test)
+ ❯ |chromium| src/Shell.browser.spec.ts (0 test)
+ ❯ |chromium| src/admin/Admin.browser.spec.ts (0 test)
+ ❯ |chromium| src/router.browser.spec.ts (0 test)
+ ❯ |chromium| src/App.browser.spec.ts (1 test | 1 failed) 5862ms
+   × boots the app entry and renders the home route inside the app shell 5860ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |chromium| src/router.browser.spec.ts [ src/router.browser.spec.ts ]
+Error: Failed to import test file E:/Project/omnicourses/src/frontend/src/router.browser.spec.ts
+ ❯ node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:5848:5
+ ❯ collectTests node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:5824:3
+ ❯ startTests node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:6508:17
+
+Caused by: TypeError: Failed to fetch dynamically imported module: http://localhost:63315/@fs/E:/Project/omnicourses/src/frontend/src/router.browser.spec.ts?import&browserv=1795773070876
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  |chromium| src/Shell.browser.spec.ts [ src/Shell.browser.spec.ts ]
+Error: Failed to import test file E:/Project/omnicourses/src/frontend/src/Shell.browser.spec.ts
+ ❯ node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:5848:5
+ ❯ collectTests node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:5824:3
+ ❯ startTests node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:6508:17
+
+Caused by: TypeError: Failed to fetch dynamically imported module: http://localhost:63315/@fs/E:/Project/omnicourses/src/frontend/src/Shell.browser.spec.ts?import&browserv=1795773070884
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  |chromium| src/admin/Admin.browser.spec.ts [ src/admin/Admin.browser.spec.ts ]
+Error: Failed to import test file E:/Project/omnicourses/src/frontend/src/admin/Admin.browser.spec.ts
+ ❯ node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:5848:5
+ ❯ collectTests node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:5824:3
+ ❯ startTests node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:6508:17
+
+Caused by: TypeError: Failed to fetch dynamically imported module: http://localhost:63315/@fs/E:/Project/omnicourses/src/frontend/src/admin/Admin.browser.spec.ts?import&browserv=1795773070888
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+ FAIL  |chromium| src/auth/SignIn.browser.spec.ts [ src/auth/SignIn.browser.spec.ts ]
+Error: Failed to import test file E:/Project/omnicourses/src/frontend/src/auth/SignIn.browser.spec.ts
+ ❯ node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:5848:5
+ ❯ collectTests node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:5824:3
+ ❯ startTests node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:6508:17
+
+Caused by: TypeError: Failed to fetch dynamically imported module: http://localhost:63315/@fs/E:/Project/omnicourses/src/frontend/src/auth/SignIn.browser.spec.ts?import&browserv=1795773070876
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯
+
+ FAIL  |chromium| src/calendar/Calendar.browser.spec.ts [ src/calendar/Calendar.browser.spec.ts ]
+Error: Failed to import test file E:/Project/omnicourses/src/frontend/src/calendar/Calendar.browser.spec.ts
+ ❯ node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:5848:5
+ ❯ collectTests node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:5824:3
+ ❯ startTests node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:6508:17
+
+Caused by: TypeError: Failed to fetch dynamically imported module: http://localhost:63315/@fs/E:/Project/omnicourses/src/frontend/src/calendar/Calendar.browser.spec.ts?import&browserv=1795773070878
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯
+
+ FAIL  |chromium| src/guides/Guides.browser.spec.ts [ src/guides/Guides.browser.spec.ts ]
+Error: Failed to import test file E:/Project/omnicourses/src/frontend/src/guides/Guides.browser.spec.ts
+ ❯ node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:5848:5
+ ❯ collectTests node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:5824:3
+ ❯ startTests node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:6508:17
+
+Caused by: TypeError: Failed to fetch dynamically imported module: http://localhost:63315/@fs/E:/Project/omnicourses/src/frontend/src/guides/Guides.browser.spec.ts?import&browserv=1795773070876
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯
+
+ FAIL  |chromium| src/notifications/Notifications.browser.spec.ts [ src/notifications/Notifications.browser.spec.ts ]
+Error: Failed to import test file E:/Project/omnicourses/src/frontend/src/notifications/Notifications.browser.spec.ts
+ ❯ node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:5848:5
+ ❯ collectTests node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:5824:3
+ ❯ startTests node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:6508:17
+
+Caused by: TypeError: Failed to fetch dynamically imported module: http://localhost:63315/@fs/E:/Project/omnicourses/src/frontend/src/notifications/Notifications.browser.spec.ts?import&browserv=1795773070883
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/10]⎯
+
+ FAIL  |chromium| src/privacy/Privacy.browser.spec.ts [ src/privacy/Privacy.browser.spec.ts ]
+Error: Failed to import test file E:/Project/omnicourses/src/frontend/src/privacy/Privacy.browser.spec.ts
+ ❯ node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:5848:5
+ ❯ collectTests node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:5824:3
+ ❯ startTests node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:6508:17
+
+Caused by: TypeError: Failed to fetch dynamically imported module: http://localhost:63315/@fs/E:/Project/omnicourses/src/frontend/src/privacy/Privacy.browser.spec.ts?import&browserv=1795773070883
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/10]⎯
+
+ FAIL  |chromium| src/views/HomeView.browser.spec.ts [ src/views/HomeView.browser.spec.ts ]
+Error: Failed to import test file E:/Project/omnicourses/src/frontend/src/views/HomeView.browser.spec.ts
+ ❯ node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:5848:5
+ ❯ collectTests node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:5824:3
+ ❯ startTests node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/deps/plugins.DPQHVT0p-DiE1wRyY.js?v=2b7fa0b8:6508:17
+
+Caused by: TypeError: Failed to fetch dynamically imported module: http://localhost:63315/@fs/E:/Project/omnicourses/src/frontend/src/views/HomeView.browser.spec.ts?import&browserv=1795773070883
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/10]⎯
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |chromium| src/App.browser.spec.ts > boots the app entry and renders the home route inside the app shell
+TypeError: Failed to fetch dynamically imported module: http://localhost:63315/src/main.ts
+
+Failure screenshot:
+  - test-artifacts/browser/failure-screenshots/App.browser.spec.ts/boots-the-app-entry-and-renders-the-home-route-inside-the-app-shell.png
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/10]⎯
+
+
+ Test Files  10 failed | 1 passed (11)
+      Tests  1 failed | 5 passed (6)
+   Start at  16:51:03
+   Duration  14.38s (worker 63%, tests 30%, import 7%)
+
+npm error Lifecycle script `test:browser` failed with error:
+npm error code 1
+npm error path E:\Project\omnicourses\src\frontend
+npm error workspace @omnicourse/frontend@0.6.0
+npm error location E:\Project\omnicourses\src\frontend
+npm error command failed
+npm error command C:\Windows\system32\cmd.exe /d /s /c vitest run --config vitest.browser.config.ts
+exit 1
+    ^ Not counted: the first run after the build, on a cold Vite cache (node_modules/.vite/vitest). 9 of 11 files failed to import
+      ("Failed to fetch dynamically imported module"), App.browser.spec.ts timed out booting the app (5.9 s), and one file passed 5 tests.
+      The two runs below, with nothing changed, pass 63 of 63.
+
+# The same suite again with the verbose reporter, to name each test: npm run test:browser -w src/frontend -- --reporter=verbose
+2026-11-27T09:51:18Z
+
+> @omnicourse/frontend@0.6.0 test:browser
+> vitest run --config vitest.browser.config.ts --reporter=verbose
+
+
+ RUN  v5.0.4 E:/Project/omnicourses/src/frontend
+
+ ✓ |chromium| src/components/ModalDialog.browser.spec.ts > ModalDialog in a real browser > refuses Escape while busy, without closing, telling the parent or reopening, and says it is working 834ms
+ ✓ |chromium| src/components/ModalDialog.browser.spec.ts > ModalDialog in a real browser > emits close once for an Escape the page cannot prevent, and stays closed when the parent accepts it 282ms
+ ✓ |chromium| src/calendar/Calendar.browser.spec.ts > CalendarView layout in a real browser > cuts a long title to three lines in the week view, with the whole title on hover 140ms
+ ✓ |chromium| src/calendar/Calendar.browser.spec.ts > CalendarView layout in a real browser > scrolls the week to today on a phone, where the seven days do not fit 60ms
+stderr | src/admin/Admin.browser.spec.ts > the administration screens at a phone width and on a desktop > never scroll the page sideways at 400 px, in either theme and either language
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/notifications/Notifications.browser.spec.ts > NotificationsView layout in a real browser > fits 360 px with no sideways scroll, every action inside its notification 206ms
+stderr | src/views/HomeView.browser.spec.ts > HomeView in a real browser > shows an unsuccessful HTTP response
+Loading the API status failed: [HttpError: GET /health failed: 503]
+stderr | src/views/HomeView.browser.spec.ts > HomeView in a real browser > shows a network failure
+Loading the API status failed: [TypeError: Failed to fetch]
+ ✓ |chromium| src/components/ModalDialog.browser.spec.ts > ModalDialog in a real browser > shows itself again, without telling the parent, when the browser closes it while busy 182ms
+ ✓ |chromium| src/views/HomeView.browser.spec.ts > HomeView in a real browser > shows the home page while loading, then the API and database status 223ms
+ ✓ |chromium| src/views/HomeView.browser.spec.ts > HomeView in a real browser > offers the roadmap planner as available and only the advisor as coming soon 23ms
+ ✓ |chromium| src/views/HomeView.browser.spec.ts > HomeView in a real browser > shows a degraded database response 15ms
+ ✓ |chromium| src/views/HomeView.browser.spec.ts > HomeView in a real browser > shows an unsuccessful HTTP response 17ms
+ ✓ |chromium| src/views/HomeView.browser.spec.ts > HomeView in a real browser > shows a network failure 15ms
+ ✓ |chromium| src/privacy/Privacy.browser.spec.ts > privacy notice in a real browser (A11Y-01c) > never scrolls sideways at 360 px in the light theme 161ms
+ ✓ |chromium| src/privacy/Privacy.browser.spec.ts > privacy notice in a real browser (A11Y-01c) > never scrolls sideways at 360 px in the dark theme 22ms
+ ✓ |chromium| src/privacy/Privacy.browser.spec.ts > privacy notice in a real browser (A11Y-01c) > never scrolls sideways at 768 px in the light theme 23ms
+ ✓ |chromium| src/privacy/Privacy.browser.spec.ts > privacy notice in a real browser (A11Y-01c) > never scrolls sideways at 1280 px in the dark theme 19ms
+ ✓ |chromium| src/privacy/Privacy.browser.spec.ts > privacy notice in a real browser (A11Y-01c) > never scrolls sideways at 1920 px in the light theme 18ms
+ ✓ |chromium| src/components/ModalDialog.browser.spec.ts > ModalDialog in a real browser > ignores a close event queued before the parent opened it again 60ms
+ ✓ |chromium| src/components/ModalDialog.browser.spec.ts > ModalDialog in a real browser > reports a dialog it cannot show again, and lets the parent close it 65ms
+ ✓ |chromium| src/notifications/Notifications.browser.spec.ts > NotificationsView layout in a real browser > fits 1280 px with no sideways scroll, every action inside its notification 59ms
+ ✓ |chromium| src/calendar/Calendar.browser.spec.ts > CalendarView layout in a real browser > scrolls a phone week back to its Monday on Previous and Next, and to today on the way back 68ms
+ ✓ |chromium| src/calendar/Calendar.browser.spec.ts > CalendarView layout in a real browser > keeps the focus ring on the pressed Week button 60ms
+stderr | src/auth/SignIn.browser.spec.ts > signing in (UC-01) > signs in with a valid email and password, keeps the session and opens the dashboard
+Loading the administration grants failed: [Error: Unexpected API call: GET /admin/grants]
+ ✓ |chromium| src/notifications/Notifications.browser.spec.ts > NotificationsView layout in a real browser > puts the time beside the text on a desktop, and above the title on a phone 128ms
+stderr | src/auth/SignIn.browser.spec.ts > signing in (UC-01) > signs in with a valid email and password, keeps the session and opens the dashboard
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/auth/SignIn.browser.spec.ts > signing in (UC-01) > signs in with a valid email and password, keeps the session and opens the dashboard
+Loading the administration grants failed: [Error: Unexpected API call: GET /admin/grants]
+ ✓ |chromium| src/calendar/Calendar.browser.spec.ts > CalendarView layout in a real browser > fits the month grid in a 560px content area without scrolling sideways 76ms
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 400 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/guides/Guides.browser.spec.ts > guide pages in a real browser > never scroll sideways at 360 px 350ms
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 400 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 400 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the administration screens at a phone width and on a desktop > never scroll the page sideways at 400 px, in either theme and either language
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/auth/SignIn.browser.spec.ts > signing in (UC-01) > signs in with a valid email and password, keeps the session and opens the dashboard 443ms
+ ✓ |chromium| src/guides/Guides.browser.spec.ts > guide pages in a real browser > never scroll sideways at 768 px 146ms
+ ✓ |chromium| src/App.browser.spec.ts > boots the app entry and renders the home route inside the app shell 1856ms
+stderr | src/auth/SignIn.browser.spec.ts > signing in (UC-01) > on a 401 from a private page, says the session ended, and signing in again goes back
+Loading the administration grants failed: [Error: Unexpected API call: GET /admin/grants]
+stderr | src/admin/Admin.browser.spec.ts > the administration screens at a phone width and on a desktop > never scroll the page sideways at 400 px, in either theme and either language
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/auth/SignIn.browser.spec.ts > signing in (UC-01) > on a 401 from a private page, says the session ended, and signing in again goes back
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/auth/SignIn.browser.spec.ts > signing in (UC-01) > on a 401 from a private page, says the session ended, and signing in again goes back
+Loading the administration grants failed: [Error: Unexpected API call: GET /admin/grants]
+stderr | src/auth/SignIn.browser.spec.ts > signing in (UC-01) > on a 401 from a private page, says the session ended, and signing in again goes back
+Loading the transcript failed: [HttpError: GET /users/me/transcript failed: 401]
+ ✓ |chromium| src/guides/Guides.browser.spec.ts > guide pages in a real browser > never scroll sideways at 1280 px 127ms
+ ✓ |chromium| src/guides/Guides.browser.spec.ts > guide pages in a real browser > keeps a step link beside its text, not under the step number 60ms
+ ✓ |chromium| src/router.browser.spec.ts > goes back to the same place in the guide list after reading a guide 553ms
+ ✓ |chromium| src/router.browser.spec.ts > scrolls to the element a #main address names, as the skip link uses 51ms
+ ✓ |chromium| src/auth/SignIn.browser.spec.ts > signing in (UC-01) > says a wrong password is wrong on a 401, without saying which field, and stays signed out 123ms
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 400 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the administration screens at a phone width and on a desktop > never scroll the page sideways at 400 px, in either theme and either language
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 400 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/auth/SignIn.browser.spec.ts > signing in (UC-01) > on a 401 from a private page, says the session ended, and signing in again goes back
+Loading the administration grants failed: [Error: Unexpected API call: GET /admin/grants]
+stderr | src/auth/SignIn.browser.spec.ts > signing in (UC-01) > on a 401 from a private page, says the session ended, and signing in again goes back
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/auth/SignIn.browser.spec.ts > signing in (UC-01) > on a 401 from a private page, says the session ended, and signing in again goes back
+Loading the administration grants failed: [Error: Unexpected API call: GET /admin/grants]
+ ✓ |chromium| src/auth/SignIn.browser.spec.ts > signing in (UC-01) > on a 401 from a private page, says the session ended, and signing in again goes back 174ms
+ ✓ |chromium| src/router.browser.spec.ts > names the tab after the home page when the reader goes home from a guide 161ms
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 400 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the administration screens at a phone width and on a desktop > never scroll the page sideways at 400 px, in either theme and either language
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 400 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the administration screens at a phone width and on a desktop > never scroll the page sideways at 400 px, in either theme and either language
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 400 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the administration screens at a phone width and on a desktop > never scroll the page sideways at 1280 px, in either theme and either language
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 400 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 400 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 400 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/admin/Admin.browser.spec.ts > the administration screens at a phone width and on a desktop > never scroll the page sideways at 400 px, in either theme and either language 914ms
+stderr | src/admin/Admin.browser.spec.ts > the administration screens at a phone width and on a desktop > never scroll the page sideways at 1280 px, in either theme and either language
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 400 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the administration screens at a phone width and on a desktop > never scroll the page sideways at 1280 px, in either theme and either language
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 400 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the administration screens at a phone width and on a desktop > never scroll the page sideways at 1280 px, in either theme and either language
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 400 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 400 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the administration screens at a phone width and on a desktop > never scroll the page sideways at 1280 px, in either theme and either language
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 400 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the administration screens at a phone width and on a desktop > never scroll the page sideways at 1280 px, in either theme and either language
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the administration screens at a phone width and on a desktop > lists Administration in the sidebar for a grant holder, and under More on a phone, never for a student
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the administration screens at a phone width and on a desktop > lists Administration in the sidebar for a grant holder, and under More on a phone, never for a student
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 1280 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the administration screens at a phone width and on a desktop > lists Administration in the sidebar for a grant holder, and under More on a phone, never for a student
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 1280 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 400 px, in either theme 1387ms
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 1280 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/admin/Admin.browser.spec.ts > the administration screens at a phone width and on a desktop > never scroll the page sideways at 1280 px, in either theme and either language 513ms
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 1280 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 1280 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the administration screens at a phone width and on a desktop > lists Administration in the sidebar for a grant holder, and under More on a phone, never for a student
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the groups table with long printed rules > keeps a row compact at 400 px in vi, with its actions on screen and the whole rule one key press away
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 1280 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/admin/Admin.browser.spec.ts > the administration screens at a phone width and on a desktop > lists Administration in the sidebar for a grant holder, and under More on a phone, never for a student 243ms
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 1280 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the groups table with long printed rules > keeps a row compact at 400 px in en, with its actions on screen and the whole rule one key press away
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 1280 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/admin/Admin.browser.spec.ts > the groups table with long printed rules > keeps a row compact at 400 px in vi, with its actions on screen and the whole rule one key press away 122ms
+stderr | src/admin/Admin.browser.spec.ts > the groups table with long printed rules > keeps a row compact at 1280 px in vi, with its actions on screen and the whole rule one key press away
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 1280 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 1280 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 1280 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/admin/Admin.browser.spec.ts > the groups table with long printed rules > keeps a row compact at 400 px in en, with its actions on screen and the whole rule one key press away 98ms
+stderr | src/admin/Admin.browser.spec.ts > the groups table with long printed rules > keeps a row compact at 1280 px in en, with its actions on screen and the whole rule one key press away
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 1280 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 1280 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/admin/Admin.browser.spec.ts > the groups table with long printed rules > keeps a row compact at 1280 px in vi, with its actions on screen and the whole rule one key press away 116ms
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 1280 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the groups table with long printed rules > shows each course of the open group as a card on a phone, with its rules named and their controls on screen
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 1280 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/admin/Admin.browser.spec.ts > the groups table with long printed rules > keeps a row compact at 1280 px in en, with its actions on screen and the whole rule one key press away 118ms
+stderr | src/admin/Admin.browser.spec.ts > the program list of the access screen on a phone > shows a long program name whole, inside the screen
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 1280 px, in either theme
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > shows the sidebar on a desktop and the tab bar on a phone
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/admin/Admin.browser.spec.ts > the groups table with long printed rules > shows each course of the open group as a card on a phone, with its rules named and their controls on screen 85ms
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > shows the sidebar on a desktop and the tab bar on a phone
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > fits every tab label in its tab at 400 px in vi
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > fits every tab label in its tab at 400 px in en
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the administration dialogs with the keyboard > opens a form from the keyboard, keeps the focus inside it, and gives the focus back on Escape, sending nothing
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > keeps the More sheet open on a tap in its margin, beside the links
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 1280 px, in either theme 880ms
+ ✓ |chromium| src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > shows the sidebar on a desktop and the tab bar on a phone 50ms
+ ✓ |chromium| src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > fits every tab label in its tab at 400 px in vi 18ms
+ ✓ |chromium| src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > fits every tab label in its tab at 400 px in en 19ms
+ ✓ |chromium| src/admin/Admin.browser.spec.ts > the program list of the access screen on a phone > shows a long program name whole, inside the screen 126ms
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > scrolls a linked group below the phone top bar, not under it
+[VUE_ROUTER_R0042] Couldn't find element using selector "#group-00000000-0000-4000-8000-000000000a03" returned by scrollBehavior.
+├▶ fix: Return a selector that matches an existing element, or guard against missing elements.
+╰▶ see: https://router.vuejs.org/guide/advanced/scroll-behavior.html
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > scrolls a linked group below the phone top bar, not under it
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the administration dialogs with the keyboard > links a course from the keyboard alone, and keeps the focus on the code box for the next one
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > opens More as a modal sheet that traps focus, closes on Escape and gives focus back
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > keeps the More sheet open on a tap in its margin, beside the links 203ms
+ ✓ |chromium| src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > scrolls a linked group below the phone top bar, not under it 70ms
+stderr | src/admin/Admin.browser.spec.ts > the administration dialogs with the keyboard > tells "not recorded" from "none" in words a screen reader hears, not by colour
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/admin/Admin.browser.spec.ts > the administration dialogs with the keyboard > opens a form from the keyboard, keeps the focus inside it, and gives the focus back on Escape, sending nothing 291ms
+ ✓ |chromium| src/admin/Admin.browser.spec.ts > the administration dialogs with the keyboard > links a course from the keyboard alone, and keeps the focus on the code box for the next one 87ms
+stderr | src/admin/Admin.browser.spec.ts > the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9) > fit inside the screen at 360 px, in Vietnamese and in English
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > opens More as a modal sheet that traps focus, closes on Escape and gives focus back
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > keeps every sidebar label for screen readers when the rail is narrow
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/admin/Admin.browser.spec.ts > the administration dialogs with the keyboard > tells "not recorded" from "none" in words a screen reader hears, not by colour 79ms
+ ✓ |chromium| src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > opens More as a modal sheet that traps focus, closes on Escape and gives focus back 202ms
+stderr | src/admin/Admin.browser.spec.ts > the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9) > fit inside the screen at 360 px, in Vietnamese and in English
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > dialogs in a real browser > opens a course drawer from the explorer and closes it on Escape, giving focus back
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > keeps every sidebar label for screen readers when the rail is narrow 177ms
+stderr | src/admin/Admin.browser.spec.ts > the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9) > fit inside the screen at 360 px, in Vietnamese and in English
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > dialogs in a real browser > opens a course drawer from the explorer and closes it on Escape, giving focus back
+Loading the course failed: [Error: Unexpected API call: GET /courses/ZZ414]
+stderr | src/admin/Admin.browser.spec.ts > the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9) > fit inside the screen at 360 px, in Vietnamese and in English
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > dialogs in a real browser > moves focus into the deletion dialog, closes on Escape and gives focus back
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/Shell.browser.spec.ts > dialogs in a real browser > opens a course drawer from the explorer and closes it on Escape, giving focus back 223ms
+stderr | src/admin/Admin.browser.spec.ts > the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9) > fit inside the screen at 360 px, in Vietnamese and in English
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > signing in and out (issue #13) > sends a visitor from a private page to sign-in and back, then signs out
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/Shell.browser.spec.ts > dialogs in a real browser > moves focus into the deletion dialog, closes on Escape and gives focus back 148ms
+stderr | src/admin/Admin.browser.spec.ts > the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9) > fit inside the screen at 360 px, in Vietnamese and in English
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/Shell.browser.spec.ts > signing in and out (issue #13) > sends a visitor from a private page to sign-in and back, then signs out
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/Shell.browser.spec.ts > signing in and out (issue #13) > sends a visitor from a private page to sign-in and back, then signs out 195ms
+stderr | src/admin/Admin.browser.spec.ts > the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9) > fit inside the screen at 1280 px, in Vietnamese and in English
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/admin/Admin.browser.spec.ts > the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9) > fit inside the screen at 360 px, in Vietnamese and in English 778ms
+stderr | src/admin/Admin.browser.spec.ts > the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9) > fit inside the screen at 1280 px, in Vietnamese and in English
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9) > fit inside the screen at 1280 px, in Vietnamese and in English
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9) > fit inside the screen at 1280 px, in Vietnamese and in English
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9) > fit inside the screen at 1280 px, in Vietnamese and in English
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9) > fit inside the screen at 1280 px, in Vietnamese and in English
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9) > fits the group-links preview and the program and cohort pickers inside the screen at 360 px
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/admin/Admin.browser.spec.ts > the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9) > fit inside the screen at 1280 px, in Vietnamese and in English 744ms
+stderr | src/admin/Admin.browser.spec.ts > the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9) > fits the group-links preview and the program and cohort pickers inside the screen at 360 px
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+stderr | src/admin/Admin.browser.spec.ts > the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9) > confirms a previewed file from the keyboard, once
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/admin/Admin.browser.spec.ts > the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9) > fits the group-links preview and the program and cohort pickers inside the screen at 360 px 282ms
+stderr | src/admin/Admin.browser.spec.ts > the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9) > chooses a file, previews it and cancels from the keyboard, sending no confirmation
+Loading the unread notification count failed: [Error: Unexpected API call: GET /notifications/unread-count]
+ ✓ |chromium| src/admin/Admin.browser.spec.ts > the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9) > confirms a previewed file from the keyboard, once 196ms
+ ✓ |chromium| src/admin/Admin.browser.spec.ts > the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9) > chooses a file, previews it and cancels from the keyboard, sending no confirmation 131ms
+
+ Test Files  11 passed (11)
+      Tests  63 passed (63)
+   Start at  16:51:22
+   Duration  10.06s (import 50%, tests 42%, worker 7%)
+
+exit 0
+
+# npm run test:browser once more (plain, as the first run), now that Vite has optimized its dependencies
+2026-11-27T09:51:39Z
+
+> test:browser
+> npm run test:browser -w src/frontend
+
+
+> @omnicourse/frontend@0.6.0 test:browser
+> vitest run --config vitest.browser.config.ts
+
+
+ RUN  v5.0.4 E:/Project/omnicourses/src/frontend
+
+
+ Test Files  11 passed (11)
+      Tests  63 passed (63)
+   Start at  16:51:43
+   Duration  10.16s (import 53%, tests 40%, worker 7%)
+
+exit 0

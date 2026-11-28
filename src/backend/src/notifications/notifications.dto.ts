@@ -1,23 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, type TransformFnParams } from 'class-transformer';
 import { ArrayMaxSize, ArrayUnique, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
-import { TERM_NUMBERS } from '../terms/term.js';
-import { NOTIFICATION_KINDS, NOTIFICATION_LINKS, type NotificationKind, type NotificationLink } from './notification-kinds.js';
-
-// Request and response shapes of the notification inbox (ADR 0018). A notification is a kind
-// and data: it holds no sentence, no URL, no grade, no course and no rule value.
+import { TERM_NUMBERS, type TermNumber } from '../terms/term.js';
+import { NOTIFICATION_KIND_DOC, NOTIFICATION_KINDS, NOTIFICATION_LINKS, type NotificationKind, type NotificationLink } from './notification-kinds.js';
 
 export const DEFAULT_PAGE_SIZE = 50;
-export const MAX_PAGE_SIZE = 100;
+const MAX_PAGE_SIZE = 100;
 
-const KIND_DOC =
-  'registration_soon: a registration window opens in seven days; registration_open: it opens today; term_start: a term starts today; transcript_changed: the student saved a transcript that differs from the one saved before';
-
-/** A query string is text: only the words true and false are booleans, anything else fails validation. */
 const queryBoolean = ({ value }: TransformFnParams): unknown => (value === 'true' ? true : value === 'false' ? false : value);
-/** Plain decimal digits only become a number: Number() would also read 1e2, 0x10, ' 5 ' and ''. Anything else fails validation. */
 const queryInteger = ({ value }: TransformFnParams): unknown => (typeof value === 'string' && /^[0-9]{1,9}$/.test(value) ? Number(value) : value);
-/** `?kind=a` arrives as a string and `?kind=a&kind=b` as an array. */
 const queryList = ({ value }: TransformFnParams): unknown => (value === undefined || Array.isArray(value) ? value : [value]);
 
 export class NotificationsQueryDto {
@@ -27,7 +18,7 @@ export class NotificationsQueryDto {
   @IsBoolean()
   unread?: boolean;
 
-  @ApiProperty({ required: false, enum: NOTIFICATION_KINDS, isArray: true, description: `Only these kinds; repeat the parameter for several. ${KIND_DOC}` })
+  @ApiProperty({ required: false, enum: NOTIFICATION_KINDS, isArray: true, description: `Only these kinds; repeat the parameter for several. ${NOTIFICATION_KIND_DOC}` })
   @IsOptional()
   @Transform(queryList)
   @IsArray()
@@ -50,7 +41,7 @@ export class NotificationsQueryDto {
   before?: string;
 }
 
-export class NotificationEventDto {
+class NotificationEventDto {
   @ApiProperty({ format: 'uuid', description: 'The ID of the school date. The date may have been changed or deleted since' })
   id!: string;
 
@@ -61,7 +52,7 @@ export class NotificationEventDto {
   academicYear!: number;
 
   @ApiProperty({ type: Number, enum: TERM_NUMBERS, nullable: true, example: 2, description: 'Term 1, 2 or 3; null for a date of the whole academic year' })
-  term!: 1 | 2 | 3 | null;
+  term!: TermNumber | null;
 
   @ApiProperty({ type: String, format: 'date', example: '2026-12-09', description: 'First day, inclusive' })
   startsOn!: string;
@@ -80,7 +71,7 @@ export class NotificationDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 
-  @ApiProperty({ enum: NOTIFICATION_KINDS, example: 'registration_soon', description: KIND_DOC })
+  @ApiProperty({ enum: NOTIFICATION_KINDS, example: 'registration_soon', description: NOTIFICATION_KIND_DOC })
   kind!: NotificationKind;
 
   @ApiProperty({ type: String, format: 'date-time' })

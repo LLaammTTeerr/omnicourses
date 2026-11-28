@@ -1,15 +1,13 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { TranscriptEntry } from '../src/transcript/transcript-entry.js';
 import { TranscriptService } from '../src/transcript/transcript.service.js';
 import { bootApp } from './support/app.js';
+import { backendPid, waitUntilAnySessionBlockedBy, within } from './support/locks.js';
 import { PASSWORD as password, signedInUser, storedUser } from './support/users.js';
 
-// Synthetic transcripts only (AGENTS.md hard rule 3).
-// Oldest term first, as the API returns it: a failed course, its retake in summer, one in progress,
-// an exemption and a pass/fail course.
 const first: TranscriptEntry[] = [
   { courseCode: 'CSC10001', courseName: 'Introduction to Programming', credits: 4, result: 'graded', grade: 4.5, term: { year: 2025, number: 1 } },
   { courseCode: 'MTH00003', courseName: 'Calculus 1B', credits: 3, result: 'graded', grade: 7.3, term: { year: 2025, number: 1 } },
@@ -19,18 +17,12 @@ const first: TranscriptEntry[] = [
   { courseCode: 'PED00001', courseName: 'Physical Education 1', credits: 1, result: 'pass', grade: null, term: { year: 2026, number: 1 } },
 ];
 
+const SIGN_IN_LIMIT_MS = 3_000;
+
 describe('Transcript against PostgreSQL (e2e)', () => {
   let app: INestApplication;
   let db: DataSource;
   const http = () => request(app.getHttpServer());
-
-  // Resolves once the backend with this pid is waiting on a lock another one holds.
-  async function blockedBy(pid: number): Promise<void> {
-    await vi.waitFor(async () => {
-      const [{ n }] = await db.query('SELECT count(*)::int AS n FROM pg_stat_activity WHERE $1 = ANY(pg_blocking_pids(pid))', [pid]);
-      expect(n).toBeGreaterThan(0);
-    });
-  }
 
   beforeAll(async () => {
     app = await bootApp();
@@ -64,7 +56,6 @@ describe('Transcript against PostgreSQL (e2e)', () => {
     const userId = await storedUser(app);
     const transcript = app.get(TranscriptService);
     const saved = await transcript.replace(userId, [first[0], { ...first[0], grade: 6 }, first[1]]);
-    // Stores the tied row that reads first again, same id, after the other one on disk.
     await db.query(
       'WITH moved AS (DELETE FROM transcript_rows WHERE user_id = $1 AND grade = $2 RETURNING *) INSERT INTO transcript_rows SELECT * FROM moved',
       [userId, saved[0].grade],
@@ -113,13 +104,12 @@ describe('Transcript against PostgreSQL (e2e)', () => {
     const { token, userId } = await signedInUser(app);
     await http().put('/api/users/me/transcript').set('Authorization', `Bearer ${token}`).send({ rows: first }).expect(200);
 
-    // Another save, paused halfway: it holds the user lock and has replaced the rows, uncommitted.
     const other = db.createQueryRunner();
     await other.connect();
     let saving!: Promise<TranscriptEntry[]>;
     try {
       await other.startTransaction();
-      const [{ pid }] = await other.query('SELECT pg_backend_pid() AS pid');
+      const pid = await backendPid(other);
       await other.query('SELECT 1 FROM users WHERE id = $1 FOR NO KEY UPDATE', [userId]);
       await other.query('DELETE FROM transcript_rows WHERE user_id = $1', [userId]);
       await other.query(
@@ -128,8 +118,7 @@ describe('Transcript against PostgreSQL (e2e)', () => {
       );
 
       saving = app.get(TranscriptService).replace(userId, [first[3]]);
-      // Commit only once the save is actually waiting on this transaction.
-      await blockedBy(pid);
+      await waitUntilAnySessionBlockedBy(db, pid);
       await other.commitTransaction();
     } finally {
       if (other.isTransactionActive) await other.rollbackTransaction();
@@ -143,21 +132,19 @@ describe('Transcript against PostgreSQL (e2e)', () => {
     const { token, userId, email } = await signedInUser(app);
     await http().put('/api/users/me/transcript').set('Authorization', `Bearer ${token}`).send({ rows: first }).expect(200);
 
-    // Holds the saved rows so the next save stops after taking its user lock.
     const other = db.createQueryRunner();
     await other.connect();
     let saving!: Promise<unknown>;
     try {
       await other.startTransaction();
-      const [{ pid }] = await other.query('SELECT pg_backend_pid() AS pid');
+      const pid = await backendPid(other);
       await other.query('DELETE FROM transcript_rows WHERE user_id = $1', [userId]);
       saving = app.get(TranscriptService).replace(userId, [first[3]]);
-      await blockedBy(pid);
+      await waitUntilAnySessionBlockedBy(db, pid);
 
-      // Sign-in inserts a session, whose foreign-key check needs a KEY SHARE lock on the user.
-      const signIn = http().post('/api/auth/sign-in').send({ email, password }).then((res) => res.status);
-      const outcome = await Promise.race([signIn, new Promise((resolve) => setTimeout(() => resolve('still waiting'), 3000))]);
-      expect(outcome).toBe(200);
+      const signIn = http().post('/api/auth/sign-in').send({ email, password }).then((response) => response.status);
+      expect(await within(signIn, SIGN_IN_LIMIT_MS)).toBe(200);
+      await waitUntilAnySessionBlockedBy(db, pid);
     } finally {
       if (other.isTransactionActive) await other.rollbackTransaction();
       await other.release();
@@ -171,14 +158,12 @@ describe('Transcript against PostgreSQL (e2e)', () => {
     const told: object[] = [];
     const remove = transcript.onSaved(async (tx, save) => {
       if (save.userId !== userId) return;
-      // The transaction's own view: the new rows are there, not yet committed.
       const [{ n }] = await tx.query('SELECT count(*)::int AS n FROM transcript_rows WHERE user_id = $1', [userId]);
       told.push({ wasEmpty: save.wasEmpty, changed: save.changed, rows: n, keys: Object.keys(save).sort() });
     });
     try {
       await transcript.replace(userId, [first[0], first[1]]);
       await transcript.replace(userId, [first[1], first[0]]);
-      // Compared as stored: 7.34 is stored as 7.3 (numeric(3,1)), the grade already saved.
       await transcript.replace(userId, [first[0], { ...first[1], grade: 7.34 }]);
       await transcript.replace(userId, [first[0], first[1], first[1]]);
       await transcript.replace(userId, [first[0]]);
@@ -187,7 +172,6 @@ describe('Transcript against PostgreSQL (e2e)', () => {
     } finally {
       remove();
     }
-    // Removed: this save is not told.
     await transcript.replace(userId, first);
     const keys = ['changed', 'userId', 'wasEmpty'];
     expect(told).toEqual([

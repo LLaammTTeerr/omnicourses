@@ -1,0 +1,39 @@
+2026-11-25T06:14:22.663Z a-screens 05e
+2026-11-25T06:14:22.937Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+  UI sign-in b2-a3@example.com → 200
+ok   ADM-05e: first Lưu sends one POST, answered 400 | observed: POST /api/admin/catalog/courses 400
+ok   ADM-05e: dialog open, red note "Máy chủ từ chối giá trị đã nhập. Chưa lưu gì." | observed: Máy chủ từ chối giá trị đã nhập. Chưa lưu gì.
+ok   ADM-05e: "credits must not be less than 1" under Tín chỉ, marked invalid; nothing under Mã học phần | observed: {"credits":"credits must not be less than 1","inv":"true","code":null}
+ok   ADM-05e: with 2.5, Tín chỉ says "credits must be an integer number" | observed: credits must be an integer number
+ok   ADM-05e: with 3, POST 400 and Mã học phần says `code: "cs-1" is not a course code (letters A-Z and digits, 2 to 20)` | observed: {"w":"POST /api/admin/catalog/courses 400","code":"code: \"cs-1\" is not a course code (letters A-Z and digits, 2 to 20)"}
+ok   ADM-05e: fourth Lưu 201, toast "Đã thêm học phần ZZADM05S vào danh mục." | observed: {"w":"POST /api/admin/catalog/courses 201","toast":"Đã thêm học phần ZZADM05S vào danh mục."}
+ok   ADM-05e: card ZZADM05S, 3 credits, "Chưa có chương trình đào tạo nào dùng học phần này."
+ok   ADM-05e: second course 409 with "Danh mục đã có học phần mang mã này. Chưa lưu gì." | observed: {"w":"POST /api/admin/catalog/courses 409","note":"Danh mục đã có học phần mang mã này. Chưa lưu gì."}
+ok   ADM-05e: Hủy closes the dialog
+ok   ADM-05e: Hủy and Esc send no request, card still 3 credits | observed: none
+ok   ADM-05e: saving the unchanged form sends nothing, toast "Không có gì thay đổi, nên chưa gửi gì." | observed: {"sent":"none","toast":"Không có gì thay đổi, nên chưa gửi gì."}
+ok   ADM-05e: Xóa opens "Xóa học phần BAA00104?" with the focus on Hủy | observed: {"dTitle":"Xóa học phần BAA00104?","focus":"button [data-test=confirm-no] Hủy"}
+ok   ADM-05e: Hủy sends nothing | observed: none
+ok   ADM-05e: second Xóa sends one DELETE, answered 409 | observed: DELETE /api/admin/catalog/courses/BAA00104 409
+ok   ADM-05e: "Chưa gỡ được vì còn chỗ đang dùng mục này. Chưa đổi gì. Gỡ các chỗ sau trước:" over a list with APCS2024 and CNTT-TCTA-KHMT-2025 in words | observed: Chưa gỡ được vì còn chỗ đang dùng mục này. Chưa đổi gì. Gỡ các chỗ sau trước:
+
+chương trình đào tạo APCS2024 còn dùng học phần này
+chương trình đào tạo APCS2025 còn dùng học phần này
+chương trình đào tạo CNTT-TCTA-ATTT-2025 còn dùng học phần này
+chương trình đào tạo CNTT-TCTA-CNTTHUC-2025 còn dùng học phần này
+chương trình đào tạo CNTT-TCTA-CNTTIN-2025 còn dùng học phần này
+chương trình đào tạo CNTT-TCTA-HTTT-2025 còn dùng học phần này
+chương trình đào tạo CNTT-TCTA-KHDL-2025 còn dùng học phần này
+chương trình đào tạo CNTT-TCTA-KHMT-2025 còn dùng học phần này
+chương trình đào tạo CNTT-TCTA-KTPM-2025 còn dùng học phần này
+chương trình đào tạo CNTT-TCTA-MMT-2025 còn dùng học phần này
+chương trình đào tạo CNTT-TCTA-TGMT-2025 còn dùng học phần này
+2 chương trình đào tạo đã ghi nhận tiên quyết của học phần này
+2 dòng bảng điểm ghi học phần này
+  API GET /courses/BAA00104 → 200
+ok   ADM-05e: BAA00104 is still there
+  UI sign-in b2-a1@example.com → 200
+ok   ADM-05e: A1's link sends one PUT, answered 404, with "Không tìm thấy: … Chưa lưu gì." | observed: {"w":"PUT /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/c052bbaf-ceda-4f6d-aad6-16be64e37324/courses/zzadm99 404","linkNote":"Không tìm thấy: danh mục không có học phần mang mã này, hoặc nhóm này vừa bị xóa. Học phần mới do người quản lý danh mục tạo trước. Chưa lưu gì."}
+  API GET /programs/APCS/curricula/2024 → 200
+ok   ADM-05e: the group is unchanged | observed: {"before":["CS404","CS405","CS407","CS408","CS409","CS411","CS412","CS414","CS415","CS416","CS417","CS418","CS419","CS421","CS422","CS423","CS424","CS426","CS427","CS428","CS430","CS431","CS432","CS433","CS434","CS435","CS494"],"after":["CS404","CS405","CS407","CS408","CS409","CS411","CS412","CS414","CS415","CS416","CS417","CS418","CS419","CS421","CS422","CS423","CS424","CS426","CS427","CS428","CS430","CS431","CS432","CS433","CS434","CS435","CS494"]}
+2026-11-25T06:15:35.697Z All checks ok

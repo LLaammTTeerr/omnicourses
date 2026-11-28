@@ -3,7 +3,6 @@ import { validateSync } from 'class-validator';
 import { describe, expect, it } from 'vitest';
 import { NotificationsQueryDto } from './notifications.dto.js';
 
-// As the global ValidationPipe reads a query string: every value arrives as text.
 const parse = (query: Record<string, unknown>) => {
   const dto = plainToInstance(NotificationsQueryDto, query);
   return { dto, errors: validateSync(dto, { whitelist: true }).map((e) => e.property) };
@@ -16,7 +15,6 @@ describe('NotificationsQueryDto', () => {
 
   it('reads unread as the words true and false only', () => {
     expect(parse({ unread: 'true' }).dto.unread).toBe(true);
-    // Boolean('false') would be true.
     expect(parse({ unread: 'false' }).dto.unread).toBe(false);
     for (const unread of ['', '1', '0', 'yes', 'TRUE', ['true', 'false']]) expect(parse({ unread }).errors, String(unread)).toEqual(['unread']);
   });
@@ -36,7 +34,6 @@ describe('NotificationsQueryDto', () => {
     for (const limit of ['0', '101', '-1', '1.5', 'ten', '']) expect(parse({ limit }).errors, limit).toEqual(['limit']);
   });
 
-  // Number() reads all of these as a number from 1 to 100.
   it('reads limit from plain decimal digits only', () => {
     expect(parse({ limit: '007' }).dto.limit).toBe(7);
     for (const limit of ['1e2', '1E1', '0x10', '0b11', '0o17', '+5', ' 5', '5 ', '5.0', '1_0', '٥', ['5', '6'], '99999999999999999999']) {

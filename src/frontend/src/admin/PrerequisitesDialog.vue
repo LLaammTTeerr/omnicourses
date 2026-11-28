@@ -3,22 +3,17 @@ import { ref, watch } from 'vue';
 import ModalDialog from '../components/ModalDialog.vue';
 import type { CurriculumCourse } from '../curriculum/api.js';
 import { useMessages } from '../locale.js';
-import { SHELL_MESSAGES } from '../shell/messages.js';
 import FieldErrors from './FieldErrors.vue';
 import type { PrerequisiteChoice } from './forms.js';
 import { ADMIN_MESSAGES } from './messages.js';
 import type { ProblemView } from './problem.js';
 import ProblemNote from './ProblemNote.vue';
 
-// The prerequisites of one course in one cohort (ADR 0011, amended 9 November 2026). Three states, each chosen in
-// words, because "not recorded" (unknown, null) and "no prerequisite" (recorded, []) are different facts: an empty
-// box never records "none" by itself. The API checks the codes and refuses a cycle; this form checks neither.
 const STATES = ['not_recorded', 'none', 'list'] as const;
 
 const props = defineProps<{ open: boolean; course: CurriculumCourse | null; busy: boolean; problem: ProblemView<'prerequisites'> | null }>();
 const emit = defineEmits<{ close: []; save: [choice: PrerequisiteChoice]; reload: [] }>();
 const m = useMessages(ADMIN_MESSAGES);
-const shell = useMessages(SHELL_MESSAGES);
 
 const state = ref<(typeof STATES)[number]>('not_recorded');
 const text = ref('');
@@ -40,14 +35,13 @@ const label = (value: (typeof STATES)[number]) => ({ not_recorded: m.value.curri
 function save(): void {
   if (state.value !== 'list') return emit('save', { state: state.value });
   const codes = text.value.split(/[\s,;]+/).filter(Boolean);
-  // "Has prerequisites" with none typed says nothing to record: ask, instead of recording "none" in its place.
   needCodes.value = codes.length === 0;
   if (!needCodes.value) emit('save', { state: 'list', codes });
 }
 </script>
 
 <template>
-  <ModalDialog :open="open" labelledby="prerequisites-title" describedby="prerequisites-lead" :busy="busy" :busy-text="shell.working" data-test="prerequisites-dialog" @close="emit('close')">
+  <ModalDialog :open="open" labelledby="prerequisites-title" describedby="prerequisites-lead" :busy="busy" data-test="prerequisites-dialog" @close="emit('close')">
     <h2 id="prerequisites-title">{{ course ? m.curriculum.prerequisitesTitle(course.code) : '' }}</h2>
     <p id="prerequisites-lead" class="t2 small">{{ m.curriculum.prerequisitesLead }}</p>
     <form class="admin-form" novalidate @submit.prevent="save">

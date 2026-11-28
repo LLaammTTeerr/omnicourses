@@ -7,6 +7,7 @@ async function main(): Promise<void> {
   loadEnvFiles();
   const app = await NestFactory.create(AppModule);
   configureApp(app);
+  app.enableShutdownHooks();
   const host = listenHost();
   await (host ? app.listen(port(), host) : app.listen(port()));
 }

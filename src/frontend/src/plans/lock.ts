@@ -1,6 +1,6 @@
-// Which plans the student locked in the editor, so a stray drag or key cannot change them. A guard against
-// accidents on this browser only: the API still accepts changes, and missing storage leaves every plan unlocked.
-const KEY = 'oc-plan-locks';
+import { ACCOUNT_STORAGE_KEYS } from '../account-storage.js';
+
+const KEY = ACCOUNT_STORAGE_KEYS.planLocks;
 
 function read(): string[] {
   try {
@@ -17,7 +17,5 @@ export function setLocked(planId: string, locked: boolean): void {
   const ids = read().filter((id) => id !== planId);
   try {
     localStorage.setItem(KEY, JSON.stringify(locked ? [...ids, planId] : ids));
-  } catch {
-    // Not kept: private mode or storage blocked. The lock still holds until the page reloads.
-  }
+  } catch {}
 }

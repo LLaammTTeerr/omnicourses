@@ -1,0 +1,25 @@
+2026-11-25T06:16:24.603Z a-screens 06g
+2026-11-25T06:16:24.847Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+  UI sign-in b2-s1@example.com → 200
+  API GET /users/me → 200 {"id":"8ca00334-e8f3-4cfc-b285-944db1a971a4","email":"b2-s1@example.com","displayName":"Test Student","emailVerifiedAt":null,"createdAt":"2026-11-21T09:18:53.168Z"}
+ok   ADM-06g: (1) the box shows S1's whole ID, read-only | observed: 8ca00334-e8f3-4cfc-b285-944db1a971a4
+ok   ADM-06g: (1) Sao chép sends no request, toast "Đã sao chép mã người dùng.", focus stays on the button | observed: {"sent":"none","toast":"Đã sao chép mã người dùng.","focus":"button [data-test=copy-user-id] Sao chép"}
+ok   ADM-06g: (1) the copied ID is the one GET /api/users/me gives (the clipboard, read in place of pasting it in the address bar) | observed: 8ca00334-e8f3-4cfc-b285-944db1a971a4
+  UI sign-in b2-a4@example.com → 200
+ok   ADM-06g: (2) /admin opens /admin/access | observed: /admin/access
+ok   ADM-06g: (2) trimmed; "Quyền của người dùng" with S1's ID, no name or email; "Người dùng này chưa quản trị chương trình nào."; both global "Chưa có" | observed: {"states":["Chưa có","Chưa có"]}
+ok   ADM-06g: (3) one PUT 200, no confirmation, toast "Đã cấp quyền “Quản trị chương trình APCS”." | observed: {"w":"PUT /api/admin/access/users/8ca00334-e8f3-4cfc-b285-944db1a971a4/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033 200","toast":"Đã cấp quyền “Quản trị chương trình APCS”."}
+ok   ADM-06g: (3) APCS row: Cấp lúc now, Người cấp A4's ID | observed: ["13:16 25/11/2026","925cb9c8-86de-4427-a8c8-72cf442dd074","Thu hồi"]
+ok   ADM-06g: (4) "Thu hồi quyền này?" with its sentence, focus on Hủy | observed: {"rTitle":"Thu hồi quyền này?","rBody":"Người dùng này sẽ mất quyền “Quản trị chương trình APCS”. Lần ghi tiếp theo của họ cần quyền đó sẽ bị từ chối.","focus":"button [data-test=confirm-no] Hủy"}
+ok   ADM-06g: (4) Hủy sends nothing | observed: none
+ok   ADM-06g: (4) one DELETE 200, "Đã thu hồi quyền “Quản trị chương trình APCS”.", focus on the Chương trình picker, no programs again | observed: {"w":"DELETE /api/admin/access/users/8ca00334-e8f3-4cfc-b285-944db1a971a4/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033 200","toast":"Đã thu hồi quyền “Quản trị chương trình APCS”.","focus":"button #access-program-select [data-test=access-program] Chọn chương trình"}
+ok   ADM-06g: (5) Cấp gives "Đang có · cấp lúc …" with a check; focus stays on that row's button, now Thu hồi | observed: {"held":"Đang có · cấp lúc 13:16 25/11/2026","focus":"button #access-action-catalog_maintainer [data-test=access-revoke-catalog_maintainer] \"Thu hồi quyền Quản lý danh mục học phần\" Thu hồi"}
+ok   ADM-06g: (5) the revocation brings back "Chưa có"
+ok   ADM-06g: (6) "Không có tài khoản nào mang mã này.", then "Máy chủ không nhận mã này." with the API's message under the box | observed: {"r1":"Không có tài khoản nào mang mã này.","r2":"Máy chủ không nhận mã này.","under":"userId: must be a UUID"}
+ok   ADM-06g: (7) chip "Tài khoản của bạn"; the dialog adds "Đây là tài khoản của bạn: bạn sẽ mất quyền này ngay." | observed: {"own":"Tài khoản của bạn","ownBody":"Thu hồi quyền này?\n\nNgười dùng này sẽ mất quyền “Quản lý phân quyền”. Lần ghi tiếp theo của họ cần quyền đó sẽ bị từ chối. Đây là tài khoản của bạn: bạn sẽ mất quyền này ngay.\n\nHủy\nThu hồi"}
+ok   ADM-06g: (7) DELETE 409, "Đây là người quản lý phân quyền cuối cùng còn hoạt động. Cấp quyền này cho người khác trước khi thu hồi. Chưa đổi gì." | observed: {"w":"DELETE /api/admin/access/users/925cb9c8-86de-4427-a8c8-72cf442dd074/global/access_manager 409","lastNote":"Đây là người quản lý phân quyền cuối cùng còn hoạt động. Cấp quyền này cho người khác trước khi thu hồi. Chưa đổi gì."}
+ok   ADM-06g: (7) "Quản lý phân quyền" still reads "Đang có"
+  API GET /admin/access/users/925cb9c8-86de-4427-a8c8-72cf442dd074/grants → 200 {"userId":"925cb9c8-86de-4427-a8c8-72cf442dd074","programs":[],"permissions":[{"permission":"access_manager","grantedAt":"2026-11-21T09:28:52.950Z","grantedBy":null}]}
+  API GET /admin/access/users/8ca00334-e8f3-4cfc-b285-944db1a971a4/grants → 200 {"userId":"8ca00334-e8f3-4cfc-b285-944db1a971a4","programs":[],"permissions":[]}
+ok   ADM-06g: A4 still holds access_manager, S1 holds no grant
+2026-11-25T06:16:41.452Z All checks ok

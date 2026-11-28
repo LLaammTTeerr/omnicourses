@@ -1,0 +1,10 @@
+guide-01o-parallel.sh: line 8: bc: command not found
+burst took  s, finished 09:12:22Z
+status 200 x120
+status 429 x1
+after one minute (09:13:27Z): 200
+# Added after the review of #208 (27 Nov), not script output. The version of guide-01o-parallel.sh that made this run
+# timed the burst with bc, which this machine lacks, so the duration above is empty. From guide-01o-burst-parallel.txt
+# the first request was sent at 09:12:09.208Z and the last at 09:12:21.641Z: 12.4 s, within the minute. The script now
+# uses shell arithmetic instead. #208 committed this file with the second line rewritten by hand; that line is restored
+# here as the script printed it.

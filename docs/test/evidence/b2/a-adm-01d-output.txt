@@ -1,0 +1,45 @@
+2026-11-25T06:09:39.609Z a-screens 01d
+2026-11-25T06:09:39.869Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+  UI sign-in b2-a3@example.com → 200
+  API GET /courses/BAA00104 → 200
+  API GET /programs/APCS/curricula/2024 → 200
+  API GET /programs/CNTT-TCTA-KHMT/curricula/2025 → 200
+  R1 {"course":"History of Vietnamese Communist Party","apcs2024":"History of Vietnamese Communist Party","khmt2025":"History of Vietnamese Communist Party","memberships":11}
+ok   ADM-01d: R1 reads N0 everywhere before | observed: {"course":"History of Vietnamese Communist Party","apcs2024":"History of Vietnamese Communist Party","khmt2025":"History of Vietnamese Communist Party","memberships":["APCS2024","APCS2025","CNTT-TCTA-ATTT-2025","CNTT-TCTA-CNTTHUC-2025","CNTT-TCTA-CNTTIN-2025","CNTT-TCTA-HTTT-2025","CNTT-TCTA-KHDL-2025","CNTT-TCTA-KHMT-2025","CNTT-TCTA-KTPM-2025","CNTT-TCTA-MMT-2025","CNTT-TCTA-TGMT-2025"]}
+ok   ADM-01d: /admin opens /admin/catalog | observed: /admin/catalog
+ok   ADM-01d: Danh mục học phần is the only tab | observed: ["Danh mục học phần"]
+ok   ADM-01d: chip "Quản lý danh mục học phần" | observed: ["Quản lý danh mục học phần"]
+ok   ADM-01d: Tìm finds BAA00104 (upper-cased)
+ok   ADM-01d: card: 2 credits, N0, 11 curricula under Dùng trong, APCS 2024 and CNTT-TCTA-KHMT 2025 among them | observed: {"credits":"2","nameEn":"History of Vietnamese Communist Party","members":["APCS · Khóa 2024 · Kiến thức Non Computer Science","APCS · Khóa 2025 · Kiến thức Non Computer Science","CNTT-TCTA-ATTT · Khóa 2025 · Lý luận chính trị - Pháp luật","CNTT-TCTA-CNTTHUC · Khóa 2025 · Lý luận chính trị - Pháp luật","CNTT-TCTA-CNTTIN · Khóa 2025 · Lý luận chính trị - Pháp luật","CNTT-TCTA-HTTT · Khóa 2025 · Lý luận chính trị - Pháp luật","CNTT-TCTA-KHDL · Khóa 2025 · Lý luận chính trị - Pháp luật","CNTT-TCTA-KHMT · Khóa 2025 · Lý luận chính trị - Pháp luật","CNTT-TCTA-KTPM · Khóa 2025 · Lý luận chính trị - Pháp luật","CNTT-TCTA-MMT · Khóa 2025 · Lý luận chính trị - Pháp luật","CNTT-TCTA-TGMT · Khóa 2025 · Lý luận chính trị - Pháp luật"]}
+ok   ADM-01d: yellow box "Sửa ở đây đổi mọi chương trình đào tạo dùng học phần này", then "Đang dùng:" with the 11 codes | observed: Sửa ở đây đổi mọi chương trình đào tạo dùng học phần này
+
+Đang dùng: APCS2024, APCS2025, CNTT-TCTA-ATTT-2025, CNTT-TCTA-CNTTHUC-2025, CNTT-TCTA-CNTTIN-2025, CNTT-TCTA-HTTT-2025, CNTT-TCTA-KHDL-2025, CNTT-TCTA-KHMT-2025, CNTT-TCTA-KTPM-2025, CNTT-TCTA-MMT-2025, CNTT-TCTA-TGMT-2025. Đối chiếu văn bản chính thức trước khi lưu.
+ok   ADM-01d: Lưu sends one PATCH without confirmImpact, answered 409 | observed: PATCH /api/admin/catalog/courses/BAA00104 409
+ok   ADM-01d: no toast | observed: []
+ok   ADM-01d: dialog becomes "Xem lại ảnh hưởng trước khi lưu", focus on that title | observed: {"title":"Xem lại ảnh hưởng trước khi lưu","focus":"h2 #course-dialog-title Xem lại ảnh hưởng trước khi lưu"}
+ok   ADM-01d: one row: Tên tiếng Anh, Hiện tại N0, Mới N1 | observed: [["Tên tiếng Anh","History of Vietnamese Communist Party","History of the Communist Party of Vietnam"]]
+ok   ADM-01d: columns Hiện tại and Mới | observed: ["Trường","Hiện tại","Mới"]
+ok   ADM-01d: "11 chương trình đào tạo bị ảnh hưởng" and 11 lines such as "APCS · Khóa 2024 (APCS2024)", the same 11 as ADM-01a | observed: {"count":"11 chương trình đào tạo bị ảnh hưởng","affected":["APCS · Khóa 2024 (APCS2024)","APCS · Khóa 2025 (APCS2025)","CNTT-TCTA-ATTT · Khóa 2025 (CNTT-TCTA-ATTT-2025)","CNTT-TCTA-CNTTHUC · Khóa 2025 (CNTT-TCTA-CNTTHUC-2025)","CNTT-TCTA-CNTTIN · Khóa 2025 (CNTT-TCTA-CNTTIN-2025)","CNTT-TCTA-HTTT · Khóa 2025 (CNTT-TCTA-HTTT-2025)","CNTT-TCTA-KHDL · Khóa 2025 (CNTT-TCTA-KHDL-2025)","CNTT-TCTA-KHMT · Khóa 2025 (CNTT-TCTA-KHMT-2025)","CNTT-TCTA-KTPM · Khóa 2025 (CNTT-TCTA-KTPM-2025)","CNTT-TCTA-MMT · Khóa 2025 (CNTT-TCTA-MMT-2025)","CNTT-TCTA-TGMT · Khóa 2025 (CNTT-TCTA-TGMT-2025)"]}
+ok   ADM-01d: Quay lại sửa sends nothing, back to the form with N1, focus in Tên tiếng Việt | observed: {"sent":"none","focus":"input #course-nameVi [data-test=course-nameVi] Lịch sử Đảng Cộng sản Việt Nam"}
+ok   ADM-01d: Lưu brings the review back with one more PATCH like the first | observed: PATCH /api/admin/catalog/courses/BAA00104 409
+ok   ADM-01d: Hủy sends nothing, dialog closes with no toast, card still N0 | observed: none
+  API GET /courses/BAA00104 → 200
+  API GET /programs/APCS/curricula/2024 → 200
+  API GET /programs/CNTT-TCTA-KHMT/curricula/2025 → 200
+  R1 {"course":"History of Vietnamese Communist Party","apcs2024":"History of Vietnamese Communist Party","khmt2025":"History of Vietnamese Communist Party","memberships":11}
+ok   ADM-01d: R1 reads N0 everywhere
+ok   ADM-01d: up to here no request carried confirmImpact
+ok   ADM-01d: Xác nhận và lưu sends one PATCH with confirmImpact, answered 200 | observed: PATCH /api/admin/catalog/courses/BAA00104 200
+ok   ADM-01d: dialog closes, toast "Đã lưu học phần BAA00104.", focus on Sửa, card N1 | observed: {"toast":"Đã lưu học phần BAA00104.","focus":"button [data-test=catalog-edit] \"Sửa học phần BAA00104\" Sửa"}
+  API GET /courses/BAA00104 → 200
+  API GET /programs/APCS/curricula/2024 → 200
+  API GET /programs/CNTT-TCTA-KHMT/curricula/2025 → 200
+  R1 {"course":"History of the Communist Party of Vietnam","apcs2024":"History of the Communist Party of Vietnam","khmt2025":"History of the Communist Party of Vietnam","memberships":11}
+ok   ADM-01d: R1 reads N1 in the course, APCS 2024 and CNTT-TCTA-KHMT 2025
+--- restore
+  API GET /courses/BAA00104 → 200
+  API GET /programs/APCS/curricula/2024 → 200
+  API GET /programs/CNTT-TCTA-KHMT/curricula/2025 → 200
+  R1 {"course":"History of Vietnamese Communist Party","apcs2024":"History of Vietnamese Communist Party","khmt2025":"History of Vietnamese Communist Party","memberships":11}
+ok   ADM-01d: after the restore, R1 reads N0
+2026-11-25T06:09:49.916Z All checks ok

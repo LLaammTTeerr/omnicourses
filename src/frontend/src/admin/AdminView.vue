@@ -5,21 +5,14 @@ import { useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { ADMIN_MESSAGES } from './messages.js';
-import { ADMIN_SECTIONS } from './sections.js';
-import { useAdminAccess } from './store.js';
+import { ADMIN_SECTIONS, opens } from './sections.js';
+import { useAdminAccess } from './access.js';
 
-// F12 administration (ADR 0011, UC-11; UI prototypes: admin.html): the frame around the sections. It asks the API
-// for the user's own grants on every visit and offers the sections they hold. A user with no grant, or one who
-// opens a section they do not hold, is told so in words (UC-11 A4). Hiding a section is a convenience only: the
-// API checks the grant on every request. When the API refuses a save for lack of a permission, the grants have
-// changed under an open screen: the page then says so and keeps that screen as it was, with what was typed, until
-// the user has read it. Only the navigation follows at once.
 const access = useAdminAccess();
 const route = useRoute();
 const router = useRouter();
 const m = useMessages(ADMIN_MESSAGES);
 
-// Until this visit's answer is in: a grant given or revoked since the last one must not flash the wrong page.
 const checking = ref(true);
 async function check(): Promise<void> {
   checking.value = true;
@@ -28,34 +21,28 @@ async function check(): Promise<void> {
 }
 onMounted(check);
 
-const sections = computed(() => ADMIN_SECTIONS.filter((section) => access.holds(section.permission)));
-/** The section the address names, if any. */
+const sections = computed(() => ADMIN_SECTIONS.filter((section) => opens(section, access.holds)));
 const wanted = computed(() => ADMIN_SECTIONS.find((section) => section.route === route.name) ?? null);
-const denied = computed(() => (wanted.value && !access.holds(wanted.value.permission) ? wanted.value : null));
+const denied = computed(() => (wanted.value && !opens(wanted.value, access.holds) ? wanted.value : null));
+const deniedNames = computed(() => (denied.value ? m.value.anyOf(denied.value.permissions.map((permission) => m.value.permissions[permission])) : ''));
 
-// A save refused for lack of a permission (useWrites keeps it in the store): the section it came from stays on
-// screen, whatever the grants are now, until the user asks for the page as their permissions stand.
 const pinnedRoute = ref<string | null>(null);
 watch(
   () => access.refusal,
   (refusal) => (pinnedRoute.value = refusal ? String(route.name) : null),
 );
-// Leaving the section is the user's own choice: the message stays, the section is no longer held.
 watch(
   () => route.name,
   () => (pinnedRoute.value = null),
 );
 const pinned = computed(() => access.refusal !== null && pinnedRoute.value === route.name);
-// The message is about this visit: it does not wait for the next one.
 onBeforeUnmount(() => (access.refusal = null));
 async function release(): Promise<void> {
   access.refusal = null;
-  // The button is gone, and maybe the section with it: the focus goes to the page's title.
   await nextTick();
   document.getElementById('admin-title')?.focus();
 }
 
-// /admin itself opens the first section the user holds.
 watch(
   [() => route.name, sections, checking],
   () => {
@@ -107,8 +94,8 @@ usePageTitle(() => m.value.title);
             {{ m.sectionNames[section.id] }}
           </RouterLink>
         </nav>
-        <p v-if="denied && !pinned" class="callout bad" role="alert" data-test="admin-section-denied" :data-permission="denied.permission">
-          <Icon name="lock" /><span>{{ m.sectionDenied(m.permissions[denied.permission]) }}</span>
+        <p v-if="denied && !pinned" class="callout bad" role="alert" data-test="admin-section-denied" :data-permission="denied.permissions.join(' ')">
+          <Icon name="lock" /><span>{{ m.sectionDenied(deniedNames) }}</span>
         </p>
         <RouterView v-else />
       </template>
@@ -116,7 +103,7 @@ usePageTitle(() => m.value.title);
   </div>
 </template>
 
-<style>
+<style scoped>
 .admin-page { max-width: 1180px; }
 .admin-held { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .admin-tabs { justify-self: start; }
@@ -127,37 +114,32 @@ usePageTitle(() => m.value.title);
 #admin-title:focus { outline: none; }
 .admin-none .ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-3); color: var(--ink-2); }
 
-/* Shared by the sections: a section's column, its lookup or link form, its tables, and the forms of its dialogs. */
-.admin-section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
-.admin-tools { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 6px 22px 20px; }
-.link-form { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
-.link-form .field { flex: 0 1 220px; min-width: 0; }
-.link-form label { font-weight: 650; font-size: 13.5px; }
-.admin-section .table th[scope='row'] { text-align: left; font-size: 14px; color: var(--ink); padding: 12px 14px; border-bottom: 1px solid var(--line); white-space: normal; font-weight: 650; }
-.admin-section .table tr:last-child th[scope='row'], dialog.modal .table tr:last-child th[scope='row'] { border-bottom: 0; }
-.admin-section .row-acts { display: flex; justify-content: flex-end; align-items: center; gap: 6px; }
-.admin-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
-.admin-form label, .admin-form legend { font-weight: 650; font-size: 13.5px; }
-.admin-form .check { font-weight: 400; font-size: 14px; }
-.admin-choices { border: 0; margin: 0; padding: 0; min-width: 0; }
-.admin-choices legend { padding: 0; margin-bottom: 6px; }
-.admin-form textarea.input { resize: vertical; min-height: 76px; }
+:deep(.admin-section) { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+:deep(.admin-tools) { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 6px 22px 20px; }
+:deep(.link-form) { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+:deep(.link-form .field) { flex: 0 1 220px; min-width: 0; }
+:deep(.link-form label), :deep(.link-form .label) { font-weight: 650; font-size: 13.5px; }
+:deep(.admin-section .table th[scope='row']) { text-align: left; font-size: 14px; color: var(--ink); padding: 12px 14px; border-bottom: 1px solid var(--line); white-space: normal; font-weight: 650; }
+:deep(.admin-section .table tr:last-child th[scope='row']), :deep(dialog.modal .table tr:last-child th[scope='row']) { border-bottom: 0; }
+:deep(.admin-section .row-acts) { display: flex; justify-content: flex-end; align-items: center; gap: 6px; }
+:deep(.admin-form) { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+:deep(.admin-form label), :deep(.admin-form legend) { font-weight: 650; font-size: 13.5px; }
+:deep(.admin-form .check) { font-weight: 400; font-size: 14px; }
+:deep(.admin-choices) { border: 0; margin: 0; padding: 0; min-width: 0; }
+:deep(.admin-choices legend) { padding: 0; margin-bottom: 6px; }
+:deep(.admin-form textarea.input) { resize: vertical; min-height: 76px; }
 @media (max-width: 620px) {
-  .admin-tools { padding: 6px 16px 16px; }
-  .link-form .field { flex: 1 1 100%; }
+  :deep(.admin-tools) { padding: 6px 16px 16px; }
+  :deep(.link-form .field) { flex: 1 1 100%; }
 }
-/*
- * Narrow: a row of an administration table is a card. The column heads leave the screen (kept for screen readers),
- * each value shows its column's name from data-label, and the row's actions stay in view with no sideways scroll.
- */
 @media (max-width: 760px) {
-  .admin-cards thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  .admin-cards, .admin-cards tbody { display: block; }
-  .admin-cards tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
-  .admin-cards tbody tr:first-child { border-top: 0; }
-  .admin-section .admin-cards tr > th[scope='row'], .admin-section .admin-cards tr > td { display: block; padding: 0; border: 0; text-align: left; background: none; min-width: 0; }
-  .admin-cards td[data-label]::before { content: attr(data-label); display: block; font-size: 12px; font-weight: 650; color: var(--ink-3); }
-  .admin-cards th[scope='row'], .admin-cards td.acts, .admin-cards td.wide { grid-column: 1 / -1; }
-  .admin-section .admin-cards .row-acts { justify-content: flex-start; flex-wrap: wrap; }
+  :deep(.admin-cards thead) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  :deep(.admin-cards), :deep(.admin-cards tbody) { display: block; }
+  :deep(.admin-cards tr) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
+  :deep(.admin-cards tbody tr:first-child) { border-top: 0; }
+  :deep(.admin-section .admin-cards tr > th[scope='row']), :deep(.admin-section .admin-cards tr > td) { display: block; padding: 0; border: 0; text-align: left; background: none; min-width: 0; }
+  :deep(.admin-cards td[data-label]::before) { content: attr(data-label); display: block; font-size: 12px; font-weight: 650; color: var(--ink-3); }
+  :deep(.admin-cards th[scope='row']), :deep(.admin-cards td.acts), :deep(.admin-cards td.wide) { grid-column: 1 / -1; }
+  :deep(.admin-section .admin-cards .row-acts) { justify-content: flex-start; flex-wrap: wrap; }
 }
 </style>

@@ -1,7 +1,5 @@
 import type { GuideListText, GuideText } from '../api.js';
 
-// Synthetic guide texts for tests. Override only what a test is about.
-
 export function listText(overrides: Partial<GuideListText> = {}): GuideListText {
   return {
     title: 'Hướng dẫn thử',

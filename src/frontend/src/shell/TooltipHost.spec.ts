@@ -25,7 +25,6 @@ const tip = () => document.querySelector<HTMLElement>('[role="tooltip"]');
 describe('TooltipHost', () => {
   it('shows a title in its own tooltip after a short hover, instead of the browser one', async () => {
     button.dispatchEvent(new Event('pointerover', { bubbles: true }));
-    // The browser's own tooltip would show too: the title moves aside while ours is up.
     expect(button.hasAttribute('title')).toBe(false);
     expect(tip()?.hidden).toBe(true);
     vi.advanceTimersByTime(400);
@@ -63,5 +62,26 @@ describe('TooltipHost', () => {
     expect(tip()?.hidden).toBe(true);
     expect(button.getAttribute('title')).toBe('Hoàn tác (Ctrl+Z)');
     document.body.classList.remove('dragging');
+  });
+
+  it('leaves native titles alone inside an open dialog so tooltips do not render behind the modal backdrop', async () => {
+    const dialog = document.createElement('dialog');
+    dialog.setAttribute('open', '');
+    const modalBtn = document.createElement('button');
+    modalBtn.title = 'Đóng hộp thoại';
+    dialog.append(modalBtn);
+    document.body.append(dialog);
+
+    try {
+      modalBtn.dispatchEvent(new Event('pointerover', { bubbles: true }));
+      vi.advanceTimersByTime(400);
+      modalBtn.focus();
+      await wrapper!.vm.$nextTick();
+      expect(modalBtn.getAttribute('title')).toBe('Đóng hộp thoại');
+      expect(modalBtn.hasAttribute('aria-describedby')).toBe(false);
+      expect(tip()?.hidden).toBe(true);
+    } finally {
+      dialog.remove();
+    }
   });
 });

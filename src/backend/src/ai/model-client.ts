@@ -1,7 +1,3 @@
-// The gateway's internal port to a model provider. GatewayLlmService holds the
-// logic (tool loop, parsing, cap, usage) and talks only to this, so it is tested
-// with a scripted client; OpenRouterModelClient is the one real adapter.
-
 export interface ModelUsage {
   inputTokens: number;
   outputTokens: number;
@@ -10,7 +6,6 @@ export interface ModelUsage {
 export interface ModelToolCall {
   id: string;
   name: string;
-  /** Raw JSON text from the model; may be invalid. */
   arguments: string;
 }
 
@@ -29,25 +24,23 @@ export type ModelStreamEvent =
   | { type: 'text'; delta: string }
   | { type: 'end'; content: string; toolCalls: ModelToolCall[]; usage: ModelUsage };
 
+export interface CompleteRequest {
+  model: string;
+  messages: ModelMessage[];
+  jsonSchema: { name: string; schema: Record<string, unknown> };
+  signal?: AbortSignal;
+}
+
 export interface StreamRequest {
   model: string;
   messages: ModelMessage[];
   tools: ModelTool[];
   toolChoice?: 'auto' | 'none';
+  signal?: AbortSignal;
 }
 
 export abstract class ModelClient {
-  /** One completion constrained to a JSON Schema. Throws AiUnavailableError. */
-  abstract complete(request: {
-    model: string;
-    messages: ModelMessage[];
-    jsonSchema: { name: string; schema: Record<string, unknown> };
-  }): Promise<{ content: string; usage: ModelUsage }>;
+  abstract complete(request: CompleteRequest): Promise<{ content: string; usage: ModelUsage }>;
 
-  /**
-   * One streamed model turn, ending with exactly one `end` event. Throws AiUnavailableError.
-   * `toolChoice: 'none'` keeps the tools defined (a history with tool calls
-   * needs them on some providers) but makes the model answer in text.
-   */
   abstract stream(request: StreamRequest): AsyncIterable<ModelStreamEvent>;
 }

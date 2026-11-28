@@ -1,0 +1,25 @@
+ADM 07g run at 2026-11-25T06:06:11.096Z
+POST /auth/sign-in (b2-a1@example.com) → 200
+POST /auth/sign-in (b2-a2@example.com) → 200
+GET /admin/programs → 200
+GET /admin/programs → 200
+GET /programs/APCS/curricula/2024 → 200
+GET /programs/CNTT-TCTA-KHMT/curricula/2025 → 200
+  values {"APCS":"d3f524f8-e51b-42dd-91ac-013b15d5e033","APCS24":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","KHMT":"74ce84b9-c698-43ea-8470-1988a50656a8","KHMT25":"f7622c13-3e5b-4d6c-95b0-17308c767846","AC":"c052bbaf-ceda-4f6d-aad6-16be64e37324","AE":"f7ca386e-f8db-41c2-9350-1bec627aafa0","KG":"307a0d8d-a333-418c-8399-ad4bd8fd74b3"}
+GET /programs/APCS/curricula/2024 → 200
+  {AC} before: CS404, CS405, CS407, CS408, CS409, CS411, CS412, CS414, CS415, CS416, CS417, CS418, CS419, CS421, CS422, CS423, CS424, CS426, CS427, CS428, CS430, CS431, CS432, CS433, CS434, CS435, CS494
+POST /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/imports/preview → 200 {"fileType":"group_links","programId":"d3f524f8-e51b-42dd-91ac-013b15d5e033","curriculumId":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","rows":[{"record":2,"action":"insert","requirementGroupName":"Tự chọn Computer Science (C)","requirementGroupId":"c052bbaf-ceda-4f6d-aad6-16be64e37324","courseCode":"ZZADM07A"},{"record":3,"action":"insert","requirementGroupName":"Tự chọn Computer Science (C)","requirementGroupId":"c052bbaf-ceda-4f6d-aad6-16be64e37324","courseCode":"ZZADM07B"},{"record":4,"action":"no_op","requirementGroupName":"Tự chọn Computer Science (C)","requirementGroupId":"c052bbaf-ceda-4f6d-aad6-16be64e37324","courseCode":"CS404"}],"errors":[],"summary":{"inserts":2,"updates":0,"noOps":1},"reviewVersion":"cjVYMF9pCp02-VKmD4dQqQ0Ytm9qioLk5_ZgqLRm0xY"}
+  OK  preview: no errors, ZZADM07A and ZZADM07B insert, CS404 no_op, summary {2,0,1}
+POST /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/imports/confirm → 200 {"fileType":"group_links","summary":{"inserts":2,"updates":0,"noOps":1}}
+  OK  confirm 200 {fileType group_links, summary {2,0,1}}
+GET /programs/APCS/curricula/2024 → 200
+  OK  APCS 2024 {AC}: ZZADM07A and ZZADM07B once each, besides its courses before
+GET /programs/APCS/curricula/2025 → 200
+  OK  APCS 2025 has neither
+POST /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/imports/preview → 200 {"fileType":"group_links","programId":"d3f524f8-e51b-42dd-91ac-013b15d5e033","curriculumId":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","rows":[{"record":2,"action":"no_op","requirementGroupName":"Tự chọn Computer Science (C)","requirementGroupId":"c052bbaf-ceda-4f6d-aad6-16be64e37324","courseCode":"ZZADM07A"},{"record":3,"action":"no_op","requirementGroupName":"Tự chọn Computer Science (C)","requirementGroupId":"c052bbaf-ceda-4f6d-aad6-16be64e37324","courseCode":"ZZADM07B"},{"record":4,"action":"no_op","requirementGroupName":"Tự chọn Computer Science (C)","requirementGroupId":"c052bbaf-ceda-4f6d-aad6-16be64e37324","courseCode":"CS404"}],"errors":[],"summary":{"inserts":0,"updates":0,"noOps":3},"reviewVersion":"HbBf3xGlmsOXZuxEODPE0ginPaPPwtYHKkLPnUvpyYs"}
+  OK  second preview: three no_op
+POST /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/imports/confirm → 200 {"fileType":"group_links","summary":{"inserts":0,"updates":0,"noOps":3}}
+  OK  second confirm {0,0,3}
+GET /programs/APCS/curricula/2024 → 200
+  OK  no duplicate link
+All checks OK

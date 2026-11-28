@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DataSource } from 'typeorm';
-import { CatalogConflictError } from '../src/database/seeds/catalog.js';
-import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/database/seeds/index.js';
+import { CatalogConflictError } from '../src/curriculum/seeds/catalog.js';
+import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/curriculum/seeds/index.js';
 import { AddAuditRulesToCurriculum1794300000000 } from '../src/database/migrations/1794300000000-add-audit-rules-to-curriculum.js';
-import { seedCurricula } from '../src/database/seeds/seed-curricula.js';
+import { seedCurricula } from '../src/curriculum/seed-curricula.js';
 import { privateSchema } from './support/schema.js';
 
 const TABLES = [
@@ -34,7 +34,6 @@ const EXPECTED_AUDIT_RULES = {
     { code: 'APCS', training_type: 'advanced' },
     ...CURRICULUM_SEEDS.filter((s) => s.program.code !== 'APCS').map((s) => ({ code: s.program.code, training_type: 'high_quality' })),
   ].sort((a, b) => (a.code < b.code ? -1 : 1)),
-  // Every link outside the cohort total is also outside the GPA, in every curriculum.
   notCounted: CURRICULUM_SEEDS.flatMap((s) => CLC_NOT_COUNTED.map((code) => ({ curriculum: s.curriculum.code, course_code: code })))
     .sort((a, b) => (a.curriculum !== b.curriculum ? (a.curriculum < b.curriculum ? -1 : 1) : a.course_code < b.course_code ? -1 : 1)),
   overflows: ['APCS2024', 'APCS2025'].map((curriculum) => ({
@@ -52,7 +51,6 @@ const EXPECTED_AUDIT_RULES = {
 
 const APCS_SEEDS = CURRICULUM_SEEDS.filter((s) => s.program.code === 'APCS');
 
-/** Per curriculum code: how many of its courses have their prerequisites recorded. */
 async function recordedPrerequisiteLists(dataSource: DataSource): Promise<Record<string, number>> {
   const rows: { code: string; n: number }[] = await dataSource.query(
     `SELECT c.code, count(l.course_code)::int AS n FROM curriculums c
@@ -92,7 +90,6 @@ async function auditRules(dataSource: DataSource) {
   };
 }
 
-// Other e2e files share the database and leave curriculum rows behind.
 describe('db:seed', () => {
   let schema: string;
   let dataSource: DataSource;
@@ -123,13 +120,10 @@ describe('db:seed', () => {
       combined_minimums: CURRICULUM_SEEDS.flatMap((s) => s.blocks.filter((b) => b.at_least)).length,
       combined_minimum_groups: CURRICULUM_SEEDS.flatMap((s) => s.blocks.filter((b) => b.at_least).flatMap((b) => b.groups)).length,
       requirement_group_overflows: groups.filter((g) => g.overflow_to !== undefined).length,
-      // One prerequisite list per course of APCS 2024 and of APCS 2025 (Project Lead, 15 and 24 November 2026).
       course_prerequisite_lists: APCS_SEEDS.flatMap((s) => [...new Set(s.groups.flatMap((g) => g.rows.map((r) => r.code)))]).length,
-      // One printed prerequisite per APCS curriculum: CS469 before CS470 (Project Lead, 24 November 2026). No offering term.
       course_prerequisites: APCS_SEEDS.flatMap((s) => s.no_prerequisites!.except.flatMap((e) => e.requires)).length,
       course_offering_terms: 0,
     };
-    // APCS 2024 and 2025: one combined minimum over two groups, and one overflow, each.
     expect([expected.combined_minimums, expected.combined_minimum_groups, expected.requirement_group_overflows]).toEqual([2, 4, 2]);
 
     const first = await seedCurricula(dataSource, CURRICULUM_SEEDS, CATALOG_DECISIONS);
@@ -158,8 +152,6 @@ describe('db:seed', () => {
     const [cm102] = await dataSource.query(`SELECT name_vi, credits FROM courses WHERE code = 'CM102'`);
     expect(cm102).toEqual({ name_vi: 'Tư duy phản biện', credits: 4 });
 
-    // The printed (A) group mixes BB and TC rows, so it is seeded as two groups:
-    // 40 required credits over 10 BB courses, and 16 to choose among 6 TC courses.
     const splitA = await dataSource.query(
       `SELECT g.name, g.kind, g.credits_total, g.credits_total_min, count(l.course_code)::int AS courses
        FROM requirement_groups g
@@ -194,7 +186,6 @@ describe('db:seed', () => {
     const rules = await auditRules(dataSource);
     expect(rules.programs).toEqual(EXPECTED_AUDIT_RULES.programs);
     expect(rules.notCounted).toEqual(EXPECTED_AUDIT_RULES.notCounted);
-    // The new tables come back empty; the next db:seed fills them (deploy runs migrate, then seed).
     expect(rules.overflows).toEqual([]);
     await seedCurricula(dataSource, CURRICULUM_SEEDS, CATALOG_DECISIONS);
     expect(await auditRules(dataSource)).toEqual(EXPECTED_AUDIT_RULES);
@@ -207,7 +198,6 @@ describe('db:seed', () => {
       expect(recorded[seed.curriculum.code], seed.curriculum.code).toBe(seed.program.code === 'APCS' ? courses : 0);
     }
     expect(Object.keys(recorded).filter((code) => recorded[code] > 0).sort()).toEqual(['APCS2024', 'APCS2025']);
-    // Every linked APCS course has its record: none is left "not recorded".
     const missing = await dataSource.query(
       `SELECT c.code, l.course_code FROM requirement_group_courses l
        JOIN requirement_groups g ON g.id = l.requirement_group_id JOIN curriculums c ON c.id = g.curriculum_id
@@ -228,9 +218,7 @@ describe('db:seed', () => {
 
   it('fills the records in on a database seeded before they existed (the next deploy), and keeps what an administrator entered', async () => {
     const before = await recordedPrerequisiteLists(dataSource);
-    // Production today: the curricula are there, no prerequisite is recorded.
     await dataSource.query(`DELETE FROM course_prerequisite_lists`);
-    // A program administrator then records that CS163 needs CS160 in APCS 2024 (F12, ADR 0011).
     const [{ id: apcs2024 }] = await dataSource.query(`SELECT id FROM curriculums WHERE code = 'APCS2024'`);
     await dataSource.query(`INSERT INTO course_prerequisite_lists (curriculum_id, course_code) VALUES ($1, 'CS163')`, [apcs2024]);
     await dataSource.query(`INSERT INTO course_prerequisites (curriculum_id, course_code, prerequisite_code) VALUES ($1, 'CS163', 'CS160')`, [apcs2024]);
@@ -240,7 +228,6 @@ describe('db:seed', () => {
     expect([report.inserted.prerequisite_lists, report.skipped.prerequisite_lists]).toEqual([before.APCS2024 + before.APCS2025 - 1, 1]);
     expect(report.inserted.links).toBe(0);
     expect([report.inserted.prerequisites, report.skipped.prerequisites]).toEqual([2, 0]);
-    // The administrator's rule is kept, and the printed CS469 before CS470 is written again with CS470's new list.
     expect(
       await dataSource.query(
         `SELECT c.code, p.course_code, p.prerequisite_code FROM course_prerequisites p JOIN curriculums c ON c.id = p.curriculum_id ORDER BY 1, 2`,
@@ -254,7 +241,6 @@ describe('db:seed', () => {
   });
 
   it('leaves an existing list of CS470 as it is: the printed prerequisite comes only with a new list', async () => {
-    // An administrator cleared CS470's list in APCS 2025 (PUT with no prerequisite, F12).
     const [{ id: apcs2025 }] = await dataSource.query(`SELECT id FROM curriculums WHERE code = 'APCS2025'`);
     await dataSource.query(`DELETE FROM course_prerequisites WHERE curriculum_id = $1 AND course_code = 'CS470'`, [apcs2025]);
 
@@ -268,6 +254,7 @@ describe('db:seed', () => {
     await dataSource.query(`UPDATE requirement_groups SET official_notes = 'edited by an admin' WHERE name = 'Kiến thức Math'`);
     await seedCurricula(dataSource, CURRICULUM_SEEDS, CATALOG_DECISIONS);
     const notes = await dataSource.query(`SELECT official_notes FROM requirement_groups WHERE name = 'Kiến thức Math'`);
+    expect(notes.length).toBeGreaterThan(0);
     expect(notes.every((n: { official_notes: string }) => n.official_notes === 'edited by an admin')).toBe(true);
 
     await dataSource.query(`UPDATE courses SET name_vi = 'Renamed' WHERE code = 'CS160'`);

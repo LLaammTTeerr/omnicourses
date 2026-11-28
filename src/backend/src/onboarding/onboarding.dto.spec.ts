@@ -4,7 +4,6 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { TermDto } from '../terms/term.dto.js';
 import { OnboardingDto } from './onboarding.dto.js';
 
-// Validated on a fixed day, 9 November 2026 in Vietnam: the current term is 2026–2027 term 1.
 const answers = (overrides: Record<string, unknown> = {}) => ({
   program: 'APCS',
   cohort: 2024,

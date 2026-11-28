@@ -1,8 +1,8 @@
 # Sequence diagrams: UC-03 View degree audit
 
 - Use case: UC-03 (Use-Case Specification v1.0, [`report/assignments/PA2/uc-specs.tex`](../../../report/assignments/PA2/uc-specs.tex)), feature F3
-- Drawn from the code on `main` (15 November 2026): `src/frontend/src/audit/` (`DashboardView.vue`, `AuditView.vue`, `AuditGate.vue`, `present.ts`, `api.ts`), `src/backend/src/audit/`, `src/backend/src/rules/` ([ADR 0013](../adr/0013-rule-engine-and-degree-audit.md))
-- Built: the dashboard and the audit page, both drawn from one `GET /api/users/me/audit`. Not built: the estimated graduation term, the past-term picker (A2) and the "Needs attention" links to a place to act; see [the differences list](../design-differences.md).
+- Drawn from the code on `main` (15 November 2026): `src/frontend/src/audit/` (`AuditView.vue`, `AuditGate.vue`, `present.ts`, `api.ts`) and `src/frontend/src/dashboard/` (`DashboardView.vue`), `src/backend/src/audit/`, `src/backend/src/rules/` ([ADR 0013](../adr/0013-rule-engine-and-degree-audit.md))
+- Built: the dashboard and the audit page, both drawn from one `GET /api/users/me/audit`. Not built: the estimated graduation term, the past-term picker (A2) on screen and the "Needs attention" links to a place to act; see [the differences list](../design-differences.md). For A2 the API takes `asOfYear` and `asOfNumber`: the controller passes that term to `auditFor`, and `degreeAudit` reads only the transcript rows up to it.
 
 The degree audit is worked out afresh on every call and is never stored. The dashboard (`/dashboard`) and the audit page (`/audit`) both call `useAudit()` and wrap what they show in `AuditGate`, so the flow is the same for both.
 

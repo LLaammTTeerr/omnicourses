@@ -59,7 +59,7 @@ Storage (ADR 0010): one TypeScript content file per guide and language in `src/b
 | G04 | Retake or improve a course | Học lại, học cải thiện | Registration | B3 | Vision F11 note: a failed course must be registered again. |
 | G05 | Find your timetable and exam schedule | Thời khóa biểu, lịch thi | Timetable and exams | B3 | Every student, every term. |
 | G06 | Pay tuition | Đóng học phí | Tuition and fees | B1 | Every student, every term (Vision F11). |
-| G07 | View your grades | Xem điểm | Records and certificates | B1 | Every student, every term. The portals offer no transcript PDF (see G07), so what transcript import (UC-02) reads is open. |
+| G07 | View your grades | Xem điểm | Records and certificates | B1 | Every student, every term. The portals offer no transcript PDF (see G07), so transcript import (UC-02) is paste or type ([ADR 0007, amendment of 15 November 2026](../analysis-and-design/adr/0007-transcript.md#amendment-15-november-2026-paste-or-type-no-file)). |
 | G08 | Request an official transcript | Xin bảng điểm có xác nhận | Records and certificates | B3 | Vision F11: "requesting a transcript". |
 | G09 | Request a student certificate | Xin giấy xác nhận sinh viên | Records and certificates | B3 | Vision F11: "requesting a certificate". |
 | G10 | Apply for a scholarship | Đăng ký học bổng | Scholarships | B3 | Vision F11: "applying for a scholarship". |
@@ -80,6 +80,8 @@ Storage (ADR 0010): one TypeScript content file per guide and language in `src/b
 - How to get each account at the start of the course, and where the school resets its password. OmniCourse never asks for it.
 - **Notes:** never share a portal password, including with OmniCourse. OmniCourse is unofficial and only links.
 - **To find out:** the full list of sites APCS students use (registration and grades portal, student email, Moodle, faculty site), their addresses, and which sites share a sign-in.
+- 2026-11-26: G01 sources: the sign-in and "Forget Password" pages of portal.ctdb.hcmus.edu.vn, the Moodle CTDA sign-in page, the school notice on student accounts for the Chương trình Tiên tiến 2023 cohort, and the library sign-in guide (glib.hcmus.edu.vn/vi/introduction/instruction_lib/Login-Guideline). Every other step comes from following the portal.
+- 2026-11-26: When G02 and G06 are published, G01 links them under Related, and G07 links G02. Each such change is a new version.
 
 ### G02 Register for courses (B1)
 
@@ -120,12 +122,14 @@ Storage (ADR 0010): one TypeScript content file per guide and language in `src/b
 - **Steps cover:** where to see the amount owed, each payment channel the school accepts, and how to check that the payment arrived.
 - **Notes:** keep the receipt; what happens after a late payment, cited from the regulation.
 - **To find out:** where the amount is shown, the accepted channels, how long a payment takes to appear, and who to contact if it does not.
+- 2026-11-26: The school PDF guide to online tuition payment, linked from the hocphi.hcmus.edu.vn sign-in page, still shows the older VNPAY-only flow. The payment steps come from the site itself.
 
 ### G07 View your grades (B1)
 
 - **Shows:** where grades appear on the portal, term by term. A link to transcript import (UC-02) is added when import ships.
 - **Notes:** grades are personal data, so don't post screenshots of the grades page anywhere. When import ships, the guide adds that OmniCourse reads the file on its own server and deletes it after reading (UC-02).
-- **Found (15 November 2026):** neither portal.ctdb nor portal.hcmus offers a transcript PDF to download. Grades are on portal.ctdb under “SINH VIÊN” → “Kết Quả Học Phần”. ADR 0003's open question (does the file have a text layer and a fixed layout) has no portal file to answer it; what transcript import (UC-02) reads is the Project Lead's decision.
+- **Found (15 November 2026):** neither portal.ctdb nor portal.hcmus offers a transcript PDF to download. Grades are on portal.ctdb under “SINH VIÊN” → “Kết Quả Học Phần”. ADR 0003's open question (does the file have a text layer and a fixed layout) has no portal file to answer it; what transcript import (UC-02) reads is the Project Lead's decision. *Decided the same day: paste or type, no file ([ADR 0007, amendment of 15 November 2026](../analysis-and-design/adr/0007-transcript.md#amendment-15-november-2026-paste-or-type-no-file)).*
+- 2026-11-26: No school page describes the grades screen, so the G07 steps come from following the portal. The re-mark notes come from the school re-mark notices of Chương trình đề án.
 
 ### G08 Request an official transcript (B3)
 

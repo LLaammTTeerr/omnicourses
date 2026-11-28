@@ -1,15 +1,15 @@
 import { Controller, Delete, HttpCode, Param, Patch, Post } from '@nestjs/common';
 import { ApiBody, ApiConflictResponse, ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Authenticated, CurrentUser } from '../auth/auth.decorators.js';
+import { AdminErrorDto } from '../common/api-errors.js';
+import { StrictBody } from '../common/api-requests.js';
 import { CourseDto } from '../curriculum/curriculum.dto.js';
 import { User } from '../users/user.entity.js';
-import { AdminErrorDto, ImpactConfirmationDto, ReferencedItemDto } from './admin-errors.js';
-import { AdminErrors } from './admin-params.js';
+import { ImpactConfirmationDto, ReferencedItemDto } from './admin-errors.js';
+import { AdminErrors } from '../admin-access/admin-error-responses.js';
 import { CatalogAdminService } from './catalog-admin.service.js';
 import { CreateCourseDto, UpdateCourseDto } from './curriculum-admin.dto.js';
-import { StrictBody } from './strict-body.js';
 
-// F12 catalog-maintainer routes (ADR 0011, UC-11 A8). A program grant does not reach them.
 @ApiTags('curriculum-admin')
 @Authenticated()
 @AdminErrors()

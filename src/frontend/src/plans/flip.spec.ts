@@ -10,6 +10,7 @@ describe('dragging near the edge of the window', () => {
     expect(edgeScroll(60, 800)).toBe(-4);
     expect(edgeScroll(400, 800)).toBe(0);
     expect(edgeScroll(790, 800)).toBe(14);
+    expect(edgeScroll(790, 800, 80, true)).toBe(0);
     expect(scroll.mock.calls).toEqual([
       [0, -16],
       [0, -4],

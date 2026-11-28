@@ -1,10 +1,5 @@
 import type { GuideFile } from '../guide-file.js';
 
-// G02 Register for courses (guides plan §4, §5). Sources: the sign-in page of
-// portal.ctdb.hcmus.edu.vn, the school's notices on registration and student accounts
-// (Chương trình đề án, 2022–2024) and Quy chế đào tạo QĐ 1175/QĐ-KHTN. Draft until a team member
-// follows it on the portal; every "[CHECK: …]" is confirmed or removed first. Then set lastChecked
-// and status 'published' (README.md in this folder). Search expectations: B1 test cases, GUIDE-01c.
 export default {
   id: 'register-courses',
   lang: 'vi',
@@ -12,7 +7,6 @@ export default {
   version: 1,
   changeNote:
     'Bản đầu tiên. Chưa kiểm tra hết: ngày kiểm tra đang ngoài thời gian đăng ký, nên các bước tìm học phần, chọn lớp, cảnh báo trùng giờ, xác nhận, hủy và cách hiện học phần học lại (các bước ghi CHECK) chờ đến đợt đăng ký tới.',
-  // Partly followed on 15 Nov 2026 (Dũng). Set when every step has been followed on the portal.
   lastChecked: null,
   group: 'registration',
   title: 'Đăng ký học phần',

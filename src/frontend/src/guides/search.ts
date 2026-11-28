@@ -1,6 +1,5 @@
 import type { GuideListItem } from './api.js';
 
-/** Text as search compares it: no diacritics, đ as d, lower case, single spaces (UC-10 step 3). */
 function fold(text: string): string {
   return text
     .normalize('NFD')
@@ -11,7 +10,6 @@ function fold(text: string): string {
     .trim();
 }
 
-/** True when the query appears in the title or a keyword of any language the guide has. An empty query matches every guide. */
 export function matches(item: GuideListItem, query: string): boolean {
   const q = fold(query);
   if (!q) return true;

@@ -2,7 +2,7 @@
 
 - Feature: F12 Curriculum administration
 - Owner: Thắng
-- Status: draft for PA2; its design (ADR 0011) was accepted on 12 November 2026, and the flow is partly built (#74: grants, bootstrap and the first writes; #146: the administration screens for those routes; the API of A9 since 25 November 2026 and of A1 and A2 since [#161](https://github.com/LLaammTTeerr/omnicourses/pull/161), but A1, A2 and A9 have no screen yet)
+- Status: draft for PA2; its design (ADR 0011) was accepted on 12 November 2026. What is built: the [README feature table](../../../README.md#what-is-built); where the code differs: [design differences, UC-11](../../analysis-and-design/design-differences.md#uc-11-maintain-curriculum-f12).
 - Scope: manual entry/editing and deterministic CSV bulk entry (Lâm, 1 November 2026; [test-plan handoff](../../test/test-plan.md#b2-checks)). The CSV API/format is specified in accepted [ADR 0011](../../analysis-and-design/adr/0011-curriculum-administration.md). Curriculum PDF import is excluded by accepted [ADR 0003](../../analysis-and-design/adr/0003-language-model-scope.md); any proposal to restore it needs a separate scope decision.
 
 ## 1. Brief description
@@ -143,7 +143,7 @@ The Project Lead provisions the first access manager through a controlled setup 
 | Can we delete data that other records use? | Refuse deletions that break those links. Remove a course from a group separately from deleting the course. Decide whether old data should be archived. | Triết |
 | Must B2 retain who changed curriculum/catalog data? | Decided (Lâm, 12 November 2026): deferred to B3; B2 has no change-history log, and whether B3 builds one is not decided ([ADR 0011](../../analysis-and-design/adr/0011-curriculum-administration.md#audit-trail-decided-no-change-history-log-in-b2)). A log, if built, defines fields, retention and read access first, and uses nullable `actor_id ... ON DELETE SET NULL`, not recipient-owned `user_id`. | Lâm and Triết; Thắng implements |
 
-[ADR 0011](../../analysis-and-design/adr/0011-curriculum-administration.md), accepted by Lâm on 12 November 2026, records the permission tables, bootstrap/recovery, write routes, deletion policy, CSV contract and the school-scoping exception. #23 merged as `900b1b8`; #74 built the grants, bootstrap, group/link/catalog writes and per-curriculum prerequisites and offering terms. Program/cohort writes, CSV import and group-total validation are not built yet. Academic rules remain in those reviewed designs.
+[ADR 0011](../../analysis-and-design/adr/0011-curriculum-administration.md), accepted by Lâm on 12 November 2026, records the permission tables, bootstrap/recovery, write routes, deletion policy, CSV contract and the school-scoping exception. #23 merged as `900b1b8`. Group-total validation waits for the rule-engine interface (ADR 0011, gate table). Academic rules remain in those reviewed designs.
 
 ### Examples to test
 

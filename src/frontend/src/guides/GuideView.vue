@@ -11,7 +11,6 @@ import LoadFailed from './LoadFailed.vue';
 import { GUIDE_MESSAGES } from './messages.js';
 import { pickText } from './pick-text.js';
 
-// UC-10 steps 4–6, A5 and A8: one guide, signed in or not. B1 guides have no personal parts.
 const props = defineProps<{ id: string }>();
 const locale = useLocale();
 const m = useMessages(GUIDE_MESSAGES);
@@ -20,11 +19,16 @@ const { status, data: guide, reload } = useAsyncLoad('the guide', () => fetchGui
 
 const picked = computed(() => (guide.value ? pickText(guide.value.texts, locale.lang) : null));
 const t = computed(() => picked.value?.text ?? null);
-// The guide's language on its text when it differs from the screen's (A8).
 const textLang = computed(() => (picked.value?.fallback ? picked.value.lang : undefined));
 const missing = computed(() => status.value === 'loaded' && picked.value === null);
 const date = (iso: string) => formatDate(iso, locale.lang);
-const host = (url: string) => new URL(url).host;
+function host(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+}
 
 usePageTitle(() => t.value?.title ?? (missing.value ? m.value.notFoundTitle : m.value.guides));
 </script>
@@ -60,8 +64,6 @@ usePageTitle(() => t.value?.title ?? (missing.value ? m.value.notFoundTitle : m.
           <section class="card">
             <h2>{{ m.steps }}</h2>
             <ol class="steps" :lang="textLang" data-test="steps">
-              <!-- One element beside the number: the li is a two-column grid, so a link left loose would be a third
-                   grid item and fall into the number column. -->
               <li v-for="(step, i) in t.steps" :key="i">
                 <div>
                   {{ step.text }}
@@ -154,7 +156,6 @@ usePageTitle(() => t.value?.title ?? (missing.value ? m.value.notFoundTitle : m.
 </template>
 
 <style scoped>
-/* One guide, as in the UI prototypes (guides.html): numbered steps on the left, where and when on the right. */
 .guide-page {
   max-width: 1080px;
   margin: 0 auto;

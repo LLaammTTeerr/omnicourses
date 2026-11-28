@@ -1,6 +1,7 @@
 # ADR 0003: Where a language model is used
 
 - Status: accepted
+- F2 amended by: [ADR 0007, amendments of 15 and 27 November 2026](0007-transcript.md#amendment-15-november-2026-paste-or-type-no-file) (paste or type, no file; deterministic client-side paste parser and pre-save diff)
 - Date: 2026-10-24
 - Deciders: Lâm (Project Lead)
 - Informed: Triết, Hoà (Vision v2), Dũng (F8), Thắng (F12)
@@ -43,8 +44,18 @@ Vision v1.0 §5 puts a language model in four features: F2 (transcript extractio
 - Vision v2 (Hoà) must restate F2, F6 and F12; the Work Breakdown loses "curriculum PDF import" (Thắng, Sprint 4).
 - Robustness NFR gets easier: only the goal box and the advisor go dark when the provider is down.
 - The planner algorithm and F8's retrieval of regulation clauses are separate designs, owned by Lâm and Dũng.
-- Open: confirm on one real portal transcript, locally, that the PDF has a text layer and a fixed layout before Sprint 4.
+- Open: confirm on one real portal transcript, locally, that the PDF has a text layer and a fixed layout before Sprint 4. *Closed 15 November 2026: the portals offer no transcript PDF, and F2 reads no file ([ADR 0007, amendment of 15 November 2026](0007-transcript.md#amendment-15-november-2026-paste-or-type-no-file)).*
 
 ## Notes
 
-- 2026-10-29 (Lâm): the curriculum seed files (`src/backend/src/database/seeds/`) were transcribed from the official PDFs by a model, and humans check every row against its printed page. This is allowed: it is a one-time dev-time seed reviewed like code, not a runtime import feature, and the deterministic rule engine still decides every rule.
+- 2026-10-29 (Lâm; reconciled with [ADR 0005](0005-curriculum-cohort-and-course-catalog.md) on 2026-11-27): the curriculum seed TypeScript structures (`src/backend/src/curriculum/seeds/`) were transcribed from the official PDFs (including the 16 scanned APCS PDF pages of `ChuongTrinhDaoTao_APCS_2024.pdf` and `ChuongTrinhDaoTao_APCS_2025.pdf`) with model assistance and verified line-by-line by human review and `curriculum-seeds.spec.ts` provenance checks. This is allowed: it is a one-time dev-time seed reviewed like code, not a runtime import feature, and the deterministic rule engine still decides every rule.
+- 2026-11-26: `npm run test:live -w src/backend` is manual only and never runs in CI. It needs `OPENROUTER_API_KEY`, `AI_MODEL_STRUCTURED` and `AI_MODEL_CHAT`, and it spends credit.
+- 2026-11-26: One AI call is one `structured()` or one `chat()`, whatever the number of model requests and tool steps. The daily cap counts the calls of the last 24 hours, not of a calendar day, so no time zone is involved.
+- 2026-11-26: A `structured()` schema uses `.nullable()`, not `.optional()`, because the strict JSON Schema mode requires every property.
+- 2026-11-26: In the F8 stream, `text` events come from every model turn, also the short text before a tool call. `done.text` holds only the text of the last turn.
+- 2026-11-26: A provider error is logged with its HTTP status, code and type only, never its message. This lets an operator tell a wrong model name or a request that is too long from an outage.
+- 2026-11-26: The gateway removes `$schema` from the JSON Schema it sends to the model, because some providers refuse it.
+- 2026-11-26: OpenRouter takes `response_format` only as a preference, so a reply can still miss the schema. The gateway asks once more, then answers `ai_unavailable`.
+- 2026-11-26: Some providers ignore `tool_choice: none` and answer with tool calls only. The gateway then answers `ai_unavailable`, not a blank answer.
+- 2026-11-26: On the last tool step, the gateway keeps the tools defined and sets `tool_choice: none`, because some providers refuse a history with tool calls when no tools are defined. The chat model accepts this (`gateway.live-spec.ts`).
+- 2026-11-26: An assistant message with tool calls and no text sends `null` as its content, because some providers (Anthropic) refuse an empty text block.

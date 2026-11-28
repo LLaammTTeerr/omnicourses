@@ -6,6 +6,9 @@ import { setup } from '../testing/signed-in.js';
 import CalendarView from './CalendarView.vue';
 import { calendar, event, EXAMS, HOLIDAY, PROGRAM, REGISTRATION, TERM_END, TERM_START } from './testing/fixtures.js';
 
+const THURSDAY_12_NOV_10AM_IN_VIETNAM = new Date('2026-11-12T03:00:00Z');
+const SUNDAY_15_NOV_10AM_IN_VIETNAM = new Date('2026-11-15T03:00:00Z');
+
 let wrapper: VueWrapper | undefined;
 
 async function render(answer: unknown = calendar()) {
@@ -22,9 +25,8 @@ const cell = (w: VueWrapper, day: string) => w.get(`[data-day="${day}"]`);
 describe('CalendarView (F10 school dates)', () => {
   beforeEach(() => {
     localStorage.clear();
-    // Thursday 12 November 2026, 10:00 in Vietnam.
     vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date('2026-11-12T03:00:00Z'));
+    vi.setSystemTime(THURSDAY_12_NOV_10AM_IN_VIETNAM);
   });
   afterEach(() => {
     wrapper?.unmount();
@@ -40,7 +42,6 @@ describe('CalendarView (F10 school dates)', () => {
     expect(text(w, 'subtitle')).toBe('HK1 2026–2027 · Tuần 10');
     expect(w.get('[data-test="today"]').attributes('disabled')).toBeDefined();
     expect(cell(w, '2026-11-09').findAll('[data-test="event"]')).toHaveLength(0);
-    // The first day shows the whole card; the days after it a short line.
     const first = cell(w, '2026-11-10').get('[data-test="event"]');
     expect(first.text()).toContain('Đăng ký học phần');
     expect(first.get('.room').text()).toBe('10/11 – 20/11 · HK2');
@@ -55,7 +56,7 @@ describe('CalendarView (F10 school dates)', () => {
   });
 
   it('opens on the week holding today on a weekend, with today marked', async () => {
-    vi.setSystemTime(new Date('2026-11-15T03:00:00Z')); // Sunday 15 November in Vietnam.
+    vi.setSystemTime(SUNDAY_15_NOV_10AM_IN_VIETNAM);
     const { w } = await render();
     expect(text(w, 'range')).toBe('9/11 – 15/11');
     expect(cell(w, '2026-11-15').classes()).toContain('today');
@@ -67,7 +68,6 @@ describe('CalendarView (F10 school dates)', () => {
     await w.get('[data-test="next"]').trigger('click');
     expect(text(w, 'range')).toBe('16/11 – 22/11');
     expect(text(w, 'subtitle')).toBe('HK1 2026–2027 · Tuần 11');
-    // A week that starts mid-event shows the whole card on its Monday.
     expect(cell(w, '2026-11-16').get('[data-test="event"]').classes()).not.toContain('cont');
     expect(cell(w, '2026-11-20').findAll('[data-test="event"]').map((e) => e.text())).toEqual(['Đăng ký học phần học kỳ 2', expect.stringContaining('Nghỉ ngày Nhà giáo Việt Nam')]);
     await w.get('[data-test="tab-month"]').trigger('click');
@@ -89,9 +89,47 @@ describe('CalendarView (F10 school dates)', () => {
     const day = cell(w, '2026-11-20');
     expect(day.findAll('[data-test="event"]')).toHaveLength(3);
     expect(day.get('.more').text()).toBe('+2');
+    expect(day.get('.more').attributes('aria-label')).toBe('2 mốc khác vào thứ Sáu, 20/11/2026, mở tuần đó');
+    expect(day.get('.n').attributes('aria-label')).toBe('thứ Sáu, 20/11/2026');
     await day.get('.n').trigger('click');
     expect(w.find('[data-test="week"]').exists()).toBe(true);
     expect(text(w, 'range')).toBe('16/11 – 22/11');
+  });
+
+  it('spells the hidden day in the label for a screen reader, in each language and number', async () => {
+    const extra = (n: number) => Array.from({ length: n }, (_, i) => event({ id: `x${i}`, kind: 'other', startsOn: '2026-11-20', title: `Mốc ${i}` }));
+    const one = await render(calendar([REGISTRATION, HOLIDAY, ...extra(2)]));
+    await one.w.get('[data-test="tab-month"]').trigger('click');
+    expect(cell(one.w, '2026-11-20').get('.more').text()).toBe('+1');
+    expect(cell(one.w, '2026-11-20').get('.more').attributes('aria-label')).toBe('1 mốc khác vào thứ Sáu, 20/11/2026, mở tuần đó');
+    useLocale(one.pinia).set('en');
+    await flushPromises();
+    expect(cell(one.w, '2026-11-20').get('.more').attributes('aria-label')).toBe('1 more date on Fri, 20 Nov 2026, open that week');
+    expect(cell(one.w, '2026-11-20').get('.n').attributes('aria-label')).toBe('Fri, 20 Nov 2026');
+    one.w.unmount();
+
+    const two = await render(calendar([REGISTRATION, HOLIDAY, ...extra(3)]));
+    useLocale(two.pinia).set('en');
+    await two.w.get('[data-test="tab-month"]').trigger('click');
+    expect(cell(two.w, '2026-11-20').get('.more').attributes('aria-label')).toBe('2 more dates on Fri, 20 Nov 2026, open that week');
+  });
+
+  it('gives a screen reader the weekday in words in the headers and the detail card, and shows the short form', async () => {
+    const { w, pinia } = await render();
+    const friday = w.findAll('.cal-dh')[4]!;
+    expect(friday.get('[aria-hidden="true"]').text()).toBe('T6');
+    expect(friday.get('.sr-only').text()).toBe('thứ Sáu');
+    await w.findAll('[data-test="upcoming-item"]')[0]!.trigger('click');
+    const when = w.get('[data-test="detail"] .fact b');
+    expect(when.get('[aria-hidden="true"]').text()).toBe('T3, 10/11/2026 – T6, 20/11/2026');
+    expect(when.get('.sr-only').text()).toBe('thứ Ba, 10/11/2026 – thứ Sáu, 20/11/2026');
+    await w.get('[data-test="tab-month"]').trigger('click');
+    const sunday = w.findAll('.cal-mh')[6]!;
+    expect(sunday.get('[aria-hidden="true"]').text()).toBe('CN');
+    expect(sunday.get('.sr-only').text()).toBe('Chủ nhật');
+    useLocale(pinia).set('en');
+    await flushPromises();
+    expect(w.findAll('.cal-mh')[6]!.get('.sr-only').text()).toBe('Sunday');
   });
 
   it('lists what is still to come, the date now on first, and opens one in the detail card', async () => {
@@ -126,6 +164,26 @@ describe('CalendarView (F10 school dates)', () => {
     expect(text(w, 'subtitle')).toBe('HK1 2026–2027 · Tuần 16');
   });
 
+  it('keeps the week on screen when a date picked from the list is already in it', async () => {
+    const { w } = await render();
+    await w.get('[data-test="next"]').trigger('click');
+    expect(text(w, 'range')).toBe('16/11 – 22/11');
+    await w.findAll('[data-test="upcoming-item"]')[0]!.trigger('click');
+    expect(text(w, 'range')).toBe('16/11 – 22/11');
+    expect(w.get('[data-test="detail"]').text()).toContain('Đăng ký học phần học kỳ 2');
+  });
+
+  it('does not call a date that has ended ongoing', async () => {
+    const { w } = await render();
+    for (let week = 0; week < 8; week++) await w.get('[data-test="prev"]').trigger('click');
+    expect(text(w, 'range')).toBe('14/9 – 20/9');
+    await cell(w, '2026-09-14').get('[data-test="event"]').trigger('click');
+    const detail = w.get('[data-test="detail"]');
+    expect(detail.text()).toContain('Điều chỉnh đăng ký HK1');
+    expect(detail.text()).toContain('5 ngày');
+    expect(detail.text()).not.toContain('Đang diễn ra');
+  });
+
   it('uses the English title in English, and the Vietnamese one when there is none', async () => {
     const { w, pinia } = await render();
     useLocale(pinia).set('en');
@@ -149,7 +207,10 @@ describe('CalendarView (F10 school dates)', () => {
 
   it('picks a week of the month from the range button, numbered when the term is known', async () => {
     const { w } = await render();
-    await w.get('[data-test="range"]').trigger('click');
+    const trigger = w.get('[data-test="range"]');
+    expect(trigger.attributes('aria-controls')).toBeUndefined();
+    await trigger.trigger('click');
+    expect(trigger.attributes('aria-controls')).toBe('cal-picker');
     const options = w.findAll('[role="option"]');
     expect(options.map((o) => o.get('b').text())).toEqual(['Tuần 8', 'Tuần 9', 'Tuần 10', 'Tuần 11', 'Tuần 12', 'Tuần 13']);
     expect(options[2]!.attributes('aria-selected')).toBe('true');
@@ -157,6 +218,28 @@ describe('CalendarView (F10 school dates)', () => {
     await options[4]!.trigger('click');
     expect(text(w, 'range')).toBe('23/11 – 29/11');
     expect(w.find('[role="listbox"]').exists()).toBe(false);
+    expect(trigger.attributes('aria-controls')).toBeUndefined();
+  });
+
+  it('moves through the range picker with ArrowDown and ArrowUp, and returns focus to the button on Escape', async () => {
+    const { w } = await render();
+    const trigger = w.get('[data-test="range"]');
+    (trigger.element as HTMLElement).focus();
+    await trigger.trigger('keydown', { key: 'ArrowDown' });
+    await flushPromises();
+    const picker = w.get('#cal-picker');
+    const options = w.findAll('[role="option"]');
+    expect(document.activeElement).toBe(options[2]!.element);
+
+    await picker.trigger('keydown', { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(options[3]!.element);
+    await picker.trigger('keydown', { key: 'ArrowUp' });
+    expect(document.activeElement).toBe(options[2]!.element);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await flushPromises();
+    expect(w.find('#cal-picker').exists()).toBe(false);
+    expect(document.activeElement).toBe(trigger.element);
   });
 
   it('says there are no school dates yet, with no made-up ones', async () => {
@@ -166,12 +249,21 @@ describe('CalendarView (F10 school dates)', () => {
     expect(w.text()).toContain(`quản trị chương trình ${PROGRAM.code}`);
   });
 
-  it('says there are no school dates yet while the API has no calendar route (404), not that loading failed', async () => {
+  it('says loading failed on a 404, not that there are no school dates (the route exists since #108)', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     const { w } = await render(status(404, { message: 'Cannot GET /api/academic-calendar', statusCode: 404 }));
-    expect(w.find('[role="alert"]').exists()).toBe(false);
-    expect(text(w, 'no-dates')).toContain('Chưa có lịch của trường');
-    expect(w.find('[data-test="no-program"]').exists()).toBe(false);
-    expect(w.findAll('[data-test="event"]')).toHaveLength(0);
+    expect(w.get('[role="alert"]').text()).toContain('Không tải được lịch.');
+    expect(w.find('[data-test="no-dates"]').exists()).toBe(false);
+  });
+
+  it('switches week and month with pressed buttons, not tabs', async () => {
+    const { w } = await render();
+    expect(w.findAll('[role="tab"], [role="tablist"]')).toHaveLength(0);
+    expect(w.get('[data-test="tab-week"]').attributes('aria-pressed')).toBe('true');
+    expect(w.get('[data-test="tab-month"]').attributes('aria-pressed')).toBe('false');
+    await w.get('[data-test="tab-month"]').trigger('click');
+    expect(w.get('[data-test="tab-week"]').attributes('aria-pressed')).toBe('false');
+    expect(w.get('[data-test="tab-month"]').attributes('aria-pressed')).toBe('true');
   });
 
   it('sends a student with no program to pick one', async () => {

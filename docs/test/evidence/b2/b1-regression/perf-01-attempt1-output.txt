@@ -1,0 +1,6 @@
+Chrome 144.0.7559.110, base https://stag-omnicourses.lamter.cc, profile {"offline":false,"latency":50,"downloadThroughput":1250000,"uploadThroughput":250000}
+PERF-01b health ms: 190.5, 209.2, 124.5, 130.5, 94.6, 126.2, 124.2, 120.8, 137.4, 123.9 (all >= 50: true)
+PERF-01b largest JS /assets/index-CAWT2Yk5.js: 170162 bytes on the wire, 421.4 ms (profile predicts about 186 ms)
+PERF-01c /dashboard cold cache: 5 runs, median 942 ms, p95 1188 ms, max 1188 ms, 0 at or over 2 s -> PASS
+PERF-01d /dashboard warm cache: 30 runs, median n/a, p95 n/a, max n/a, 30 at or over 2 s -> FAIL
+PERF-01e /dashboard in-app from Guides (Tổng quan): 30 runs, median 143 ms, p95 167 ms, max 192 ms, 0 at or over 2 s -> PASS

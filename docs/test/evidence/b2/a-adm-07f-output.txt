@@ -1,0 +1,27 @@
+ADM 07f run at 2026-11-25T06:05:53.687Z
+POST /auth/sign-in (b2-a1@example.com) → 200
+POST /auth/sign-in (b2-a2@example.com) → 200
+GET /admin/programs → 200
+GET /admin/programs → 200
+GET /programs/APCS/curricula/2024 → 200
+GET /programs/CNTT-TCTA-KHMT/curricula/2025 → 200
+  values {"APCS":"d3f524f8-e51b-42dd-91ac-013b15d5e033","APCS24":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","KHMT":"74ce84b9-c698-43ea-8470-1988a50656a8","KHMT25":"f7622c13-3e5b-4d6c-95b0-17308c767846","AC":"c052bbaf-ceda-4f6d-aad6-16be64e37324","AE":"f7ca386e-f8db-41c2-9350-1bec627aafa0","KG":"307a0d8d-a333-418c-8399-ad4bd8fd74b3"}
+GET /programs/APCS/curricula/2024 → 200
+POST /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/imports/preview → 200 {"fileType":"group_links","programId":"d3f524f8-e51b-42dd-91ac-013b15d5e033","curriculumId":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","rows":[{"record":2,"action":"insert","requirementGroupName":"Tự chọn Computer Science (C)","requirementGroupId":"c052bbaf-ceda-4f6d-aad6-16be64e37324","courseCode":"ZZADM07A"}],"errors":[{"record":3,"field":"requirement_group_name","message":"no requirement group of this cohort has this name; a file does not create groups"},{"record":4,"field":"course_code","message":"No catalog course has the code ZZADM99; a catalog maintainer adds it first"},{"record":5,"field":"course_code","message":"this group and ZZADM07A are in record 2 already; a file names a link once"},{"record":6,"field":"requirement_group_name","message":"a value is required"},{"record":7,"field":"requirement_group_name","message":"no requirement group of this cohort has this name; a file does not create groups"}],"summary":{"inserts":1,"updates":0,"noOps":0},"reviewVersion":null}
+  OK  preview 200, programId {APCS}, curriculumId {APCS24}, reviewVersion null
+  OK  rows: record 2 only, ZZADM07A insert
+  OK  error record 3, requirement_group_name, no requirement group of this cohort has this name; a file does not create groups
+  OK  error record 4, course_code, No catalog course has the code ZZADM99; a catalog maintainer adds it first
+  OK  error record 5, course_code, this group and ZZADM07A are in record 2 already; a file names a link once
+  OK  error record 6, requirement_group_name, a value is required
+  OK  error record 7, requirement_group_name, no requirement group of this cohort has this name; a file does not create groups
+  OK  exactly these 5 errors, in order
+POST /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/imports/confirm → 400 {"statusCode":400,"code":"validation_failed","message":"The file has errors; correct it and preview it again","errors":[{"record":3,"field":"requirement_group_name","message":"no requirement group of this cohort has this name; a file does not create groups"},{"record":4,"field":"course_code","message":"No catalog course has the code ZZADM99; a catalog maintainer adds it first"},{"record":5,"field":"course_code","message":"this group and ZZADM07A are in record 2 already; a file names a link once"},{"record":6,"field":"requirement_group_name","message":"a value is required"},{"record":7,"field":"requirement_group_name","message":"no requirement group of this cohort has this name; a file does not create groups"}]}
+  OK  confirm F4: 400 validation_failed with the same errors
+POST /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/imports/preview → 200 {"fileType":"group_links","programId":"d3f524f8-e51b-42dd-91ac-013b15d5e033","curriculumId":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","rows":[],"errors":[{"record":2,"field":"requirement_group_name","message":"no requirement group of this cohort has this name; a file does not create groups"},{"record":3,"field":"course_code","message":"No catalog course has the code ZZADM99; a catalog maintainer adds it first"}],"summary":{"inserts":0,"updates":0,"noOps":0},"reviewVersion":null}
+  OK  F7 preview: 200, rows [], reviewVersion null, record 2 group and record 3 course with F4's messages
+POST /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/imports/confirm → 409 {"statusCode":409,"code":"impact_changed","message":"The file, or the saved data it touches, changed since the preview; preview it again"}
+  OK  F7 confirm: 409 impact_changed "The file, or the saved data it touches, changed since the preview; preview it again", not 400
+GET /programs/APCS/curricula/2024 → 200
+  OK  group unchanged, without ZZADM07A
+All checks OK

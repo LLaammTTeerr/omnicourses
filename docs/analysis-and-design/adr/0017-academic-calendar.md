@@ -1,6 +1,6 @@
 # ADR 0017: Academic calendar
 
-- Status: proposed
+- Status: accepted (2026-11-27, Lâm)
 - Date: 2026-11-12
 - Deciders: Lâm (Project Lead)
 - Reviewers: Thắng (curriculum administrator, enters the dates), Hoà (calendar page), Dũng (F10 inbox), Triết (data boundaries)
@@ -32,7 +32,10 @@ ADR 0016 is claimed by the advisor harness (open PR #77), so this is 0017.
 ## Consequences
 
 - Hoà's calendar page reads one route. Thắng's admin screen needs the program ID from `GET /api/admin/programs` and the event IDs from the read route.
-- F10's inbox (Dũng) can generate reminders from `registration`, `add_drop` and `term_start` rows. Its delivery is decided: the in-app inbox only, with no email (Lâm, 12 November 2026). Its timing and duplicate rules remain open in the test plan §8. Update, 25 November 2026: Dũng decided the timing and duplicate rules that day, and [ADR 0018](0018-notification-inbox.md) (proposed) records them and the inbox built on them; in B2 an `add_drop` row makes no reminder.
+- F10's inbox (Dũng) can generate reminders from `registration`, `add_drop` and `term_start` rows. Its delivery is decided: the in-app inbox only, with no email (Lâm, 12 November 2026). Its timing and duplicate rules remain open in the test plan §8. Update, 25 November 2026: Dũng decided the timing and duplicate rules that day, and [ADR 0018](0018-notification-inbox.md) records them and the inbox built on them; in B2 an `add_drop` row makes no reminder.
 - Dates are only as good as the last entry. `updated_at` is returned so the page can say when the calendar was last changed, and `source_url` lets a student check the original.
 - A change history of edits is not kept, the same deferral as ADR 0011's audit trail for curriculum writes.
 - Adding a kind needs a migration (the CHECK) and an amendment here.
+- 2026-11-26: The page loads the dates once for each visit. Moving between weeks and months asks the API nothing. Any failed load says that loading failed, a 404 included: the request names no program, so a 404 means a broken route.
+- 2026-11-26: The week view shows all seven days and opens on the week that holds today, weekends included. The prototype's week ran from Monday to Friday and jumped to the next week on a weekend, which would hide today.
+- 2026-11-26: The page shows a term week only when a `term_start` date gives the start of that term. Week 1 is the week, Monday to Sunday, that holds the term's first day. The term ends on its `term_end` date. Without one, it ends when the next term starts, or else when the term calendar of [ADR 0009](0009-term-encoding.md) moves on. The week picker of a week view lists the weeks of the month that holds most of the week (its Thursday), and switching from the week view to the month view opens that same month.

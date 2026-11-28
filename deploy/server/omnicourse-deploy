@@ -59,8 +59,12 @@ prev="$(readlink -f "$ROOT/current" 2>/dev/null || true)"
 ln -sfn "$rel" "$ROOT/current.new" && mv -T "$ROOT/current.new" "$ROOT/current"
 sudo -n /usr/local/sbin/omnicourse-root restart "$env"
 healthy() {
+  local body
   for _ in $(seq 30); do
-    curl -fsS -o /dev/null "http://127.0.0.1:$port/api/health" && return 0
+    if body="$(curl -fsS "http://127.0.0.1:$port/api/health")" \
+      && [[ "$body" == *'"status":"ok"'* && "$body" == *'"database":"up"'* ]]; then
+      return 0
+    fi
     sleep 1
   done
   return 1

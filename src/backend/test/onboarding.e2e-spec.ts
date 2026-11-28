@@ -6,12 +6,10 @@ import { findUserTables } from '../src/account/account-export.js';
 import { AccountPurgeService } from '../src/account/account-purge.service.js';
 import { vietnamDate } from '../src/config/time.js';
 import { OnboardingService } from '../src/onboarding/onboarding.service.js';
-import { currentTerm } from '../src/terms/current-term.js';
+import { currentTerm } from '../src/terms/term.js';
 import { bootApp } from './support/app.js';
 import { PASSWORD as password, signedInUser } from './support/users.js';
 
-// Synthetic accounts only (AGENTS.md hard rule 3). Terms are counted from today's current term,
-// so the cases keep their meaning whatever day they run.
 const now = currentTerm(vietnamDate(new Date()));
 const ahead = (years: number, number: 1 | 2 | 3) => ({ year: now.year + years, number });
 const lastTerm = ahead(8, 3);
@@ -91,9 +89,9 @@ describe('Onboarding against PostgreSQL (e2e)', () => {
     const { auth } = await student();
     await http().put('/api/users/me/onboarding').set(auth).send(FULL).expect(200);
     for (const creditsPerTerm of [-1, 2.5, 'abc']) {
-      const res = await http().put('/api/users/me/onboarding').set(auth).send({ ...FULL, creditsPerTerm }).expect(400);
-      expect(res.body.message).toEqual(['creditsPerTerm must be a whole number of 1 or more']);
-      expect(JSON.stringify(res.body)).not.toMatch(/cap/i);
+      const response = await http().put('/api/users/me/onboarding').set(auth).send({ ...FULL, creditsPerTerm }).expect(400);
+      expect(response.body.message).toEqual(['creditsPerTerm must be a whole number of 1 or more']);
+      expect(JSON.stringify(response.body)).not.toMatch(/cap/i);
     }
     expect((await http().get('/api/users/me/onboarding').set(auth).expect(200)).body.creditsPerTerm).toBe(18);
     await http().put('/api/users/me/onboarding').set(auth).send({ ...FULL, creditsPerTerm: null }).expect(200);
@@ -152,8 +150,8 @@ describe('Onboarding against PostgreSQL (e2e)', () => {
   ])('refuses %s and keeps the saved answers', async (_, overrides, message) => {
     const { auth } = await student();
     await http().put('/api/users/me/onboarding').set(auth).send(FULL).expect(200);
-    const res = await http().put('/api/users/me/onboarding').set(auth).send({ ...FULL, ...overrides }).expect(400);
-    expect(res.body.message).toEqual([expect.stringMatching(message)]);
+    const response = await http().put('/api/users/me/onboarding').set(auth).send({ ...FULL, ...overrides }).expect(400);
+    expect(response.body.message).toEqual([expect.stringMatching(message)]);
     expect((await http().get('/api/users/me/onboarding').set(auth).expect(200)).body).toEqual(FULL);
   });
 
@@ -203,7 +201,6 @@ describe('Onboarding against PostgreSQL (e2e)', () => {
 
   it('serves the students of a program to other modules, finished or not, and one student alone when asked (ADR 0018)', async () => {
     const [a, b, c, unanswered] = [await student(), await student(), await student(), await student()];
-    // Synthetic program codes, unique per run: program_code is not a key to programs.
     const run = a.userId.replace(/-/g, '').slice(0, 8).toUpperCase();
     const [codeA, codeB] = [`ZZONB${run}A`, `ZZONB${run}B`];
     await db.query(

@@ -1,98 +1,108 @@
-import { GUIDE_GROUPS, GUIDE_ID, GUIDE_ID_MAX, GUIDE_LANGS, GUIDE_STATUSES, type GuideFile, type GuideLink, textKey } from './guide-file.js';
+import { isCalendarDate } from '../common/field-validators.js';
+import { type GuideCitation, GUIDE_GROUPS, GUIDE_ID, GUIDE_ID_MAX, GUIDE_LANGS, GUIDE_STATUSES, type GuideFile, type GuideLink, textKey } from './guide-file.js';
 
-/** A file the seed may load: a published one always has its last-checked date. */
 export type LoadableGuideFile =
   | (GuideFile & { status: 'draft' })
   | (GuideFile & { status: 'withdrawn' })
   | (GuideFile & { status: 'published'; lastChecked: NonNullable<GuideFile['lastChecked']> });
 
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-// AGENTS.md hard rule 1: a guide never types a credit count ("25 credits", "14–25 TC", "20 tín chỉ").
 const CREDIT_NUMBER = /\d\s*(?:tín chỉ|tc\b|credits?\b)/iu;
-// Guides plan §3 rule 4: a date that changes every term is linked, never typed ("15/11", "2026-11-15").
 const TYPED_DATE = /\b\d{1,2}\/\d{1,2}\b|\b\d{4}-\d{2}-\d{2}\b/u;
 
 const HTTPS_URL = /^https:\/\/\S+$/;
-// One leading `/` and no backslash: a browser reads `\` as `/`, so `/\host` and `//host` both leave OmniCourse.
 const APP_PATH = /^\/(?![/\\])[^\s\\]*$/;
 const isSafeUrl = (url: string) => HTTPS_URL.test(url) || APP_PATH.test(url);
-const isRealDate = (date: string) =>
-  ISO_DATE.test(date) && !Number.isNaN(Date.parse(`${date}T00:00:00Z`)) && new Date(`${date}T00:00:00Z`).toISOString().startsWith(date);
 const oneOf = (values: readonly string[]) => `${values.slice(0, -1).join(', ')} or ${values.at(-1)}`;
 
-/** The problems with one content file; empty when the seed may load it. A draft only needs its identity and safe links. */
 export function validateGuideFile(file: GuideFile): string[] {
-  const problems: string[] = [];
-  const problem = (message: string) => problems.push(`${textKey(file)}: ${message}`);
-  const required = (field: string, value: string) => {
-    if (!value.trim()) problem(`${field} is required`);
-  };
-
-  if (!GUIDE_ID.test(file.id) || file.id.length > GUIDE_ID_MAX) {
-    problem(`id must be lower-case words joined by hyphens, at most ${GUIDE_ID_MAX} characters`);
-  }
-  if (!GUIDE_LANGS.includes(file.lang)) problem(`lang must be ${oneOf(GUIDE_LANGS)}`);
-  if (!GUIDE_STATUSES.includes(file.status)) problem(`status must be ${oneOf(GUIDE_STATUSES)}`);
-  if (!GUIDE_GROUPS.includes(file.group)) problem(`group must be one of ${GUIDE_GROUPS.join(', ')}`);
-  if (!Number.isInteger(file.version) || file.version < 1) problem('version must be a whole number from 1');
-  for (const [field, link] of linksOf(file)) {
-    if (link.url && !isSafeUrl(link.url)) problem(`${field}.url must be an https address or an OmniCourse path starting with /`);
-  }
-  for (const [field, url] of siteUrlsOf(file)) {
-    if (url && !HTTPS_URL.test(url)) problem(`${field} must be an https address`);
-  }
-
-  if (file.status !== 'published') return problems;
-
-  required('changeNote', file.changeNote);
-  if (!file.lastChecked) {
-    problem('lastChecked is required: the date and the name of whoever followed the guide on the portal');
-  } else {
-    if (!isRealDate(file.lastChecked.on)) problem('lastChecked.on must be a date written YYYY-MM-DD');
-    required('lastChecked.by', file.lastChecked.by);
-  }
-  required('title', file.title);
-  required('summary', file.summary);
-  required('when.text', file.when.text);
-  required('appliesTo', file.appliesTo);
-  required('portal.name', file.portal.name);
-  required('portal.url', file.portal.url);
-  required('portal.account', file.portal.account);
-  if (!file.keywords.length || file.keywords.some((k) => !k.trim())) problem('keywords needs at least one word, and no empty ones');
-  if (!file.steps.length) problem('steps needs at least one step');
-  file.steps.forEach((s, i) => required(`steps[${i}].text`, s.text));
-  file.prepare?.forEach((p, i) => required(`prepare[${i}].text`, p.text));
-  file.notes?.forEach((n, i) => {
-    required(`notes[${i}].text`, n.text);
-    if (n.source.kind === 'regulation') {
-      required(`notes[${i}].source.document`, n.source.document);
-      required(`notes[${i}].source.clause`, n.source.clause);
-      required(`notes[${i}].source.url`, n.source.url);
-    }
-  });
-  file.citations?.forEach((c, i) => {
-    required(`citations[${i}].document`, c.document);
-    required(`citations[${i}].clause`, c.clause);
-    required(`citations[${i}].url`, c.url);
-  });
-  file.portals?.forEach((p, i) => {
-    required(`portals[${i}].name`, p.name);
-    required(`portals[${i}].url`, p.url);
-    required(`portals[${i}].account`, p.account);
-    required(`portals[${i}].purpose`, p.purpose);
-  });
-  for (const [field, link] of linksOf(file)) {
-    required(`${field}.label`, link.label);
-    required(`${field}.url`, link.url);
-  }
-  for (const [field, text] of proseOf(file)) {
-    if (CREDIT_NUMBER.test(text)) problem(`${field} types a credit number; cite the clause instead (AGENTS.md hard rule 1)`);
-    if (TYPED_DATE.test(text)) problem(`${field} types a date; link the school's announcement instead (guides plan §3 rule 4)`);
-  }
-  return problems;
+  const problems = [...identityProblems(file), ...linkProblems(file)];
+  if (file.status === 'published') problems.push(...publishedProblems(file), ...proseProblems(file));
+  return problems.map((problem) => `${textKey(file)}: ${problem}`);
 }
 
-/** The problems with a set of content files the seed loads together. */
+function identityProblems(file: GuideFile): string[] {
+  return [
+    ...(!GUIDE_ID.test(file.id) || file.id.length > GUIDE_ID_MAX ? [`id must be lower-case words joined by hyphens, at most ${GUIDE_ID_MAX} characters`] : []),
+    ...(GUIDE_LANGS.includes(file.lang) ? [] : [`lang must be ${oneOf(GUIDE_LANGS)}`]),
+    ...(GUIDE_STATUSES.includes(file.status) ? [] : [`status must be ${oneOf(GUIDE_STATUSES)}`]),
+    ...(GUIDE_GROUPS.includes(file.group) ? [] : [`group must be one of ${GUIDE_GROUPS.join(', ')}`]),
+    ...(Number.isInteger(file.version) && file.version >= 1 ? [] : ['version must be a whole number from 1']),
+  ];
+}
+
+function linkProblems(file: GuideFile): string[] {
+  return [
+    ...linksOf(file)
+      .filter(([, link]) => link.url && !isSafeUrl(link.url))
+      .map(([field]) => `${field}.url must be an https address or an OmniCourse path starting with /`),
+    ...siteUrlsOf(file)
+      .filter(([, url]) => url && !HTTPS_URL.test(url))
+      .map(([field]) => `${field} must be an https address`),
+  ];
+}
+
+const missing = ([field, value]: [string, string]): string[] => (value.trim() ? [] : [`${field} is required`]);
+
+function publishedProblems(file: GuideFile): string[] {
+  const shown: [string, string][] = [
+    ['title', file.title],
+    ['summary', file.summary],
+    ['when.text', file.when.text],
+    ['appliesTo', file.appliesTo],
+    ['portal.name', file.portal.name],
+    ['portal.url', file.portal.url],
+    ['portal.account', file.portal.account],
+  ];
+  return [
+    ...missing(['changeNote', file.changeNote]),
+    ...lastCheckedProblems(file.lastChecked),
+    ...shown.flatMap(missing),
+    ...(!file.keywords.length || file.keywords.some((k) => !k.trim()) ? ['keywords needs at least one word, and no empty ones'] : []),
+    ...(file.steps.length ? [] : ['steps needs at least one step']),
+    ...listedTexts(file).flatMap(missing),
+  ];
+}
+
+function lastCheckedProblems(lastChecked: GuideFile['lastChecked']): string[] {
+  if (!lastChecked) return ['lastChecked is required: the date and the name of whoever followed the guide on the portal'];
+  return [...(isCalendarDate(lastChecked.on) ? [] : ['lastChecked.on must be a date written YYYY-MM-DD']), ...missing(['lastChecked.by', lastChecked.by])];
+}
+
+function listedTexts(file: GuideFile): [string, string][] {
+  return [
+    ...file.steps.map((step, i): [string, string] => [`steps[${i}].text`, step.text]),
+    ...(file.prepare ?? []).map((preparation, i): [string, string] => [`prepare[${i}].text`, preparation.text]),
+    ...(file.notes ?? []).flatMap((note, i): [string, string][] => [
+      [`notes[${i}].text`, note.text],
+      ...(note.source.kind === 'regulation' ? citationTexts(`notes[${i}].source`, note.source) : []),
+    ]),
+    ...(file.citations ?? []).flatMap((citation, i) => citationTexts(`citations[${i}]`, citation)),
+    ...(file.portals ?? []).flatMap((portal, i): [string, string][] => [
+      [`portals[${i}].name`, portal.name],
+      [`portals[${i}].url`, portal.url],
+      [`portals[${i}].account`, portal.account],
+      [`portals[${i}].purpose`, portal.purpose],
+    ]),
+    ...linksOf(file).flatMap(([field, link]): [string, string][] => [
+      [`${field}.label`, link.label],
+      [`${field}.url`, link.url],
+    ]),
+  ];
+}
+
+const citationTexts = (field: string, citation: GuideCitation): [string, string][] => [
+  [`${field}.document`, citation.document],
+  [`${field}.clause`, citation.clause],
+  [`${field}.url`, citation.url],
+];
+
+function proseProblems(file: GuideFile): string[] {
+  return proseOf(file).flatMap(([field, text]) => [
+    ...(CREDIT_NUMBER.test(text) ? [`${field} types a credit number; cite the clause instead (AGENTS.md hard rule 1)`] : []),
+    ...(TYPED_DATE.test(text) ? [`${field} types a date; link the school's announcement instead (guides plan §3 rule 4)`] : []),
+  ]);
+}
+
 export function validateGuideSet(files: GuideFile[]): string[] {
   const problems = files.flatMap(validateGuideFile);
   const byKey = new Map<string, GuideFile>();
@@ -112,14 +122,11 @@ export function validateGuideSet(files: GuideFile[]): string[] {
   return [...problems, ...portalsMissingFromBoard(files)];
 }
 
-/** The set typed for loading, or the problems that keep the seed from loading it. */
 export function parseGuideSet(files: GuideFile[]): { files: LoadableGuideFile[] } | { problems: string[] } {
   const problems = validateGuideSet(files);
-  // validateGuideFile requires lastChecked on every published file.
   return problems.length ? { problems } : { files: files as LoadableGuideFile[] };
 }
 
-/** Published guides whose portal is not on a published portal board (G01): every guide sends the student to a site the board lists. */
 export function portalsMissingFromBoard(files: GuideFile[]): string[] {
   const published = files.filter((f) => f.status === 'published');
   const hosts = new Set(published.flatMap((f) => f.portals ?? []).map((p) => new URL(p.url).host));
@@ -139,7 +146,6 @@ function linksOf(file: GuideFile): [string, GuideLink][] {
   return links.filter((entry): entry is [string, GuideLink] => entry[1] !== undefined);
 }
 
-// The addresses that are always on another site: a portal, and the document a regulation clause is in.
 function siteUrlsOf(file: GuideFile): [string, string][] {
   return [
     ['portal.url', file.portal.url],
@@ -149,7 +155,6 @@ function siteUrlsOf(file: GuideFile): [string, string][] {
   ];
 }
 
-// The text a reader sees, checked for typed rule values and dates. Citations and the change note are not.
 function proseOf(file: GuideFile): [string, string][] {
   return [
     ['title', file.title],
@@ -162,9 +167,9 @@ function proseOf(file: GuideFile): [string, string][] {
     ...file.steps.map((s, i): [string, string] => [`steps[${i}].text`, s.text]),
     ...(file.notes ?? []).map((n, i): [string, string] => [`notes[${i}].text`, n.text]),
     ...(file.ifPortalDown ? [['ifPortalDown', file.ifPortalDown] as [string, string]] : []),
-    ...(file.portals ?? []).flatMap((p, i): [string, string][] => [
-      [`portals[${i}].purpose`, p.purpose],
-      [`portals[${i}].account`, p.account],
+    ...(file.portals ?? []).flatMap((portal, i): [string, string][] => [
+      [`portals[${i}].purpose`, portal.purpose],
+      [`portals[${i}].account`, portal.account],
     ]),
     ...linksOf(file).map(([field, link]): [string, string] => [`${field}.label`, link.label]),
   ];

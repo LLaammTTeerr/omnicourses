@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { DataSource, EntityManager } from 'typeorm';
+import type { SeedOptions } from '../common/seeder.js';
 import { nodeEnv } from '../config/env.js';
 import { vietnamDate } from '../config/time.js';
 import { GUIDE_FILES } from './content/index.js';
@@ -7,17 +8,12 @@ import { contentOf, type GuideFile, textKey } from './guide-file.js';
 import type { GuideText } from './guide-text.entity.js';
 import { type LoadableGuideFile, parseGuideSet } from './validate-guide.js';
 
-export interface GuideSeedReport {
-  /** Texts loaded for the first time. */
+interface GuideSeedReport {
   inserted: number;
-  /** Texts replaced by a higher version. */
   updated: number;
-  /** Same version and content, with a new last-checked date or shown again after a withdrawal. */
   rechecked: number;
   unchanged: number;
-  /** Texts hidden because their file was removed or marked withdrawn. */
   withdrawn: number;
-  /** Draft files, which are never loaded. */
   drafts: number;
 }
 
@@ -28,12 +24,7 @@ export class GuideSeedError extends Error {
   }
 }
 
-/**
- * The guides step of `npm run db:seed`: the content files, plus the zz-* test
- * guides of TC-B1-GUIDE-01 with `--guide-fixtures`, which a production server
- * refuses before anything is written.
- */
-export async function seed(dataSource: DataSource, options: { guideFixtures: boolean }): Promise<string[]> {
+export async function seed(dataSource: DataSource, options: SeedOptions): Promise<string[]> {
   let files = GUIDE_FILES;
   if (options.guideFixtures) {
     if (nodeEnv() === 'production') throw new Error('--guide-fixtures publishes the zz-* test guides: refused when NODE_ENV is production');
@@ -44,10 +35,6 @@ export async function seed(dataSource: DataSource, options: { guideFixtures: boo
   return [`Guides${options.guideFixtures ? ', with the test-only zz-* guides' : ''}: ${JSON.stringify(report)}`];
 }
 
-/**
- * A hash of everything a reader sees except the last-checked date, in any key order.
- * A re-check that finds the portal unchanged needs no new version (guides plan §6 step 5).
- */
 export function contentHash(file: GuideFile): string {
   const { lastChecked, status, ...shown } = file;
   return createHash('sha256').update(stableJson(shown)).digest('hex');
@@ -74,13 +61,6 @@ interface LoadedText {
 
 type PublishedGuideFile = Extract<LoadableGuideFile, { status: 'published' }>;
 
-/**
- * Loads the guide content files (ADR 0010) in one transaction, all or nothing.
- * - A draft is never loaded, and a published text may not turn back into one.
- * - A published file is inserted, or replaces a lower version.
- * - The same version must have the same content, except its last-checked date (guides plan §3 rule 7).
- * - A text whose file is gone, or marked withdrawn, is withdrawn: kept, never deleted.
- */
 export async function seedGuides(dataSource: DataSource, files: GuideFile[]): Promise<GuideSeedReport> {
   const parsed = parseGuideSet(files);
   if ('problems' in parsed) throw new GuideSeedError(parsed.problems);
@@ -88,52 +68,59 @@ export async function seedGuides(dataSource: DataSource, files: GuideFile[]): Pr
   return dataSource.transaction(async (em) => {
     const report: GuideSeedReport = { inserted: 0, updated: 0, rechecked: 0, unchanged: 0, withdrawn: 0, drafts: 0 };
     const problems: string[] = [];
-    // A second seed at the same time waits here instead of mixing its checks with ours.
     await em.query(`LOCK TABLE "guide_texts" IN SHARE ROW EXCLUSIVE MODE`);
     const loaded: LoadedText[] = await em.query(`SELECT "guide_id" AS "id", "lang", "status", "version", "content_hash" FROM "guide_texts"`);
     const rows = new Map(loaded.map((row) => [textKey(row), row]));
-    const inFiles = new Set<string>();
-
     for (const file of parsed.files) {
-      const key = textKey(file);
-      const row = rows.get(key);
-      inFiles.add(key);
-      if (file.status === 'draft') {
-        if (row?.status === 'published') {
-          problems.push(`${key}: is published; publish a new version or withdraw it instead of turning it back into a draft`);
-        }
-        report.drafts++;
-      } else if (file.status === 'withdrawn') {
-        if (row?.status === 'published') {
-          await withdraw(em, file);
-          report.withdrawn++;
-        }
-      } else if (!row) {
-        await write(em, file);
-        report.inserted++;
-      } else if (file.version < row.version) {
-        problems.push(`${key}: version ${file.version} is lower than the loaded version ${row.version}`);
-      } else if (file.version > row.version) {
-        await write(em, file);
-        report.updated++;
-      } else if (contentHash(file) !== row.content_hash) {
-        problems.push(`${key}: changed without a new version; raise version above ${row.version} and write a change note (guides plan §3 rule 7)`);
-      } else if (await recheck(em, file)) {
-        report.rechecked++;
-      } else {
-        report.unchanged++;
-      }
+      const outcome = await loadFile(em, file, rows.get(textKey(file)));
+      if (outcome.counted) report[outcome.counted]++;
+      if (outcome.problem) problems.push(outcome.problem);
     }
-    // A text whose file is gone is withdrawn, not deleted: problem reports point at it (ADR 0010).
-    for (const row of loaded) {
-      if (row.status === 'published' && !inFiles.has(textKey(row))) {
-        await withdraw(em, row);
-        report.withdrawn++;
-      }
-    }
+    report.withdrawn += await withdrawMissing(em, loaded, new Set(parsed.files.map(textKey)));
     if (problems.length) throw new GuideSeedError(problems);
     return report;
   });
+}
+
+interface LoadOutcome {
+  counted?: keyof GuideSeedReport;
+  problem?: string;
+}
+
+async function loadFile(em: EntityManager, file: LoadableGuideFile, row: LoadedText | undefined): Promise<LoadOutcome> {
+  if (file.status === 'draft') {
+    const problem = `${textKey(file)}: is published; publish a new version or withdraw it instead of turning it back into a draft`;
+    return { counted: 'drafts', ...(row?.status === 'published' && { problem }) };
+  }
+  if (file.status === 'withdrawn') {
+    if (row?.status !== 'published') return {};
+    await withdraw(em, file);
+    return { counted: 'withdrawn' };
+  }
+  return loadPublished(em, file, row);
+}
+
+async function loadPublished(em: EntityManager, file: PublishedGuideFile, row: LoadedText | undefined): Promise<LoadOutcome> {
+  const key = textKey(file);
+  if (!row) {
+    await write(em, file);
+    return { counted: 'inserted' };
+  }
+  if (file.version < row.version) return { problem: `${key}: version ${file.version} is lower than the loaded version ${row.version}` };
+  if (file.version > row.version) {
+    await write(em, file);
+    return { counted: 'updated' };
+  }
+  if (contentHash(file) !== row.content_hash) {
+    return { problem: `${key}: changed without a new version; raise version above ${row.version} and write a change note (guides plan §3 rule 7)` };
+  }
+  return { counted: (await recheck(em, file)) ? 'rechecked' : 'unchanged' };
+}
+
+async function withdrawMissing(em: EntityManager, loaded: LoadedText[], inFiles: ReadonlySet<string>): Promise<number> {
+  const missing = loaded.filter((row) => row.status === 'published' && !inFiles.has(textKey(row)));
+  for (const row of missing) await withdraw(em, row);
+  return missing.length;
 }
 
 async function write(em: EntityManager, file: PublishedGuideFile): Promise<void> {
@@ -165,10 +152,8 @@ async function write(em: EntityManager, file: PublishedGuideFile): Promise<void>
   );
 }
 
-/** Same version and content: takes a new last-checked date, and shows the text again if it was withdrawn. True if anything changed. */
 async function recheck(em: EntityManager, file: PublishedGuideFile): Promise<boolean> {
-  // A CTE, so the query is a SELECT and returns its rows (TypeORM returns [rows, count] for an UPDATE).
-  const [{ n }]: { n: number }[] = await em.query(
+  const [{ n: changed }]: { n: number }[] = await em.query(
     `WITH changed AS (
        UPDATE "guide_texts" SET "last_checked_on" = $3, "last_checked_by" = $4, "status" = 'published', "updated_at" = now()
        WHERE "guide_id" = $1 AND "lang" = $2
@@ -177,7 +162,7 @@ async function recheck(em: EntityManager, file: PublishedGuideFile): Promise<boo
      SELECT count(*)::int AS n FROM changed`,
     [file.id, file.lang, file.lastChecked.on, file.lastChecked.by],
   );
-  return n > 0;
+  return changed > 0;
 }
 
 async function withdraw(em: EntityManager, text: { id: string; lang: string }): Promise<void> {

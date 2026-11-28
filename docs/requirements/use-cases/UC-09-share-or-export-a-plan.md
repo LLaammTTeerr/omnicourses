@@ -2,8 +2,8 @@
 
 - Feature: F9 Plan export (Vision §5: "Export a plan as PDF, or share a read-only link with an academic advisor.")
 - Owner: Dũng
-- Status: draft for the use-case model (PA2); describes work still to be built (Sprint 4, build B2)
-- Built so far: the API (25 Nov 2026, `src/backend/src/sharing/`): the owner creates, shows and stops the link, and a reader opens it without signing in. Not built: the Share panel, the shared page and the PDF. Where the API differs from this specification, see [design differences](../../analysis-and-design/design-differences.md) and the amendment of [ADR 0010](../../analysis-and-design/adr/0010-public-pages-and-guide-content.md).
+- Status: draft for the use-case model (PA2); planned for build B2
+- What is built: the [README feature table](../../../README.md#what-is-built). Where the API differs from this specification, see [design differences](../../analysis-and-design/design-differences.md) and the amendment of [ADR 0010](../../analysis-and-design/adr/0010-public-pages-and-guide-content.md).
 
 ## 1. Brief description
 

@@ -1,118 +1,66 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { buildMessage, IsInt, IsNotEmpty, IsString, Matches, Max, Min, ValidateBy } from 'class-validator';
-import { trimString } from '../common/transforms.js';
-import { TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.js';
-import { ADMIN_CODE_MAX_LENGTH, ADMIN_CODE_MESSAGE, ADMIN_CODE_PATTERN, canonicalAdminCode } from './admin-code.js';
-import { ifPresent, ifSet } from './curriculum-admin.dto.js';
+import { IsIn, IsInt, IsString, Matches, Max, Min } from 'class-validator';
+import { ifPresent, ifSet, MaxCodePoints, NullableTextField, RequiredTextField } from '../common/field-validators.js';
+import { LANGUAGE_MAX_LENGTH } from '../curriculum/curriculum.entity.js';
+import { TRAINING_TYPES, type TrainingType } from '../curriculum/curriculum-rules.js';
+import { FACULTY_MAX_LENGTH } from '../curriculum/program.entity.js';
+import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR } from '../terms/term.js';
+import { CODE_MAX_LENGTH, NAME_MAX_LENGTH } from '../common/column-limits.js';
+import { CreditTotalField } from './curriculum-admin.dto.js';
 
-// Request and response shapes of the F12 program and cohort routes (ADR 0011, "Programs and
-// cohorts as built"). Requests go through StrictBody, so a field that is not declared here is a
-// 400, never ignored. That is how these are refused:
-// - an identifier in a PATCH: a program's code; a cohort's programId, cohortYear and code;
-// - the gated cohort total, totalCreditsMin, in a POST or a PATCH;
-// - a program's trainingType, which sets the credit caps (ADR 0012): no decision says who may
-//   enter it through F12, so no route accepts it and a new program stores none.
+export const ADMIN_CODE_PATTERN = /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
+const ADMIN_CODE_MESSAGE = 'code must be letters A-Z and digits, in parts joined by single hyphens (for example ZZ-PROG-2024)';
 
-/** The bounds of ck_curriculums_cohort_year_range (migration 1792912952302). */
-export const COHORT_YEAR_MIN = 2000;
-export const COHORT_YEAR_MAX = 2100;
+export const canonicalAdminCode = (input: unknown): unknown => (typeof input === 'string' ? input.trim().toUpperCase() : input);
 
 const canonicalCode = Transform(({ value }) => canonicalAdminCode(value));
-
-/**
- * A text column's length as PostgreSQL counts it: in code points. class-validator's MaxLength
- * does not count a variation selector (U+FE0E, U+FE0F) after a character, so a value it accepts
- * could still be too long for varchar(n), and the insert would fail with a 500. Same words as
- * MaxLength's refusal.
- */
-const MaxCodePoints = (max: number) =>
-  ValidateBy({
-    name: 'maxCodePoints',
-    constraints: [max],
-    validator: {
-      validate: (value: unknown) => typeof value === 'string' && [...value].length <= max,
-      defaultMessage: buildMessage((each) => `${each}$property must be shorter than or equal to $constraint1 characters`),
-    },
-  });
-
-/** PostgreSQL refuses U+0000 in any text value, with a 500 if it got that far. */
-const NoNullCharacter = ValidateBy({
-  name: 'noNullCharacter',
-  validator: {
-    validate: (value: unknown) => typeof value === 'string' && !value.includes('\u0000'),
-    defaultMessage: buildMessage((each) => `${each}$property must not contain a null character (U+0000)`),
-  },
-});
 const CODE_PATTERN = ADMIN_CODE_PATTERN.source;
-
-// ---- Programs ------------------------------------------------------------------------------
 
 export class CreateProgramDto {
   @ApiProperty({
     example: 'ZZ-PROG',
-    maxLength: ADMIN_CODE_MAX_LENGTH,
+    maxLength: CODE_MAX_LENGTH,
     pattern: CODE_PATTERN,
     description: 'Trimmed and upper-cased, then checked. Unique among programs. Cannot change later: the read API and the onboarding answers name a program by it.',
   })
   @canonicalCode
   @IsString()
-  @MaxCodePoints(ADMIN_CODE_MAX_LENGTH)
+  @MaxCodePoints(CODE_MAX_LENGTH)
   @Matches(ADMIN_CODE_PATTERN, { message: ADMIN_CODE_MESSAGE })
   code!: string;
 
-  @ApiProperty({ maxLength: 255 })
-  @Transform(trimString)
-  @IsString()
-  @NoNullCharacter
-  @IsNotEmpty()
-  @MaxCodePoints(255)
+  @RequiredTextField({ maxLength: NAME_MAX_LENGTH })
   nameVi!: string;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255, description: 'Blank is stored as null' })
-  @Transform(trimString)
-  @ifSet
-  @IsString()
-  @NoNullCharacter
-  @MaxCodePoints(255)
+  @NullableTextField({ maxLength: NAME_MAX_LENGTH, description: 'Blank is stored as null' })
   nameEn?: string | null;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 100, description: 'The faculty that owns the program, as text. It is not a permission boundary (ADR 0011). Blank is stored as null.' })
-  @Transform(trimString)
-  @ifSet
-  @IsString()
-  @NoNullCharacter
-  @MaxCodePoints(100)
+  @NullableTextField({ maxLength: FACULTY_MAX_LENGTH, description: 'The faculty that owns the program, as text. It is not a permission boundary (ADR 0011). Blank is stored as null.' })
   faculty?: string | null;
+
+  @ApiProperty({
+    enum: TRAINING_TYPES,
+    nullable: true,
+    required: false,
+    description: 'Sets the credit caps and the kind of term 3 (ADR 0012). Set once, on creation (Lâm, 28 November 2026); no route changes it later. Left out or null: not recorded, so the rule engine checks no credit cap.',
+  })
+  @ifSet
+  @IsIn(TRAINING_TYPES)
+  trainingType?: TrainingType | null;
 }
 
-/** The editable program fields. The code and the training type are not among them (ADR 0011). */
 export const PROGRAM_FIELDS = ['nameVi', 'nameEn', 'faculty'] as const;
 
 export class UpdateProgramDto {
-  @ApiProperty({ required: false, maxLength: 255 })
   @ifPresent
-  @Transform(trimString)
-  @IsString()
-  @NoNullCharacter
-  @IsNotEmpty()
-  @MaxCodePoints(255)
+  @RequiredTextField({ required: false, maxLength: NAME_MAX_LENGTH })
   nameVi?: string;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255 })
-  @Transform(trimString)
-  @ifSet
-  @IsString()
-  @NoNullCharacter
-  @MaxCodePoints(255)
+  @NullableTextField({ maxLength: NAME_MAX_LENGTH })
   nameEn?: string | null;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 100 })
-  @Transform(trimString)
-  @ifSet
-  @IsString()
-  @NoNullCharacter
-  @MaxCodePoints(100)
+  @NullableTextField({ maxLength: FACULTY_MAX_LENGTH })
   faculty?: string | null;
 }
 
@@ -132,87 +80,60 @@ export class ProgramDetailsDto {
   @ApiProperty({ type: String, nullable: true })
   faculty!: string | null;
 
-  @ApiProperty({ enum: TRAINING_TYPES, nullable: true, description: 'Read-only here: no F12 route sets it. null: not recorded, so the rule engine checks no credit cap (ADR 0013).' })
+  @ApiProperty({ enum: TRAINING_TYPES, nullable: true, description: 'Set only when the program is created. null: not recorded, so the rule engine checks no credit cap (ADR 0013).' })
   trainingType!: TrainingType | null;
 
   @ApiProperty({ type: String, format: 'date-time' })
   updatedAt!: Date;
 }
 
-// ---- Cohorts (curriculums rows) ------------------------------------------------------------
-
 export class CreateCohortDto {
-  @ApiProperty({ type: 'integer', example: 2026, minimum: COHORT_YEAR_MIN, maximum: COHORT_YEAR_MAX, description: 'The year the cohort entered the program. One cohort per program and year. Cannot change later.' })
+  @ApiProperty({ type: 'integer', example: 2026, minimum: MIN_ACADEMIC_YEAR, maximum: MAX_ACADEMIC_YEAR, description: 'The year the cohort entered the program. One cohort per program and year. Cannot change later.' })
   @IsInt()
-  @Min(COHORT_YEAR_MIN)
-  @Max(COHORT_YEAR_MAX)
+  @Min(MIN_ACADEMIC_YEAR)
+  @Max(MAX_ACADEMIC_YEAR)
   cohortYear!: number;
 
   @ApiProperty({
     example: 'ZZ-PROG-2026',
-    maxLength: ADMIN_CODE_MAX_LENGTH,
+    maxLength: CODE_MAX_LENGTH,
     pattern: CODE_PATTERN,
     description: "The curriculum's code. Trimmed and upper-cased, then checked. Unique among all curricula. Cannot change later.",
   })
   @canonicalCode
   @IsString()
-  @MaxCodePoints(ADMIN_CODE_MAX_LENGTH)
+  @MaxCodePoints(CODE_MAX_LENGTH)
   @Matches(ADMIN_CODE_PATTERN, { message: ADMIN_CODE_MESSAGE })
   code!: string;
 
-  @ApiProperty({ maxLength: 255 })
-  @Transform(trimString)
-  @IsString()
-  @NoNullCharacter
-  @IsNotEmpty()
-  @MaxCodePoints(255)
+  @RequiredTextField({ maxLength: NAME_MAX_LENGTH })
   nameVi!: string;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255, description: 'Blank is stored as null' })
-  @Transform(trimString)
-  @ifSet
-  @IsString()
-  @NoNullCharacter
-  @MaxCodePoints(255)
+  @NullableTextField({ maxLength: NAME_MAX_LENGTH, description: 'Blank is stored as null' })
   nameEn?: string | null;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 10, example: 'en', description: 'Language of instruction, as text. Blank is stored as null.' })
-  @Transform(trimString)
-  @ifSet
-  @IsString()
-  @NoNullCharacter
-  @MaxCodePoints(10)
+  @NullableTextField({ maxLength: LANGUAGE_MAX_LENGTH, example: 'en', description: 'Language of instruction, as text. Blank is stored as null.' })
   language?: string | null;
+
+  @CreditTotalField('The minimum credits the cohort needs to graduate. null: not recorded, so the audit checks no cohort total (ADR 0013).')
+  totalCreditsMin?: number | null;
 }
 
-/** The editable cohort fields. The program, the year, the code and the credit total are not among them (ADR 0011). */
-export const COHORT_FIELDS = ['nameVi', 'nameEn', 'language'] as const;
+export const COHORT_FIELDS = ['nameVi', 'nameEn', 'language', 'totalCreditsMin'] as const;
 
 export class UpdateCohortDto {
-  @ApiProperty({ required: false, maxLength: 255 })
   @ifPresent
-  @Transform(trimString)
-  @IsString()
-  @NoNullCharacter
-  @IsNotEmpty()
-  @MaxCodePoints(255)
+  @RequiredTextField({ required: false, maxLength: NAME_MAX_LENGTH })
   nameVi?: string;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255 })
-  @Transform(trimString)
-  @ifSet
-  @IsString()
-  @NoNullCharacter
-  @MaxCodePoints(255)
+  @NullableTextField({ maxLength: NAME_MAX_LENGTH })
   nameEn?: string | null;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 10 })
-  @Transform(trimString)
-  @ifSet
-  @IsString()
-  @NoNullCharacter
-  @MaxCodePoints(10)
+  @NullableTextField({ maxLength: LANGUAGE_MAX_LENGTH })
   language?: string | null;
+
+  @CreditTotalField('The minimum credits the cohort needs to graduate. null: not recorded, so the audit checks no cohort total (ADR 0013).')
+  totalCreditsMin?: number | null;
 }
 
 export class CohortDetailsDto {
@@ -237,7 +158,7 @@ export class CohortDetailsDto {
   @ApiProperty({ type: String, nullable: true })
   language!: string | null;
 
-  @ApiProperty({ type: Number, nullable: true, description: 'Read-only here until the rule-engine handoff (ADR 0011). null for a cohort created through F12.' })
+  @ApiProperty({ type: Number, nullable: true, description: 'null: not recorded' })
   totalCreditsMin!: number | null;
 
   @ApiProperty({ type: String, format: 'date-time' })

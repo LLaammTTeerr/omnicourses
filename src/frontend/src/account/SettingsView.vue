@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAsyncLoad } from '../async-load.js';
-import { listSessions, revokeSession, type Session } from '../auth/api.js';
+import { codePoints, statusOf } from '../api.js';
+import { reportFailure, useAsyncLoad } from '../async-load.js';
+import type { Session } from '../auth/api.js';
 import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
 import { GROUPS, groupClass } from '../groups.js';
@@ -11,15 +12,12 @@ import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { useTheme } from '../shell/theme.js';
 import { useToast } from '../shell/toast.js';
-import { EXPORT_FILE_NAME, exportAccount, saveFile } from './api.js';
+import { CLASS_NAME_MAX_LENGTH, EXPORT_FILE_NAME, exportAccount, listSessions, revokeSession, saveFile, STUDENT_ID_PATTERN, updateProfile } from './api.js';
 import StudySettings from '../onboarding/StudySettings.vue';
 import DeleteAccountDialog from './DeleteAccountDialog.vue';
 import { SETTINGS_MESSAGES } from './messages.js';
 import { describeDevice } from './user-agent.js';
 
-// Settings (UI prototypes: settings.html), the parts with an API today: the onboarding answers (UC-01 A9), sessions
-// (ADR 0002), theme, language, export and deletion (ADR 0004), sign-out. Profile edits, password change and AI
-// consent wait for their API.
 const auth = useAuth();
 const locale = useLocale();
 const router = useRouter();
@@ -27,8 +25,7 @@ const theme = useTheme();
 const toast = useToast();
 const m = useMessages(SETTINGS_MESSAGES);
 
-const sessions = useAsyncLoad('the sessions', () => auth.authed(listSessions));
-// The current session first, then the newest.
+const sessions = useAsyncLoad('the sessions', () => listSessions());
 const sorted = computed(() =>
   [...(sessions.data.value ?? [])].sort((a, b) => Number(b.current) - Number(a.current) || b.createdAt.localeCompare(a.createdAt)),
 );
@@ -42,14 +39,13 @@ async function revoke(): Promise<void> {
   if (!session) return;
   revokeBusy.value = true;
   try {
-    await auth.authed((token) => revokeSession(token, session.id));
+    await revokeSession(session.id);
     toast.show(m.value.revoked);
     revoking.value = null;
     await sessions.reload();
   } catch (e) {
-    console.error('Revoking a session failed:', e);
     revoking.value = null;
-    toast.show(m.value.revokeFailed);
+    if (reportFailure('Revoking a session', e)) toast.show(m.value.revokeFailed);
   } finally {
     revokeBusy.value = false;
   }
@@ -61,7 +57,7 @@ async function download(): Promise<void> {
   exporting.value = true;
   exportFailed.value = false;
   try {
-    saveFile(await auth.authed(exportAccount), EXPORT_FILE_NAME);
+    saveFile(await exportAccount(), EXPORT_FILE_NAME);
     toast.show(m.value.exported(EXPORT_FILE_NAME));
   } catch (e) {
     console.error('Exporting the account failed:', e);
@@ -73,8 +69,33 @@ async function download(): Promise<void> {
 
 const deleting = ref(false);
 
-// ADR 0011: an access manager grants a permission to an exact user ID, and there is no user search, so the user
-// copies their own ID from here. It is `UserDto.id`, as GET /users/me and every sign-in answer give it.
+const studentId = ref(auth.user?.studentId ?? '');
+const className = ref(auth.user?.className ?? '');
+const profileChecked = ref(false);
+const profileSaving = ref(false);
+const profileFailed = ref(false);
+const studentIdInvalid = computed(() => profileChecked.value && studentId.value.trim() !== '' && !STUDENT_ID_PATTERN.test(studentId.value.trim()));
+const classNameTooLong = computed(() => profileChecked.value && codePoints(className.value.trim()) > CLASS_NAME_MAX_LENGTH);
+async function saveProfile(): Promise<void> {
+  profileChecked.value = true;
+  if (studentIdInvalid.value || classNameTooLong.value) return;
+  profileSaving.value = true;
+  profileFailed.value = false;
+  try {
+    const saved = await updateProfile({ studentId: studentId.value.trim() || null, className: className.value.trim() || null });
+    auth.setUser(saved);
+    studentId.value = saved.studentId ?? '';
+    className.value = saved.className ?? '';
+    profileChecked.value = false;
+    toast.show(m.value.profileSaved);
+  } catch (e) {
+    console.error('Saving the student ID and class failed with status', statusOf(e));
+    profileFailed.value = true;
+  } finally {
+    profileSaving.value = false;
+  }
+}
+
 const userIdField = ref<HTMLInputElement | null>(null);
 async function copyUserId(): Promise<void> {
   const id = auth.user?.id;
@@ -83,7 +104,6 @@ async function copyUserId(): Promise<void> {
     await navigator.clipboard.writeText(id);
     toast.show(m.value.userIdCopied);
   } catch (e) {
-    // No clipboard permission, or a page not served over HTTPS: select the ID, so one key press copies it.
     console.error('Copying the user ID failed:', e);
     userIdField.value?.select();
     toast.show(m.value.userIdNotCopied);
@@ -91,7 +111,6 @@ async function copyUserId(): Promise<void> {
 }
 
 async function signOut(): Promise<void> {
-  // Leave the private page first, so App.vue does not read the sign-out as a session that ended by itself.
   await router.push({ name: 'home' });
   await auth.signOut();
   toast.show(m.value.signedOut);
@@ -136,6 +155,45 @@ usePageTitle(() => m.value.title);
               <button class="btn sm" type="button" data-test="copy-user-id" @click="copyUserId"><Icon name="copy" size="sm" />{{ m.copy }}</button>
             </div>
           </div>
+          <form class="srow profile-form" novalidate data-test="profile-form" @submit.prevent="saveProfile">
+            <div class="profile-field">
+              <label for="student-id"><b>{{ m.studentId }}</b></label>
+              <p id="student-id-note">{{ m.studentIdNote }}</p>
+              <input
+                id="student-id"
+                v-model="studentId"
+                class="input mono"
+                type="text"
+                inputmode="numeric"
+                autocomplete="off"
+                placeholder="24120000"
+                data-test="student-id"
+                :aria-invalid="studentIdInvalid"
+                :aria-describedby="studentIdInvalid ? 'student-id-error' : 'student-id-note'"
+              />
+              <p v-if="studentIdInvalid" id="student-id-error" class="field-error" role="alert">{{ m.studentIdInvalid }}</p>
+            </div>
+            <div class="profile-field">
+              <label for="class-name"><b>{{ m.className }}</b></label>
+              <p id="class-name-note">{{ m.classNameNote }}</p>
+              <input
+                id="class-name"
+                v-model="className"
+                class="input"
+                type="text"
+                autocomplete="off"
+                placeholder="24CTT0"
+                data-test="class-name"
+                :aria-invalid="classNameTooLong"
+                :aria-describedby="classNameTooLong ? 'class-name-error' : 'class-name-note'"
+              />
+              <p v-if="classNameTooLong" id="class-name-error" class="field-error" role="alert">{{ m.classNameTooLong }}</p>
+            </div>
+            <div class="profile-save">
+              <p v-if="profileFailed" class="field-error" role="alert" data-test="profile-save-failed">{{ m.profileSaveFailed }}</p>
+              <button class="btn sm primary" type="submit" :disabled="profileSaving">{{ profileSaving ? m.savingProfile : m.saveProfile }}</button>
+            </div>
+          </form>
           <div class="srow">
             <div class="txt"><b id="language-label">{{ m.language }}</b><p>{{ m.languageNote }}</p></div>
             <div class="seg" role="group" aria-labelledby="language-label">
@@ -237,14 +295,14 @@ usePageTitle(() => m.value.title);
   </div>
 </template>
 
-<style>
+<style scoped>
 .settings-page { max-width: 1080px; }
 .settings { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 22px; align-items: start; }
 .settings > .stack { grid-row: 1; grid-column: 1; }
 .snav { grid-column: 2; display: grid; gap: 4px; padding: 10px; position: sticky; top: 20px; }
 .snav a { padding: 9px 12px; border-radius: 10px; text-decoration: none; font-weight: 600; color: var(--ink-2); font-size: 14px; }
 .snav a:hover { background: var(--surface-2); color: var(--ink); }
-.settings section { scroll-margin-top: 20px; }
+.settings :deep(section) { scroll-margin-top: 20px; }
 .srow { display: flex; justify-content: space-between; align-items: center; gap: 12px 16px; padding: 16px 22px; border-top: 1px solid var(--line); flex-wrap: wrap; }
 .card-head + .srow { border-top: 0; }
 .srow .txt { min-width: 0; flex: 1 1 260px; }
@@ -253,8 +311,12 @@ usePageTitle(() => m.value.title);
 .srow .value { font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
 .srow-note { padding: 0 22px 8px; }
 .user-id { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
-/* The whole ID shows: 36 characters, in the fixed-width font. */
 .user-id .input { flex: 1 1 calc(36ch + 28px); width: calc(36ch + 28px); min-width: 0; font-size: 13px; }
+.profile-form { align-items: flex-start; }
+.profile-field { display: grid; gap: 6px; flex: 1 1 220px; min-width: 0; }
+.profile-field b { font-size: 14.5px; }
+.profile-field p:not(.field-error) { font-size: 13.5px; color: var(--ink-2); }
+.profile-save { display: grid; gap: 6px; flex: 1 1 100%; justify-items: start; }
 .chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .danger-zone { border-color: var(--bad); box-shadow: 4px 4px 0 var(--bad); }
 .sign-out { justify-self: start; }
@@ -268,7 +330,6 @@ usePageTitle(() => m.value.title);
 @media (max-width: 620px) {
   .srow { padding: 14px 16px; }
   .srow-note { padding: 0 16px 8px; }
-  /* Sessions read as one block each on a phone, each date with its label. */
   .sessions thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .sessions tr { display: grid; gap: 4px; padding: 12px 16px; border-top: 1px solid var(--line); }
   .sessions td { display: block; padding: 0; border: 0; text-align: left; }

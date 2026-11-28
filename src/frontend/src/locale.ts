@@ -1,14 +1,9 @@
 import { defineStore } from 'pinia';
 import { computed, ref, watchEffect, type ComputedRef } from 'vue';
 
-// The screen language (Vision §6 Usability: Vietnamese and English).
-
 interface Language {
-  /** BCP 47 tag for Intl. */
   tag: string;
-  /** The language's own name, for the switch button. */
   name: string;
-  /** The language the switch button offers. */
   other: Lang;
   date: Intl.DateTimeFormatOptions;
 }
@@ -20,8 +15,7 @@ export const LANGUAGES: Record<Lang, Language> = {
   en: { tag: 'en-GB', name: 'English', other: 'vi', date: { day: 'numeric', month: 'short', year: 'numeric' } },
 };
 
-// Kept in students' browsers: a new key forgets every saved choice.
-const LANG_STORAGE_KEY = 'omnicourse.lang';
+export const LANG_STORAGE_KEY = 'omnicourse.lang';
 
 function isLang(value: string | null): value is Lang {
   return value !== null && Object.hasOwn(LANGUAGES, value);
@@ -32,7 +26,6 @@ function storedLang(): Lang {
     const value = localStorage.getItem(LANG_STORAGE_KEY);
     return isLang(value) ? value : 'vi';
   } catch {
-    // Storage blocked (private mode, site data off): start in Vietnamese.
     return 'vi';
   }
 }
@@ -59,13 +52,13 @@ export function useMessages<T>(messages: Record<Lang, T>): ComputedRef<T> {
   return computed(() => messages[locale.lang]);
 }
 
-/** An instant (ISO date-time) as each language writes it, in the browser's time zone: 13/11/2026 14:05, 13 Nov 2026, 14:05. */
 export function formatDateTime(iso: string, lang: Lang): string {
   return new Intl.DateTimeFormat(LANGUAGES[lang].tag, { ...LANGUAGES[lang].date, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso));
 }
 
-/** A YYYY-MM-DD date as each language writes it: 13/11/2026, 13 Nov 2026. */
+export const formatSpan = (startsOn: string, endsOn: string, format: (iso: string) => string): string =>
+  startsOn === endsOn ? format(startsOn) : `${format(startsOn)} – ${format(endsOn)}`;
+
 export function formatDate(isoDate: string, lang: Lang): string {
-  // A calendar date, not an instant: format it in UTC so no time zone moves it.
   return new Intl.DateTimeFormat(LANGUAGES[lang].tag, { ...LANGUAGES[lang].date, timeZone: 'UTC' }).format(new Date(`${isoDate}T00:00:00Z`));
 }

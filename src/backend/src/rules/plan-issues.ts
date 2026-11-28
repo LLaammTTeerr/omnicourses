@@ -1,37 +1,45 @@
-// Live validation of a plan (F5, UC-05 step 6, ADR 0014): the plan's placements against its own
-// curriculum, the student's transcript and the regulation. One pure function; RulesService loads
-// the inputs. It composes the engine's existing rules and decides nothing new about them.
-import type { CourseRules } from '../curriculum/course-rules.service.js';
-import type { CurriculumRuleGroup, CurriculumRules } from '../curriculum/curriculum-rules.reader.js';
-import type { BoardTerm } from '../plans/plan-board.js';
-import type { PlanCoverage, PlanIssue, PlanIssuesReport, PlanTermLoad } from '../plans/plan-issues.js';
-import { compareTerms, termLabel } from '../terms/current-term.js';
-import type { Term } from '../terms/term.js';
+import type { CurriculumRuleGroup, CurriculumRules } from '../curriculum/curriculum-rules.js';
+import { groupBy } from '../common/collections.js';
+import { compareTerms, copyTerm, type Term, termKey, termLabel } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
-import { isCompleted, resolve } from './attempts.js';
+import { courseRecords, type CourseRecord, recordBefore } from './attempts.js';
 import { degreeAudit } from './audit.js';
-import { CAP_CITATION, PETITION_NOTE, checkTermLoad, type LoadCourse } from './credit-caps.js';
-import { placements } from './coverage.js';
-import { checkOfferingTerm, checkPrerequisites } from './prerequisites.js';
+import { type CapViolation, checkTermLoad, type LoadCourse, PETITION_NOTE, type TermLoadCheck } from './credit-caps.js';
+import { type CountedLink, placements } from './coverage.js';
+import { checkOfferingTerm, checkPrerequisites, passedOrAssumedBefore } from './prerequisites.js';
+import {
+  type BoardTerm,
+  CITATIONS,
+  type CombinedMinimumCoverage,
+  type CreditSummary,
+  type DegreeAudit,
+  type GroupCoverage,
+  type Placement,
+  type PlanCoverage,
+  type PlanIssue,
+  type PlanIssuesReport,
+  type PlanTermLoad,
+} from './types.js';
 
-export const PREREQUISITE_CITATION = 'QĐ 1175/QĐ-KHTN Điều 3.1.c';
-/** Điều 6.5: the term plan says which courses open; Điều 7.1.a: students register for those. */
-export const OFFERING_CITATION = 'QĐ 1175/QĐ-KHTN Điều 6.5, 7.1.a';
-export const IMPROVEMENT_CITATION = 'QĐ 1175/QĐ-KHTN Điều 14.2';
-export const CURRICULUM_CITATION = 'QĐ 1175/QĐ-KHTN Điều 15.1';
-export const GRADUATION_CITATION = 'QĐ 1175/QĐ-KHTN Điều 17.3.b';
-/** A course placed twice breaks the plan model, not a clause of the regulation. */
-export const PLAN_MODEL_CITATION = 'ADR 0014';
-
-export interface PlanCheckInput {
+interface PlanCheckInput {
   planId: string;
   rules: CurriculumRules;
-  /** The prerequisites and offering terms recorded for the plan's curriculum; a course absent from a map is not recorded. */
-  courseRules: CourseRules;
   transcript: readonly TranscriptEntry[];
   terms: readonly BoardTerm[];
-  /** Catalog credits of the placed courses. A code missing here is no longer in the catalog. */
   catalogCredits: ReadonlyMap<string, number>;
+}
+
+interface PlanContext {
+  rules: CurriculumRules;
+  placed: ReadonlyMap<string, CountedLink>;
+  records: ReadonlyMap<string, CourseRecord>;
+  catalogCredits: ReadonlyMap<string, number>;
+}
+
+interface CourseTile {
+  term: Term;
+  position: number;
+  courseCode: string;
 }
 
 const issue = (fields: Pick<PlanIssue, 'code' | 'kind' | 'citation' | 'message'> & Partial<PlanIssue>): PlanIssue => ({
@@ -47,310 +55,309 @@ const issue = (fields: Pick<PlanIssue, 'code' | 'kind' | 'citation' | 'message'>
   ...fields,
 });
 
-const copyTerm = (t: Term): Term => ({ year: t.year, number: t.number });
+export const courseCodesOf = (terms: readonly BoardTerm[]): string[] =>
+  terms.flatMap((t) => t.placements.flatMap((p) => (p.kind === 'course' && p.courseCode !== null ? [p.courseCode] : [])));
 
-/**
- * Whether a slot of the group counts toward the cohort total (and so toward the đại trà minimum):
- * only when every course of the group does. A slot in a group that mixes both, such as APCS's
- * with the Thể dục rows, may hold either, so it is not claimed toward graduation (ADR 0013).
- */
 const slotCountsTowardTotal = (rules: CurriculumRules, groupId: string | null): boolean =>
   rules.groups.find((g) => g.id === groupId)?.courses.every((c) => c.countsTowardTotal) ?? true;
 
-/** Every issue of a plan, its terms' loads, and the coverage the plan would reach. */
+const placedCredits = (plan: Pick<PlanContext, 'placed' | 'catalogCredits'>, code: string): number | undefined =>
+  plan.placed.get(code)?.course.credits ?? plan.catalogCredits.get(code);
+
 export function checkPlan(input: PlanCheckInput): PlanIssuesReport {
-  const { rules, courseRules, transcript, catalogCredits } = input;
   const terms = [...input.terms].sort((a, b) => compareTerms(a.term, b.term));
-  const placed = placements(rules);
-  const attemptsByCode = new Map<string, TranscriptEntry[]>();
-  for (const e of [...transcript].sort((a, b) => compareTerms(a.term, b.term))) {
-    attemptsByCode.set(e.courseCode, [...(attemptsByCode.get(e.courseCode) ?? []), e]);
-  }
-
-  /** The course as the transcript stands before `term` (Điều 14: the last completed attempt counts). */
-  const standingBefore = (code: string, term: Term) => {
-    const earlier = (attemptsByCode.get(code) ?? []).filter((a) => compareTerms(a.term, term) < 0);
-    return earlier.length ? resolve(code, earlier) : null;
-  };
-  const creditsOf = (code: string): number | undefined => placed.get(code)?.course.credits ?? catalogCredits.get(code);
-
+  const plan: PlanContext = { rules: input.rules, placed: placements(input.rules), records: courseRecords(input.transcript), catalogCredits: input.catalogCredits };
   const issues: PlanIssue[] = [];
   const loads: PlanTermLoad[] = [];
   const firstPlacedIn = new Map<string, Term>();
-  /** Courses the plan places in the terms checked so far, with their term: the plan assumes each is passed. */
   const plannedEarlier = new Map<string, Term>();
 
-  for (const { term, placements: tiles } of terms) {
-    const at = copyTerm(term);
-    const label = termLabel(term);
-    const placementIssues: PlanIssue[] = [];
-    const load: LoadCourse[] = [];
-    const unknownCredits: string[] = [];
-
-    // Passed before this term: in the transcript (or in progress there, assumed passed as the plan is), or placed earlier in the
-    // plan. Once the transcript has a completed attempt in or after the placement's term, it decides, as it does in coverage.
-    const passedBefore = new Set<string>();
-    for (const [code, placedIn] of plannedEarlier) {
-      const recorded = (attemptsByCode.get(code) ?? []).some((a) => isCompleted(a) && compareTerms(a.term, placedIn) >= 0 && compareTerms(a.term, term) < 0);
-      if (!recorded) passedBefore.add(code);
-    }
-    for (const code of attemptsByCode.keys()) {
-      const standing = standingBefore(code, term);
-      if (standing && (standing.passed || standing.inProgress)) passedBefore.add(code);
-    }
-
-    tiles.forEach((p, position) => {
-      if (p.kind === 'slot' || p.courseCode === null) {
-        load.push({ credits: p.credits ?? 0, excludedFromMinimum: !slotCountsTowardTotal(rules, p.requirementGroupId) });
-        return;
-      }
-      const code = p.courseCode;
-      const where = { term: at, position, courseCode: code };
-      const credits = creditsOf(code);
-      if (credits === undefined) {
-        unknownCredits.push(code);
-        placementIssues.push(
-          issue({ ...where, code: 'credits_not_recorded', kind: 'unknown', citation: 'QĐ 1175/QĐ-KHTN Điều 7.1.b', message: `${code} is not in the catalog, so its credits are unknown and left out of the load of ${label}.` }),
-        );
-      } else {
-        load.push({ credits, excludedFromMinimum: placed.get(code)?.course.countsTowardTotal === false });
-      }
-
-      const first = firstPlacedIn.get(code);
-      if (first) {
-        placementIssues.push(
-          issue({ ...where, code: 'placed_twice', kind: 'violation', citation: PLAN_MODEL_CITATION, message: `${code} is already placed in ${termLabel(first)}; a plan places a course once.` }),
-        );
-      } else {
-        firstPlacedIn.set(code, at);
-      }
-
-      if (!placed.has(code)) {
-        placementIssues.push(
-          issue({ ...where, code: 'not_in_curriculum', kind: 'flag', citation: CURRICULUM_CITATION, message: `No requirement group of ${rules.curriculumCode} lists ${code}, so it counts toward nothing.` }),
-        );
-      }
-
-      const standing = standingBefore(code, term);
-      if (standing?.passed) {
-        placementIssues.push(
-          issue({
-            ...where,
-            code: 'already_passed',
-            kind: 'flag',
-            citation: IMPROVEMENT_CITATION,
-            message: `${code} is already passed. Taking it again is a grade improvement, and the last grade becomes official even if it is lower.`,
-          }),
-        );
-      } else if (standing?.inProgress) {
-        placementIssues.push(
-          issue({
-            ...where,
-            code: 'already_in_progress',
-            kind: 'flag',
-            citation: IMPROVEMENT_CITATION,
-            message: `${code} is in progress before ${label}, and the plan assumes it passes. Taking it again is a grade improvement, or a retake if it fails.`,
-          }),
-        );
-      }
-
-      const prerequisites = checkPrerequisites(courseRules.prerequisites.get(code) ?? null, passedBefore);
-      if (prerequisites.status === 'not_recorded') {
-        placementIssues.push(
-          issue({ ...where, code: 'prerequisites_not_recorded', kind: 'unknown', citation: PREREQUISITE_CITATION, message: `The prerequisites of ${code} are not recorded for ${rules.curriculumCode}: unknown, not checked.` }),
-        );
-      } else if (prerequisites.status === 'not_met') {
-        placementIssues.push(
-          issue({
-            ...where,
-            code: 'prerequisite_not_met',
-            kind: 'violation',
-            missingCourseCodes: prerequisites.missing,
-            citation: PREREQUISITE_CITATION,
-            message: `${code} needs ${prerequisites.missing.join(', ')} passed before ${label}.`,
-          }),
-        );
-      }
-
-      const offered = checkOfferingTerm((courseRules.offeringTerms.get(code) ?? null) as Term['number'][] | null, term);
-      if (offered.status === 'not_recorded') {
-        placementIssues.push(
-          issue({ ...where, code: 'offering_terms_not_recorded', kind: 'unknown', citation: OFFERING_CITATION, message: `The offering terms of ${code} are not recorded for ${rules.curriculumCode}: unknown, not checked.` }),
-        );
-      } else if (offered.status === 'not_offered') {
-        placementIssues.push(
-          issue({
-            ...where,
-            code: 'not_offered',
-            kind: 'violation',
-            offeredTermNumbers: offered.offeredTermNumbers,
-            citation: OFFERING_CITATION,
-            message: `${code} is taught in term ${offered.offeredTermNumbers.join(', ')}, not term ${term.number}.`,
-          }),
-        );
-      }
-    });
-
-    const checked = checkTermLoad(rules.trainingType, term.number, load);
-    loads.push({ term: at, kind: checked.kind, credits: checked.credits, caps: checked.caps });
-    if (checked.caps === null) {
-      issues.push(
-        issue({ term: at, code: 'caps_not_checked', kind: 'unknown', credits: checked.credits, citation: CAP_CITATION, message: `The training type of ${rules.programCode} is not recorded, so the load of ${label} is not checked.` }),
-      );
-    }
-    // A course of unknown credits may add any number: only a load already above the maximum is certain (ADR 0011: unknown, never a pass or a fail).
-    // A known load below the minimum may yet reach it; one not above the maximum may yet cross it.
-    const violations = unknownCredits.length ? checked.violations.filter((v) => v.rule === 'above_maximum') : checked.violations;
-    if (unknownCredits.length && checked.caps !== null) {
-      const { min, max } = checked.caps;
-      const minOpen = checked.violations.some((v) => v.rule === 'below_minimum');
-      const maxOpen = !violations.length;
-      if (minOpen || maxOpen) {
-        const against = minOpen && maxOpen ? `the caps of ${min}–${max}` : minOpen ? `the minimum of ${min}` : `the maximum of ${max}`;
-        issues.push(
-          issue({
-            term: at,
-            code: 'load_not_checked',
-            kind: 'unknown',
-            credits: checked.credits,
-            citation: CAP_CITATION,
-            message: `The credits of ${unknownCredits.join(', ')} are unknown, so ${label} holds at least ${checked.credits} credits and is not checked against ${against}.`,
-          }),
-        );
-      }
-    }
-    for (const v of violations) {
-      const below = v.rule === 'below_minimum';
-      issues.push(
-        issue({
-          term: at,
-          code: below ? 'load_below_minimum' : 'load_above_maximum',
-          kind: 'flag',
-          credits: v.credits,
-          limit: v.limit,
-          citation: v.citation,
-          message: `${label} holds ${v.credits} credits, ${below ? 'below the minimum' : 'above the maximum'} of ${v.limit}. ${PETITION_NOTE}`,
-        }),
-      );
-    }
-    issues.push(...placementIssues);
-    for (const p of tiles) if (p.kind === 'course' && p.courseCode !== null && !plannedEarlier.has(p.courseCode)) plannedEarlier.set(p.courseCode, at);
+  for (const board of terms) {
+    const checked = checkTerm(plan, board, firstPlacedIn, plannedEarlier);
+    loads.push(checked.load);
+    issues.push(...checked.issues);
+    for (const p of board.placements) if (p.kind === 'course' && p.courseCode !== null && !plannedEarlier.has(p.courseCode)) plannedEarlier.set(p.courseCode, copyTerm(board.term));
   }
 
-  const coverage = projectedCoverage(input, terms);
+  const coverage = projectedCoverage(input, plan.placed, terms);
   issues.push(...coverage.issues);
-  return { planId: input.planId, trainingType: rules.trainingType, terms: loads, issues, coverage: coverage.coverage };
+  return { planId: input.planId, trainingType: input.rules.trainingType, terms: loads, issues, coverage: coverage.coverage };
 }
 
-const sitting = (courseCode: string, term: Term): string => `${courseCode}@${term.year}-${term.number}`;
+function checkTerm(plan: PlanContext, { term, placements: tiles }: BoardTerm, firstPlacedIn: Map<string, Term>, plannedEarlier: ReadonlyMap<string, Term>) {
+  const at = copyTerm(term);
+  const passed = passedOrAssumedBefore(plan.records, plannedEarlier, term);
+  const placementIssues: PlanIssue[] = [];
+  const load: LoadCourse[] = [];
+  const unknownCredits: string[] = [];
 
-export interface ProjectedTranscript {
+  tiles.forEach((placement, position) => {
+    if (placement.kind === 'slot' || placement.courseCode === null) {
+      load.push(slotLoad(plan.rules, placement));
+      return;
+    }
+    const tile: CourseTile = { term: at, position, courseCode: placement.courseCode };
+    const credits = placedCredits(plan, tile.courseCode);
+    if (credits === undefined) unknownCredits.push(tile.courseCode);
+    else load.push({ credits, excludedFromMinimum: plan.placed.get(tile.courseCode)?.course.countsTowardTotal === false });
+    const first = firstPlacedIn.get(tile.courseCode);
+    if (!first) firstPlacedIn.set(tile.courseCode, at);
+    placementIssues.push(...courseIssues(plan, tile, { credits, first, passed }));
+  });
+
+  const checked = checkTermLoad(plan.rules.trainingType, term.number, load);
+  return {
+    load: { term: at, kind: checked.kind, credits: checked.credits, caps: checked.caps },
+    issues: [...loadIssues(plan.rules, at, checked, unknownCredits), ...placementIssues],
+  };
+}
+
+const slotLoad = (rules: CurriculumRules, slot: Placement): LoadCourse => ({
+  credits: slot.credits ?? 0,
+  excludedFromMinimum: !slotCountsTowardTotal(rules, slot.requirementGroupId),
+});
+
+interface CourseFacts {
+  credits: number | undefined;
+  first: Term | undefined;
+  passed: ReadonlySet<string>;
+}
+
+function courseIssues(plan: PlanContext, tile: CourseTile, facts: CourseFacts): PlanIssue[] {
+  const record = plan.records.get(tile.courseCode);
+  return [
+    facts.credits === undefined ? creditsNotRecorded(tile) : null,
+    facts.first ? placedTwice(tile, facts.first) : null,
+    plan.placed.has(tile.courseCode) ? null : notInCurriculum(plan.rules, tile),
+    repeatIssue(record ? recordBefore(record, tile.term) : null, tile),
+    prerequisiteIssue(plan.rules, tile, facts.passed),
+    offeringIssue(plan.rules, tile),
+  ].filter((i): i is PlanIssue => i !== null);
+}
+
+const creditsNotRecorded = (tile: CourseTile): PlanIssue =>
+  issue({
+    ...tile,
+    code: 'credits_not_recorded',
+    kind: 'unknown',
+    citation: CITATIONS.termLoad,
+    message: `${tile.courseCode} is not in the catalog, so its credits are unknown and left out of the load of ${termLabel(tile.term)}.`,
+  });
+
+const placedTwice = (tile: CourseTile, first: Term): PlanIssue =>
+  issue({ ...tile, code: 'placed_twice', kind: 'violation', citation: CITATIONS.planModel, message: `${tile.courseCode} is already placed in ${termLabel(first)}; a plan places a course once.` });
+
+const notInCurriculum = (rules: CurriculumRules, tile: CourseTile): PlanIssue =>
+  issue({
+    ...tile,
+    code: 'not_in_curriculum',
+    kind: 'flag',
+    citation: CITATIONS.curriculum,
+    message: `No requirement group of ${rules.curriculumCode} lists ${tile.courseCode}, so it counts toward nothing.`,
+  });
+
+function repeatIssue(standing: CourseRecord | null, tile: CourseTile): PlanIssue | null {
+  if (standing?.passed) {
+    return issue({
+      ...tile,
+      code: 'already_passed',
+      kind: 'flag',
+      citation: CITATIONS.gradeImprovement,
+      message: `${tile.courseCode} is already passed. Taking it again is a grade improvement, and the last grade becomes official even if it is lower.`,
+    });
+  }
+  if (standing?.inProgress) {
+    return issue({
+      ...tile,
+      code: 'already_in_progress',
+      kind: 'flag',
+      citation: CITATIONS.gradeImprovement,
+      message: `${tile.courseCode} is in progress before ${termLabel(tile.term)}, and the plan assumes it passes. Taking it again is a grade improvement, or a retake if it fails.`,
+    });
+  }
+  return null;
+}
+
+function prerequisiteIssue(rules: CurriculumRules, tile: CourseTile, passed: ReadonlySet<string>): PlanIssue | null {
+  const check = checkPrerequisites(rules.prerequisites.get(tile.courseCode) ?? null, passed);
+  if (check.status === 'not_recorded') {
+    return issue({
+      ...tile,
+      code: 'prerequisites_not_recorded',
+      kind: 'unknown',
+      citation: CITATIONS.prerequisite,
+      message: `The prerequisites of ${tile.courseCode} are not recorded for ${rules.curriculumCode}: unknown, not checked.`,
+    });
+  }
+  if (check.status === 'not_met') {
+    return issue({
+      ...tile,
+      code: 'prerequisite_not_met',
+      kind: 'violation',
+      missingCourseCodes: check.missing,
+      citation: CITATIONS.prerequisite,
+      message: `${tile.courseCode} needs ${check.missing.join(', ')} passed before ${termLabel(tile.term)}.`,
+    });
+  }
+  return null;
+}
+
+function offeringIssue(rules: CurriculumRules, tile: CourseTile): PlanIssue | null {
+  const check = checkOfferingTerm(rules.offeringTerms.get(tile.courseCode) ?? null, tile.term);
+  if (check.status === 'not_recorded') {
+    return issue({
+      ...tile,
+      code: 'offering_terms_not_recorded',
+      kind: 'unknown',
+      citation: CITATIONS.offering,
+      message: `The offering terms of ${tile.courseCode} are not recorded for ${rules.curriculumCode}: unknown, not checked.`,
+    });
+  }
+  if (check.status === 'not_offered') {
+    return issue({
+      ...tile,
+      code: 'not_offered',
+      kind: 'violation',
+      offeredTermNumbers: check.offeredTermNumbers,
+      citation: CITATIONS.offering,
+      message: `${tile.courseCode} is taught in term ${check.offeredTermNumbers.join(', ')}, not term ${tile.term.number}.`,
+    });
+  }
+  return null;
+}
+
+function loadIssues(rules: CurriculumRules, term: Term, checked: TermLoadCheck, unknownCredits: readonly string[]): PlanIssue[] {
+  const violations = unknownCredits.length ? checked.violations.filter((v) => v.rule === 'above_maximum') : checked.violations;
+  return [
+    checked.caps === null ? capsNotChecked(rules, term, checked) : null,
+    unknownCredits.length ? loadNotChecked(term, checked, unknownCredits, violations.length > 0) : null,
+    ...violations.map((v) => capViolationIssue(term, v)),
+  ].filter((i): i is PlanIssue => i !== null);
+}
+
+const capsNotChecked = (rules: CurriculumRules, term: Term, checked: TermLoadCheck): PlanIssue =>
+  issue({
+    term,
+    code: 'caps_not_checked',
+    kind: 'unknown',
+    credits: checked.credits,
+    citation: CITATIONS.creditCaps,
+    message: `The training type of ${rules.programCode} is not recorded, so the load of ${termLabel(term)} is not checked.`,
+  });
+
+function loadNotChecked(term: Term, checked: TermLoadCheck, unknownCredits: readonly string[], aboveMaximum: boolean): PlanIssue | null {
+  if (checked.caps === null) return null;
+  const { min, max } = checked.caps;
+  const minOpen = checked.violations.some((v) => v.rule === 'below_minimum');
+  const maxOpen = !aboveMaximum;
+  if (!minOpen && !maxOpen) return null;
+  const against = minOpen && maxOpen ? `the caps of ${min}–${max}` : minOpen ? `the minimum of ${min}` : `the maximum of ${max}`;
+  return issue({
+    term,
+    code: 'load_not_checked',
+    kind: 'unknown',
+    credits: checked.credits,
+    citation: CITATIONS.creditCaps,
+    message: `The credits of ${unknownCredits.join(', ')} are unknown, so ${termLabel(term)} holds at least ${checked.credits} credits and is not checked against ${against}.`,
+  });
+}
+
+function capViolationIssue(term: Term, violation: CapViolation): PlanIssue {
+  const below = violation.rule === 'below_minimum';
+  return issue({
+    term,
+    code: below ? 'load_below_minimum' : 'load_above_maximum',
+    kind: 'flag',
+    credits: violation.credits,
+    limit: violation.limit,
+    citation: violation.citation,
+    message: `${termLabel(term)} holds ${violation.credits} credits, ${below ? 'below the minimum' : 'above the maximum'} of ${violation.limit}. ${PETITION_NOTE}`,
+  });
+}
+
+const sitting = (courseCode: string, term: Term): string => `${courseCode}@${termKey(term)}`;
+
+interface ProjectedTranscript {
   entries: TranscriptEntry[];
-  /** The slots of each requirement group, as unnamed courses of it. */
   slotsByGroup: Map<string, CurriculumRuleGroup['courses']>;
 }
 
-/**
- * The transcript as it would stand with the plan completed: every course in progress passed, every
- * placed course a pass in its term, and every slot a pass of an unnamed course of its group. A course
- * the plan places in a term the transcript already has it in adds nothing: the tile shows that
- * sitting (ADR 0013), so the transcript's attempt stands alone, as it is, and no tie between two
- * attempts of one term is left for the audit to break.
- */
-export function projectedTranscript(input: PlanCheckInput, terms: readonly BoardTerm[]): ProjectedTranscript {
-  const { rules, catalogCredits } = input;
-  const placed = placements(rules);
-  const slotsByGroup = new Map<string, CurriculumRuleGroup['courses']>();
-  const entries: TranscriptEntry[] = input.transcript.map((e) => (e.result === 'in_progress' ? { ...e, result: 'pass' as const } : e));
-  const pass = (courseCode: string, credits: number, term: Term): TranscriptEntry => ({ courseCode, courseName: courseCode, credits, result: 'pass', grade: null, term });
+const passOf = (courseCode: string, credits: number, term: Term): TranscriptEntry => ({ courseCode, courseName: courseCode, credits, result: 'pass', grade: null, term });
 
+export function projectedTranscript(input: PlanCheckInput, placed: ReadonlyMap<string, CountedLink>, terms: readonly BoardTerm[]): ProjectedTranscript {
+  const { rules } = input;
+  const entries: TranscriptEntry[] = input.transcript.map((e) => (e.result === 'in_progress' ? { ...e, result: 'pass' as const } : e));
   const sat = new Set(input.transcript.map((e) => sitting(e.courseCode, e.term)));
+  const slots: { groupId: string; slot: CurriculumRuleGroup['courses'][number] }[] = [];
 
   for (const { term, placements: tiles } of terms) {
-    tiles.forEach((p, position) => {
-      if (p.kind === 'course' && p.courseCode !== null) {
-        if (sat.has(sitting(p.courseCode, term))) return;
-        const credits = placed.get(p.courseCode)?.course.credits ?? catalogCredits.get(p.courseCode);
-        if (credits !== undefined) entries.push(pass(p.courseCode, credits, term));
-      } else if (p.requirementGroupId !== null && p.credits !== null) {
-        // Lower case: never a catalog code (COURSE_CODE_PATTERN is capitals and digits).
-        const code = `slot:${term.year}-${term.number}-${position}`;
-        const slot = { code, nameVi: code, nameEn: null, credits: p.credits, countsTowardTotal: slotCountsTowardTotal(rules, p.requirementGroupId), countsTowardGpa: false };
-        slotsByGroup.set(p.requirementGroupId, [...(slotsByGroup.get(p.requirementGroupId) ?? []), slot]);
-        entries.push(pass(code, p.credits, term));
+    tiles.forEach((tile, position) => {
+      if (tile.kind === 'course' && tile.courseCode !== null) {
+        if (sat.has(sitting(tile.courseCode, term))) return;
+        const credits = placedCredits({ placed, catalogCredits: input.catalogCredits }, tile.courseCode);
+        if (credits !== undefined) entries.push(passOf(tile.courseCode, credits, term));
+      } else if (tile.requirementGroupId !== null && tile.credits !== null) {
+        const code = `slot:${termKey(term)}-${position}`;
+        slots.push({ groupId: tile.requirementGroupId, slot: { code, nameVi: code, nameEn: null, credits: tile.credits, countsTowardTotal: slotCountsTowardTotal(rules, tile.requirementGroupId), countsTowardGpa: false } });
+        entries.push(passOf(code, tile.credits, term));
       }
     });
   }
+  const slotsByGroup = new Map([...groupBy(slots, (s) => s.groupId)].map(([id, list]) => [id, list.map((s) => s.slot)]));
   return { entries, slotsByGroup };
 }
 
-/**
- * The degree audit as it would stand with the plan completed: every placed course and every course
- * in progress passed in its term. A slot is an unnamed course of its group with the slot's credits,
- * so it counts, and overflows, as the course chosen for it would; it counts toward the total only
- * when every course of its group does.
- */
-function projectedCoverage(input: PlanCheckInput, terms: readonly BoardTerm[]): { coverage: PlanCoverage; issues: PlanIssue[] } {
+function projectedAudit(input: PlanCheckInput, placed: ReadonlyMap<string, CountedLink>, terms: readonly BoardTerm[]): DegreeAudit {
   const { rules } = input;
-  const { entries: projected, slotsByGroup } = projectedTranscript(input, terms);
-
+  const { entries, slotsByGroup } = projectedTranscript(input, placed, terms);
   const withSlots: CurriculumRules = { ...rules, groups: rules.groups.map((g) => ({ ...g, courses: [...g.courses, ...(slotsByGroup.get(g.id) ?? [])] })) };
-  const audit = degreeAudit(withSlots, projected);
-  const issues: PlanIssue[] = [];
+  return degreeAudit(withSlots, entries);
+}
 
-  const groups = audit.groups.map((g) => {
-    const credits = g.passedCredits + g.overflowInCredits;
-    if (!g.met) {
-      const missing = g.kind === 'compulsory' ? g.courses.filter((c) => c.status !== 'passed' && c.status !== 'counted_in_other_group').map((c) => c.code) : [];
-      issues.push(
-        issue({
-          code: 'requirement_not_covered',
-          kind: 'violation',
-          requirementGroupId: g.id,
-          missingCourseCodes: missing,
-          credits,
-          limit: g.requiredCredits,
-          citation: GRADUATION_CITATION,
-          message: missing.length
-            ? `With the plan completed, "${g.name}" still needs ${missing.join(', ')}.`
-            : `With the plan completed, "${g.name}" has ${credits} of ${g.requiredCredits} credits.`,
-        }),
-      );
-    }
-    return { id: g.id, name: g.name, kind: g.kind, requiredCredits: g.requiredCredits, credits, remainingCredits: g.remainingCredits, met: g.met };
+const projectedCredits = (g: GroupCoverage): number => g.passedCredits + g.overflowInCredits;
+
+const notCovered = (fields: Partial<PlanIssue> & Pick<PlanIssue, 'message'>): PlanIssue =>
+  issue({ code: 'requirement_not_covered', kind: 'violation', citation: CITATIONS.graduation, ...fields });
+
+function groupNotCovered(group: GroupCoverage): PlanIssue {
+  const credits = projectedCredits(group);
+  const missing = group.kind === 'compulsory' ? group.courses.filter((c) => c.status !== 'passed' && c.status !== 'counted_in_other_group').map((c) => c.code) : [];
+  return notCovered({
+    requirementGroupId: group.id,
+    missingCourseCodes: missing,
+    credits,
+    limit: group.requiredCredits,
+    message: missing.length
+      ? `With the plan completed, "${group.name}" still needs ${missing.join(', ')}.`
+      : `With the plan completed, "${group.name}" has ${credits} of ${group.requiredCredits} credits.`,
+  });
+}
+
+const minimumNotCovered = (minimum: CombinedMinimumCoverage): PlanIssue =>
+  notCovered({
+    combinedMinimumId: minimum.id,
+    credits: minimum.credits,
+    limit: minimum.creditsMin,
+    message: `With the plan completed, "${minimum.name}" has ${minimum.credits} of at least ${minimum.creditsMin} credits.`,
   });
 
-  const combinedMinimums = audit.combinedMinimums.map((m) => {
-    if (!m.met) {
-      issues.push(
-        issue({
-          code: 'requirement_not_covered',
-          kind: 'violation',
-          combinedMinimumId: m.id,
-          credits: m.credits,
-          limit: m.creditsMin,
-          citation: GRADUATION_CITATION,
-          message: `With the plan completed, "${m.name}" has ${m.credits} of at least ${m.creditsMin} credits.`,
-        }),
-      );
-    }
-    return { id: m.id, name: m.name, creditsMin: m.creditsMin, credits: m.credits, remainingCredits: m.remainingCredits, met: m.met };
-  });
+function totalNotCovered({ towardTotal, totalRequired }: CreditSummary): PlanIssue[] {
+  if (totalRequired === null || towardTotal >= totalRequired) return [];
+  return [
+    notCovered({
+      credits: towardTotal,
+      limit: totalRequired,
+      message: `With the plan completed, ${towardTotal} of the ${totalRequired} credits of the cohort total are covered.`,
+    }),
+  ];
+}
 
+function projectedCoverage(input: PlanCheckInput, placed: ReadonlyMap<string, CountedLink>, terms: readonly BoardTerm[]): { coverage: PlanCoverage; issues: PlanIssue[] } {
+  const audit = projectedAudit(input, placed, terms);
+  const issues = [...audit.groups.filter((g) => !g.met).map(groupNotCovered), ...audit.combinedMinimums.filter((m) => !m.met).map(minimumNotCovered), ...totalNotCovered(audit.credits)];
+  const groups = audit.groups.map((g) => ({ id: g.id, name: g.name, kind: g.kind, requiredCredits: g.requiredCredits, credits: projectedCredits(g), remainingCredits: g.remainingCredits, met: g.met }));
+  const combinedMinimums = audit.combinedMinimums.map((m) => ({ id: m.id, name: m.name, creditsMin: m.creditsMin, credits: m.credits, remainingCredits: m.remainingCredits, met: m.met }));
   const { towardTotal, totalRequired, remaining } = audit.credits;
-  if (totalRequired !== null && towardTotal < totalRequired) {
-    issues.push(
-      issue({
-        code: 'requirement_not_covered',
-        kind: 'violation',
-        credits: towardTotal,
-        limit: totalRequired,
-        citation: GRADUATION_CITATION,
-        message: `With the plan completed, ${towardTotal} of the ${totalRequired} credits of the cohort total are covered.`,
-      }),
-    );
-  }
-
   return {
     coverage: { groups, combinedMinimums, totalRequired, totalCredits: towardTotal, totalRemaining: remaining, graduation: audit.graduation.status },
     issues,

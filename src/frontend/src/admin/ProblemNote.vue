@@ -4,8 +4,6 @@ import Icon from '../shell/Icon.vue';
 import { ADMIN_MESSAGES } from './messages.js';
 import type { ProblemView } from './problem.js';
 
-// Says why a write is not known to be saved, in words (never by colour alone), where the write was started.
-// `data-code` carries the API's reason for test scripts. The API's own messages are English, so they are marked.
 defineProps<{ problem: ProblemView | null }>();
 defineEmits<{ reload: [] }>();
 const m = useMessages(ADMIN_MESSAGES);
@@ -27,7 +25,7 @@ const m = useMessages(ADMIN_MESSAGES);
   </div>
 </template>
 
-<style>
+<style scoped>
 .admin-problem > div { display: grid; gap: 6px; min-width: 0; justify-items: start; }
 .admin-problem ul { margin: 0; padding-left: 18px; display: grid; gap: 2px; }
 .admin-problem li { overflow-wrap: anywhere; }

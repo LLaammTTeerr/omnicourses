@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemoryHistory } from 'vue-router';
 import { SESSION_STORAGE_KEY } from './auth/store.js';
 import { authResult } from './auth/testing/fixtures.js';
-import { createAppRouter } from './router.js';
+import { CHUNK_RELOAD_KEY, createAppRouter, isChunkLoadError, reloadOnStaleChunk } from './router.js';
 import { NOT_STARTED } from './onboarding/api.js';
 import { onboarding } from './onboarding/testing/fixtures.js';
 import { mockApi, status } from './testing/fetch.js';
@@ -22,9 +22,15 @@ describe('router guard (issue #13)', () => {
     expect(router.currentRoute.value.query.redirect).toBe(`${path}?x=1`);
   });
 
-  it.each(['/', '/guides', '/guides/zz-fresh', '/privacy', '/sign-in', '/sign-up'])('lets a signed-out visitor open %s', async (path) => {
+  it.each(['/', '/guides', '/guides/zz-fresh', '/shared/zz-token', '/privacy', '/sign-in', '/sign-up'])('lets a signed-out visitor open %s', async (path) => {
     const { router } = await setup(path, { signedIn: false });
     expect(router.currentRoute.value.fullPath).toBe(path);
+  });
+
+  it('lets a signed-in student open /shared/:token even before onboarding is finished', async () => {
+    const { router } = await setup('/shared/zz-token', { signedIn: true, onboarded: null });
+    expect(router.currentRoute.value.name).toBe('shared-plan');
+    expect(router.currentRoute.value.params.token).toBe('zz-token');
   });
 
   it('sends a signed-in student away from sign-in, to the redirect or the dashboard', async () => {
@@ -45,6 +51,37 @@ describe('router guard (issue #13)', () => {
   it('sends an unknown address to the home page', async () => {
     const { router } = await setup('/no/such/page', { signedIn: false });
     expect(router.currentRoute.value.fullPath).toBe('/');
+  });
+
+  it('loads every feature screen lazily so routes split into chunks', () => {
+    const router = createAppRouter(createMemoryHistory());
+    const withViews = router.getRoutes().filter((record) => record.components?.default);
+    expect(withViews.length).toBeGreaterThanOrEqual(22);
+    for (const record of withViews) {
+      expect(typeof record.components!.default, `route ${String(record.name ?? record.path)} should be lazy`).toBe('function');
+    }
+  });
+
+  it('reloads once on a stale lazy-route chunk 404 after a deploy, without looping on repeated failure', async () => {
+    const reloads: string[] = [];
+    const router = createAppRouter(createMemoryHistory(), (url) => reloads.push(url));
+    router.addRoute({
+      path: '/stale-chunk-test',
+      name: 'stale-chunk-test',
+      component: () => Promise.reject(new TypeError('Failed to fetch dynamically imported module: https://omnicourses.lamter.cc/assets/Old-123.js')),
+    });
+
+    await expect(router.push('/stale-chunk-test')).rejects.toThrow(/Failed to fetch dynamically imported module/);
+    expect(reloads).toEqual(['/stale-chunk-test']);
+    expect(sessionStorage.getItem(CHUNK_RELOAD_KEY)).toBe('/stale-chunk-test');
+
+    await expect(router.push('/stale-chunk-test')).rejects.toThrow(/Failed to fetch dynamically imported module/);
+    expect(reloads).toEqual(['/stale-chunk-test']);
+    expect(sessionStorage.getItem(CHUNK_RELOAD_KEY)).toBeNull();
+
+    expect(isChunkLoadError(new Error('regular component failure'))).toBe(false);
+    expect(reloadOnStaleChunk('/guides?lang=en', (url) => reloads.push(url))).toBe(true);
+    expect(reloads.at(-1)).toBe('/guides?lang=en');
   });
 });
 

@@ -1,0 +1,50 @@
+2026-11-25T06:16:49.025Z a-screens trn01
+2026-11-25T06:16:49.283Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+  API POST /auth/sign-up (b2-s8@example.com) → 201
+  API PUT /users/me/onboarding → 200 {"program":"APCS","cohort":2024,"targetGraduationTerm":null,"creditsPerTerm":null,"internshipTerm":null,"finished":true}
+ok   TRN-01 prepare: T onboarded to APCS 2024
+  API GET /users/me/transcript → 200 {"rows":[]}
+ok   TRN-01 prepare: T has no transcript | observed: {"rows":[]}
+  UI sign-in b2-s8@example.com → 200
+--- TRN-01a
+ok   TRN-01a: before Add row: "No courses yet. Add the first row to start.", "0 rows · no changes", Save transcript disabled | observed: 0 rows · no changes
+Saving replaces your whole saved transcript.
+ok   TRN-01a: focus in the new row's Code box; term "Term 1 2026–2027" | observed: {"focus":"input #code-0 \"Code, row 1\"","term":"Term 1 2026–2027"}
+ok   TRN-01a: Check "Needs fixing", "Fix: code (2–20 letters or digits), course name, credits (0–30), result", summary "1 row · 1 to fix" + "An incomplete row cannot be saved.", save disabled | observed: {"check":"Needs fixing","fix":"Fix: code (2–20 letters or digits), course name, credits (0–30), result","summary":"1 row · 1 to fix\nAn incomplete row cannot be saved."}
+ok   TRN-01a: leaving the Code box shows "CS160" | observed: CS160
+ok   TRN-01a: Graded and no grade yet: "Fix: grade (0–10, one decimal)" | observed: Fix: grade (0–10, one decimal)
+ok   TRN-01a: the second row starts in "Term 1 2024–2025" | observed: Term 1 2024–2025
+ok   TRN-01a: the third row starts in "Term 1 2024–2025" | observed: Term 1 2024–2025
+ok   TRN-01a: each Check "Valid", summary "3 rows · ready to save" | observed: 3 rows · ready to save
+Saving replaces your whole saved transcript.
+ok   TRN-01a: nothing sent while typing
+ok   TRN-01a: the save sends one PUT, 200; toast "Saved 3 rows."; "3 rows · no changes"; save disabled again | observed: {"w":"PUT /api/users/me/transcript 200","toast":"Saved 3 rows.","summary":"3 rows · no changes\nSaving replaces your whole saved transcript."}
+ok   TRN-01a: GET returns exactly T-A's 3 rows: capitals, 4 credits, graded, grades 7.5, 8.5 and 7 (a JSON number), term 2024/1 | observed: [["CM102","Tư duy độc lập",4,"graded",7.5,2024,1],["CS160","Nhập môn Tin học",4,"graded",8.5,2024,1],["MTH251","Vi tích phân I",4,"graded",7,2024,1]]
+ok   TRN-01a: after the reload: CM102, CS160, MTH251 with "7.5", "8.5", "7.0" | observed: [["CM102","7.5"],["CS160","8.5"],["MTH251","7.0"]]
+--- TRN-01b
+ok   TRN-01b: the new row starts in "Term 1 2024–2025" | observed: Term 1 2024–2025
+  {"step":"(1)","fix":"Fix: code (2–20 letters or digits), course name, credits (0–30), result","check":"Needs fixing","summary":"4 rows · 1 to fix\nAn incomplete row cannot be saved.","saveDisabled":true}
+  {"step":"(2)","fix":"Fix: code (2–20 letters or digits), course name, credits (0–30), result","check":"Needs fixing","summary":"4 rows · 1 to fix\nAn incomplete row cannot be saved.","saveDisabled":true}
+  {"step":"(3)","fix":"Fix: credits (0–30), result","check":"Needs fixing","summary":"4 rows · 1 to fix\nAn incomplete row cannot be saved.","saveDisabled":true}
+  {"step":"(4)","fix":"Fix: credits (0–30), result","check":"Needs fixing","summary":"4 rows · 1 to fix\nAn incomplete row cannot be saved.","saveDisabled":true}
+  {"step":"(5)","fix":"Fix: grade (0–10, one decimal)","check":"Needs fixing","summary":"4 rows · 1 to fix\nAn incomplete row cannot be saved.","saveDisabled":true}
+  {"step":"(6)","fix":"Fix: grade (0–10, one decimal)","check":"Needs fixing","summary":"4 rows · 1 to fix\nAn incomplete row cannot be saved.","saveDisabled":true}
+  {"step":"(7)","fix":"Fix: grade (0–10, one decimal)","check":"Needs fixing","summary":"4 rows · 1 to fix\nAn incomplete row cannot be saved.","saveDisabled":true}
+  {"step":"(8)","fix":null,"check":"Valid","summary":"4 rows · ready to save\nSaving replaces your whole saved transcript.","saveDisabled":false}
+ok   TRN-01b: the line under the row, step by step, as the case says | observed: ["Fix: code (2–20 letters or digits), course name, credits (0–30), result","Fix: code (2–20 letters or digits), course name, credits (0–30), result","Fix: credits (0–30), result","Fix: credits (0–30), result","Fix: grade (0–10, one decimal)","Fix: grade (0–10, one decimal)","Fix: grade (0–10, one decimal)",null]
+ok   TRN-01b: through (7): "Needs fixing", "4 rows · 1 to fix", save disabled
+ok   TRN-01b: at (8): "Valid", "4 rows · ready to save", save enabled | observed: {"step":"(8)","fix":null,"check":"Valid","summary":"4 rows · ready to save\nSaving replaces your whole saved transcript.","saveDisabled":false}
+ok   TRN-01b: Network shows no PUT
+ok   TRN-01b: the bin is named "Remove row 4 (ZZ902)" | observed: Remove row 4 (ZZ902)
+ok   TRN-01b: the bin sends nothing; toast "Removed row 4 (ZZ902) from the table. Your saved transcript changes only when you save."; focus on Add row; "3 rows · no changes" | observed: {"toast":"Removed row 4 (ZZ902) from the table. Your saved transcript changes only when you save.","focus":"button #add-row Add row","summary":"3 rows · no changes\nSaving replaces your whole saved transcript."}
+  API GET /users/me/transcript → 401 {"message":"Unauthorized","statusCode":401}
+file:///E:/Project/omnicourses/docs/test/evidence/b2/a-screens.mjs:754
+  const simple = (rows) => rows.map((r) => [r.courseCode, r.courseName, r.credits, r.result, r.grade, r.term.year, r.term.number]);
+                                ^
+
+TypeError: Cannot read properties of undefined (reading 'map')
+    at simple (file:///E:/Project/omnicourses/docs/test/evidence/b2/a-screens.mjs:754:33)
+    at file:///E:/Project/omnicourses/docs/test/evidence/b2/a-screens.mjs:796:73
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+Node.js v24.19.0

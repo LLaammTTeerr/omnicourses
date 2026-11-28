@@ -1,21 +1,12 @@
-// Prerequisites and offering terms (ADR 0011). The checks take the data as input, null meaning
-// "not recorded", and never invent it. APCS 2024 and 2025 courses are recorded as having no
-// prerequisite (Project Lead, 15 November 2026), except CS470, which needs CS469 (printed in the curriculum
-// PDFs; Project Lead, 24 November 2026). No offering term is recorded yet. Pure functions.
-import type { Term } from '../terms/term.js';
+import { compareTerms, type Term } from '../terms/term.js';
+import { type CourseRecord, isCompleted, recordBefore } from './attempts.js';
 
-export type PrerequisiteCheck =
-  /** No prerequisite data for the course: the check cannot be made. Not the same as "none". */
+type PrerequisiteCheck =
   | { status: 'not_recorded' }
-  /** The course is recorded as having no prerequisite. */
   | { status: 'none' }
   | { status: 'met' }
   | { status: 'not_met'; missing: string[] };
 
-/**
- * QĐ 1175/QĐ-KHTN Điều 3.1.c: a prerequisite (học phần tiên quyết) of A must be passed before A
- * may be taken. `prerequisites` is the course's prerequisite codes, or null when not recorded.
- */
 export function checkPrerequisites(prerequisites: readonly string[] | null, passedCodes: ReadonlySet<string>): PrerequisiteCheck {
   if (prerequisites === null) return { status: 'not_recorded' };
   if (prerequisites.length === 0) return { status: 'none' };
@@ -23,9 +14,29 @@ export function checkPrerequisites(prerequisites: readonly string[] | null, pass
   return missing.length ? { status: 'not_met', missing } : { status: 'met' };
 }
 
-export type OfferingTermCheck = { status: 'not_recorded' } | { status: 'offered' } | { status: 'not_offered'; offeredTermNumbers: Term['number'][] };
+export function passedOnly(records: ReadonlyMap<string, CourseRecord>): Set<string> {
+  const passed = new Set<string>();
+  for (const record of records.values()) {
+    if (record.passed) passed.add(record.code);
+  }
+  return passed;
+}
 
-/** Whether a course is taught in a term of this number. `offeredTermNumbers` null: not recorded. */
+export function passedOrAssumedBefore(records: ReadonlyMap<string, CourseRecord>, plannedEarlier: ReadonlyMap<string, Term>, term: Term): Set<string> {
+  const passed = new Set<string>();
+  for (const [code, placedIn] of plannedEarlier) {
+    const recorded = (records.get(code)?.attempts ?? []).some((a) => isCompleted(a) && compareTerms(a.term, placedIn) >= 0 && compareTerms(a.term, term) < 0);
+    if (!recorded) passed.add(code);
+  }
+  for (const record of records.values()) {
+    const standing = recordBefore(record, term);
+    if (standing && (standing.passed || standing.inProgress)) passed.add(record.code);
+  }
+  return passed;
+}
+
+type OfferingTermCheck = { status: 'not_recorded' } | { status: 'offered' } | { status: 'not_offered'; offeredTermNumbers: Term['number'][] };
+
 export function checkOfferingTerm(offeredTermNumbers: readonly Term['number'][] | null, term: Term): OfferingTermCheck {
   if (offeredTermNumbers === null) return { status: 'not_recorded' };
   if (offeredTermNumbers.includes(term.number)) return { status: 'offered' };

@@ -1,37 +1,33 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, shallowRef } from 'vue';
-import { onBeforeRouteLeave } from 'vue-router';
-import { useAsyncLoad } from '../async-load.js';
+import { byField } from '../api.js';
+import { newestOnly, useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import SelectMenu from '../components/SelectMenu.vue';
 import { formatDateTime, useLocale, useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
 import {
+  createProgram,
   fetchAccessPrograms,
   fetchUserGrants,
-  GLOBAL_PERMISSIONS,
   grantGlobal,
   grantProgram,
   revokeGlobal,
   revokeProgram,
-  type GlobalPermission,
-  type ProgramGrant,
-  type UserGrants,
 } from './api.js';
 import ConfirmDialog from './ConfirmDialog.vue';
-import { byField, readFailure, type Failure } from './errors.js';
+import { readFailure, type Failure } from './errors.js';
 import FieldErrors from './FieldErrors.vue';
+import { newProgramBody, PROGRAM_FIELDS, storedCode, type ProgramValues } from './forms.js';
+import { GLOBAL_PERMISSIONS, type GlobalPermission, type ProgramGrant, type UserGrants } from './grants.js';
 import { ADMIN_MESSAGES } from './messages.js';
 import { describeProblem } from './problem.js';
 import ProblemNote from './ProblemNote.vue';
-import { useAdminAccess } from './store.js';
-import { useWrites, type WriteOutcome } from './write.js';
+import ProgramDialog from './ProgramDialog.vue';
+import { useAdminAccess } from './access.js';
+import { stayWhileBusy, useAdminDialog, useWrites, type WriteOutcome } from './write.js';
 
-// Grants and revocations of an access manager (ADR 0011, UC-11 A2, section 8). A user is found by their exact user
-// ID, which they copy from Settings: the API has no user directory and no search. The answer holds grants only,
-// never a name or an email. The API decides everything: it refuses a recipient waiting for deletion and the
-// revocation of the last active access manager, and this page says so in words.
 const auth = useAuth();
 const access = useAdminAccess();
 const locale = useLocale();
@@ -39,25 +35,21 @@ const toast = useToast();
 const m = useMessages(ADMIN_MESSAGES);
 const text = computed(() => m.value.access);
 
-const programs = useAsyncLoad('the programs to grant', async () => (await auth.authed(fetchAccessPrograms)).programs);
+const programs = useAsyncLoad('the programs to grant', async () => (await fetchAccessPrograms()).programs);
 
-// ---------- The user on screen, by their ID ----------
 const typed = ref('');
 const grants = shallowRef<UserGrants | null>(null);
-/** The ID last looked up, as typed without the spaces around it. */
 const userId = ref('');
 const status = ref<'idle' | 'loading' | 'found' | 'refused' | 'failed'>('idle');
 const lookupFailure = shallowRef<Failure | null>(null);
-let latest = 0;
+const newest = newestOnly();
 
-/** The same account: an ID is the same in capitals or small letters, and the API answers it as it was typed. */
 const sameId = (a: string | null | undefined, b: string | null | undefined): boolean => !!a && !!b && a.toLowerCase() === b.toLowerCase();
 
-/** Reads the saved grants of `of` again, and shows them when `of` is still the user on screen. Rejects when the API cannot say. */
 async function refresh(of = userId.value): Promise<UserGrants> {
-  const call = ++latest;
-  const fresh = await auth.authed((token) => fetchUserGrants(token, of));
-  if (call === latest && sameId(of, userId.value)) show(fresh);
+  const isNewest = newest.start();
+  const fresh = await fetchUserGrants(of);
+  if (isNewest() && sameId(of, userId.value)) show(fresh);
   return fresh;
 }
 
@@ -65,26 +57,24 @@ function show(saved: UserGrants): void {
   grants.value = saved;
   userId.value = saved.userId;
   status.value = 'found';
-  // The access manager's own grants decide which sections this page offers them.
   if (sameId(saved.userId, auth.user?.id)) void access.load({ fresh: true });
 }
 
 async function find(): Promise<void> {
   const wanted = typed.value.trim();
-  // A grant or a revocation is out for the user on screen: its answer belongs to that panel, so the lookup waits.
   if (!wanted || writing.value) return;
   stale.value = false;
-  notice.value = null;
+  notice.value = false;
   inlineWrites.clear();
   grants.value = null;
   lookupFailure.value = null;
   userId.value = wanted;
   status.value = 'loading';
-  const call = latest + 1;
+  const isNewest = newest.upcoming();
   try {
     await refresh(wanted);
   } catch (e) {
-    if (call !== latest) return;
+    if (!isNewest()) return;
     const failure = readFailure(e);
     if (failure.kind === 'signed_out') return;
     lookupFailure.value = failure;
@@ -94,7 +84,6 @@ async function find(): Promise<void> {
   }
 }
 
-/** Why the API refused the lookup, in words. A malformed ID is the API's call; its message shows under the box. */
 const lookupRefusal = computed(() => {
   const failure = lookupFailure.value;
   if (status.value !== 'refused' || !failure) return null;
@@ -109,34 +98,23 @@ const when = (iso: string) => formatDateTime(iso, locale.lang);
 const globalGrantOf = (permission: GlobalPermission) => grants.value?.permissions.find((grant) => grant.permission === permission) ?? null;
 const programId = ref<string | null>(null);
 
-// ---------- Writes ----------
-/** Grants are sent from the page; a revocation asks first, in a dialog. */
 const inlineWrites = useWrites();
-const dialogWrites = useWrites();
 type Revocation = { type: 'program'; grant: ProgramGrant } | { type: 'global'; permission: GlobalPermission };
-const revoking = shallowRef<Revocation | null>(null);
-const notice = ref<string | null>(null);
-let opener: HTMLElement | null = null;
-const writing = computed(() => inlineWrites.busy.value || dialogWrites.busy.value);
-/**
- * A revocation was left with its outcome unknown: the grants on screen may be older than the saved ones. No other
- * change starts until they have been read again.
- */
+const notice = ref(false);
 const stale = ref(false);
-/** No grant or revocation starts while the page may be out of date, or while an outcome is unknown. */
+stayWhileBusy(() => inlineWrites.busy.value);
+const revocation = useAdminDialog<Revocation>({
+  fallback: 'access-user-id',
+  notice,
+  stale: { reloadId: 'access-reload', is: () => stale.value, mark: () => (stale.value = true) },
+});
+const { dialog: revoking, writes: dialogWrites } = revocation;
+const writing = computed(() => inlineWrites.busy.value || dialogWrites.busy.value);
 const held = computed(() => stale.value || inlineWrites.problem.value?.outcome === 'unknown');
-
-// A busy dialog refuses Escape, which leaves the Android back gesture to the browser: history back. Stay until
-// the request answers, so its result is said. A 401 has signed the user out, who may leave.
-onBeforeRouteLeave(() => !writing.value || !auth.signedIn);
 
 const holdsProgram = (saved: UserGrants, id: string) => saved.programs.some((grant) => grant.programId === id);
 const holdsGlobal = (saved: UserGrants, permission: GlobalPermission) => saved.permissions.some((grant) => grant.permission === permission);
 
-/**
- * Shows what a grant or a revocation for `of` left saved. Resolves true when it is saved. An answer about a user
- * who is no longer the one on screen is dropped: it must not fill, or show a refusal in, another user's panel.
- */
 function settle(result: WriteOutcome<UserGrants>, saved: string, of: string): boolean {
   if (!sameId(of, userId.value)) {
     inlineWrites.clear();
@@ -147,17 +125,17 @@ function settle(result: WriteOutcome<UserGrants>, saved: string, of: string): bo
     toast.show(saved);
     return true;
   }
-  if (result.outcome === 'confirmed') notice.value = m.value.problem.confirmed;
+  if (result.outcome === 'confirmed') notice.value = true;
   return result.outcome === 'confirmed';
 }
 
 async function giveProgram(): Promise<void> {
   const [to, id] = [grants.value?.userId, programId.value];
   if (!to || !id || inlineWrites.busy.value || held.value) return;
-  notice.value = null;
+  notice.value = false;
   const program = programs.data.value?.find((item) => item.id === id);
   const result = await inlineWrites.send(
-    (token) => grantProgram(token, to, id),
+    () => grantProgram(to, id),
     async () => holdsProgram(await refresh(to), id),
   );
   if (settle(result, text.value.granted(text.value.programPermission(program?.code ?? id)), to)) programId.value = null;
@@ -166,38 +144,25 @@ async function giveProgram(): Promise<void> {
 async function giveGlobal(permission: GlobalPermission): Promise<void> {
   const to = grants.value?.userId;
   if (!to || inlineWrites.busy.value || held.value) return;
-  notice.value = null;
+  notice.value = false;
   const result = await inlineWrites.send(
-    (token) => grantGlobal(token, to, permission),
+    () => grantGlobal(to, permission),
     async () => holdsGlobal(await refresh(to), permission),
   );
   settle(result, text.value.granted(m.value.permissions[permission]), to);
-  // The Grant button became a Revoke button: keep the focus on the control of the same permission.
   await nextTick();
   document.getElementById(`access-action-${permission}`)?.focus();
 }
 
 function askRevoke(next: Revocation, from: Event): void {
   if (held.value) return;
-  opener = from.currentTarget instanceof HTMLElement ? from.currentTarget : null;
-  dialogWrites.clear();
   inlineWrites.clear();
-  notice.value = null;
-  revoking.value = next;
+  notice.value = false;
+  revocation.open(next, from);
 }
 
-/** Closes the dialog and puts the focus back where it was, or on `fallback` when that control is gone. */
-async function closeDialog(fallback = 'access-user-id'): Promise<void> {
-  // Left with its outcome unknown: the grants on screen may not be the saved ones, and the page says so.
-  if (dialogWrites.problem.value?.outcome === 'unknown') stale.value = true;
-  revoking.value = null;
-  dialogWrites.clear();
-  await nextTick();
-  (opener?.isConnected && !(opener as HTMLButtonElement).disabled ? opener : document.getElementById(stale.value ? 'access-reload' : fallback))?.focus();
-  opener = null;
-}
+const closeDialog = revocation.close;
 
-/** Reads the grants of the user on screen again: the page is up to date, and changes may start again. */
 async function reloadStale(): Promise<void> {
   try {
     await refresh();
@@ -207,10 +172,7 @@ async function reloadStale(): Promise<void> {
   }
 }
 
-/** Cancel (UC-11 A6): nothing is revoked and nothing is sent. */
-function cancel(): void {
-  if (!dialogWrites.busy.value) void closeDialog();
-}
+const cancel = revocation.cancel;
 
 const revokingName = computed(() => {
   const current = revoking.value;
@@ -224,31 +186,63 @@ async function revoke(): Promise<void> {
   const result =
     current.type === 'program'
       ? await dialogWrites.send(
-          (token) => revokeProgram(token, from, current.grant.programId),
+          () => revokeProgram(from, current.grant.programId),
           async () => !holdsProgram(await refresh(from), current.grant.programId),
         )
       : await dialogWrites.send(
-          (token) => revokeGlobal(token, from, current.permission),
+          () => revokeGlobal(from, current.permission),
           async () => !holdsGlobal(await refresh(from), current.permission),
         );
   if (!settle(result, text.value.revoked(name), from)) return;
-  // The Revoke button is gone with the grant: the focus goes to the control that can grant it again.
   await closeDialog(current.type === 'global' ? `access-action-${current.permission}` : 'access-program-select');
 }
 
+const programNotice = ref(false);
+const programForm = useAdminDialog<true>({ fallback: 'program-add', notice: programNotice });
+const { writes: programWrites, busy: programBusy, cancel: cancelProgram } = programForm;
+const programOpen = computed(() => programForm.dialog.value !== null);
+
+function openProgram(from: Event): void {
+  notice.value = false;
+  programForm.open(true, from);
+}
+
+async function programListed(values: ProgramValues): Promise<boolean> {
+  const { programs: listed } = await fetchAccessPrograms();
+  return listed.some((item) => item.code === storedCode(values.code) && item.nameVi === values.nameVi.trim());
+}
+
+const endProgram = (result: WriteOutcome<unknown>, code: string) => programForm.finish(result, m.value.programs.programCreated(code), { before: programs.reload });
+
+async function saveProgram(values: ProgramValues): Promise<void> {
+  programNotice.value = false;
+  const result = await programWrites.send(
+    () => createProgram(newProgramBody(values)),
+    () => programListed(values),
+  );
+  await endProgram(result, result.outcome === 'saved' ? result.value.code : storedCode(values.code));
+}
+
+async function recheckProgram(): Promise<void> {
+  const result = await programWrites.recheck();
+  if (result?.outcome === 'confirmed') await endProgram(result, '');
+}
+
+const programProblem = computed(() => {
+  if (!programWrites.problem.value) return null;
+  const problem = describeProblem(programWrites.problem.value, m.value, PROGRAM_FIELDS);
+  return problem.code === 'duplicate_code' ? { ...problem, text: m.value.programs.duplicateProgramCode } : problem;
+});
+
 const inlineProblem = computed(() => (inlineWrites.problem.value ? describeProblem(inlineWrites.problem.value, m.value) : null));
 const dialogProblem = computed(() => (dialogWrites.problem.value ? describeProblem(dialogWrites.problem.value, m.value) : null));
-/**
- * "Reload the data" after an unknown outcome (UC-11 A7): reads the user's grants again and says what they show of
- * the same grant or revocation, which is not sent again.
- */
 async function recheckInline(): Promise<void> {
-  if ((await inlineWrites.recheck())?.outcome === 'confirmed') notice.value = m.value.problem.confirmed;
+  if ((await inlineWrites.recheck())?.outcome === 'confirmed') notice.value = true;
 }
 async function recheckDialog(): Promise<void> {
   if ((await dialogWrites.recheck())?.outcome !== 'confirmed') return;
   await closeDialog();
-  notice.value = m.value.problem.confirmed;
+  notice.value = true;
 }
 </script>
 
@@ -293,7 +287,7 @@ async function recheckDialog(): Promise<void> {
           <h3>{{ text.grantsOf }} <span class="mono" data-test="access-shown-id">{{ grants.userId }}</span></h3>
           <span v-if="own" class="chip info" data-test="access-own">{{ text.ownAccount }}</span>
         </div>
-        <p v-if="notice" class="callout ok" role="status" data-test="admin-notice"><Icon name="check" /><span>{{ notice }}</span></p>
+        <p v-if="notice" class="callout ok" role="status" data-test="admin-notice"><Icon name="check" /><span>{{ m.problem.confirmed }}</span></p>
         <p v-if="stale" class="callout warn" role="alert" data-test="access-stale">
           <Icon name="alert" /><span>{{ m.stale }} <button id="access-reload" class="btn sm" type="button" data-test="access-reload" @click="reloadStale">{{ m.reload }}</button></span>
         </p>
@@ -331,16 +325,17 @@ async function recheckDialog(): Promise<void> {
             <Icon name="alert" size="sm" /><span>{{ text.programsFailed }} <button class="btn sm" type="button" @click="programs.reload">{{ m.retry }}</button></span>
           </p>
           <form v-else class="link-form" novalidate @submit.prevent="giveProgram">
-            <label class="field">
-              <span>{{ text.program }}</span>
+            <div class="field">
+              <span class="label">{{ text.program }}</span>
               <SelectMenu
                 id="access-program-select"
                 v-model="programId"
+                :aria-label="text.program"
                 :options="(programs.data.value ?? []).map((item) => ({ value: item.id, label: `${item.code} · ${item.nameVi}` }))"
                 :placeholder="text.pickProgram"
                 data-test="access-program"
               />
-            </label>
+            </div>
             <button class="btn" type="submit" :disabled="!programId || inlineWrites.busy.value || held" data-test="access-grant-program"><Icon name="key" size="sm" />{{ text.grantProgram }}</button>
           </form>
         </section>
@@ -359,7 +354,6 @@ async function recheckDialog(): Promise<void> {
               <tbody>
                 <tr v-for="permission in GLOBAL_PERMISSIONS" :key="permission" :data-test="`access-global-${permission}`" :data-state="globalGrantOf(permission) ? 'held' : 'not-held'">
                   <th scope="row">{{ m.permissions[permission] }}<span class="small t2 about">{{ text.describe[permission] }}</span></th>
-                  <!-- Held or not, in words: the chip's colour is never the only cue. -->
                   <td class="wide" data-test="access-status" :data-label="text.columns.status">
                     <span v-if="globalGrantOf(permission)" class="chip ok"><Icon name="check" size="sm" />{{ text.held(when(globalGrantOf(permission)!.grantedAt)) }}</span>
                     <span v-else class="chip">{{ text.notHeld }}</span>
@@ -398,6 +392,18 @@ async function recheckDialog(): Promise<void> {
       </div>
     </div>
 
+    <section class="card flush" aria-labelledby="access-new-program-title" data-test="access-new-program">
+      <div class="card-head">
+        <h2 id="access-new-program-title">{{ m.programs.programsTitle }}</h2>
+        <button id="program-add" class="btn sm" type="button" :disabled="programBusy" data-test="program-add" @click="openProgram"><Icon name="plus" size="sm" />{{ m.programs.addProgram }}</button>
+      </div>
+      <div class="admin-tools">
+        <p class="small t2">{{ m.programs.programsLead }}</p>
+        <p v-if="programNotice" class="callout ok" role="status" data-test="program-notice"><Icon name="check" /><span>{{ m.problem.confirmed }}</span></p>
+      </div>
+    </section>
+
+    <ProgramDialog :open="programOpen" :program="null" :busy="programBusy" :problem="programProblem" @close="cancelProgram" @save="saveProgram" @reload="recheckProgram" />
     <ConfirmDialog
       :open="revoking !== null"
       :title="text.revokeTitle"
@@ -412,7 +418,7 @@ async function recheckDialog(): Promise<void> {
   </section>
 </template>
 
-<style>
+<style scoped>
 .link-form.access-lookup .field { flex: 1 1 360px; max-width: 420px; }
 .access-user { border-top: 1px solid var(--edge); padding: 18px 22px 22px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
 .access-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -423,13 +429,12 @@ async function recheckDialog(): Promise<void> {
 .access-table .about { display: block; font-weight: 400; max-width: 56ch; margin-top: 2px; }
 .access-table .granter { overflow-wrap: anywhere; }
 @media (max-width: 760px) {
-  .access-table tr { grid-template-columns: minmax(0, 1fr); }
-  .access-table td[data-label]::before { font-family: var(--font); }
+  .admin-cards.access-table tr { grid-template-columns: minmax(0, 1fr); }
+  .admin-cards.access-table td[data-label]::before { font-family: var(--font); }
 }
 .access-user .link-form .field { flex: 0 1 320px; }
-/* A program's name can be long: in the list it wraps and is read whole, and the list stays inside a phone's screen. */
-.admin-section .ui-select-list { max-width: min(420px, calc(100vw - 72px)); }
-.admin-section .ui-select-list li { white-space: normal; overflow-wrap: anywhere; }
+.admin-section :deep(.ui-select-list) { max-width: min(420px, calc(100vw - 72px)); }
+.admin-section :deep(.ui-select-list li) { white-space: normal; overflow-wrap: anywhere; }
 @media (max-width: 620px) {
   .access-user { padding: 16px; }
 }

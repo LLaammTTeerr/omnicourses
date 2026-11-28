@@ -1,12 +1,10 @@
 import { user } from '../../auth/testing/fixtures.js';
 import type { CourseDetail, Curriculum, CurriculumCourse, RequirementGroup } from '../../curriculum/api.js';
-import type { AccessProgramList, AdminProgramList, AffectedCurriculum, GlobalGrant, GlobalPermission, ProgramGrant, UserGrants } from '../api.js';
-
-// Synthetic administration data (AGENTS.md hard rule 3): made-up programs, courses and account IDs.
+import type { AccessProgramList, AdminProgramList, AffectedCurriculum } from '../api.js';
+import type { GlobalGrant, GlobalPermission, ProgramGrant, UserGrants } from '../grants.js';
 
 export const PROGRAM_ID = '00000000-0000-4000-8000-0000000000a1';
 export const OTHER_PROGRAM_ID = '00000000-0000-4000-8000-0000000000a2';
-/** The access manager who granted the fixtures' permissions. */
 export const MANAGER_ID = '00000000-0000-4000-8000-0000000000f1';
 
 export const programGrant = (overrides: Partial<ProgramGrant> = {}): ProgramGrant => ({
@@ -24,14 +22,12 @@ export const globalGrant = (permission: GlobalPermission, overrides: Partial<Glo
   ...overrides,
 });
 
-/** The grants of the synthetic signed-in user (auth/testing/fixtures.ts); none unless given. */
 export const grants = (overrides: Partial<UserGrants> = {}): UserGrants => ({ userId: user().id, programs: [], permissions: [], ...overrides });
 
 export const NO_GRANTS = grants();
 export const PROGRAM_ADMIN = grants({ programs: [programGrant()] });
 export const CATALOG_MAINTAINER = grants({ permissions: [globalGrant('catalog_maintainer')] });
 export const ACCESS_MANAGER = grants({ permissions: [globalGrant('access_manager')] });
-// ---- A granted program with two cohorts, and one without any ----
 
 export const CURRICULUM_ID = '00000000-0000-4000-8000-0000000000c1';
 export const CURRICULUM_2025_ID = '00000000-0000-4000-8000-0000000000c2';
@@ -78,7 +74,6 @@ export const group = (id: string, name: string, overrides: Partial<RequirementGr
   ...overrides,
 });
 
-/** ZZ101: no prerequisite, offered in terms 1 and 3. ZZ102: needs ZZ101, terms not recorded. ZZ103: nothing recorded. */
 export const BASE_GROUP = group(GROUP_BASE_ID, 'Kiến thức cơ sở thử', {
   creditsTotal: 12,
   courses: [course('ZZ101', { prerequisites: [], offeringTerms: [1, 3], nameEn: 'Test course ZZ101' }), course('ZZ102', { prerequisites: ['ZZ101'] }), course('ZZ103')],
@@ -98,9 +93,6 @@ export const curriculum = (requirementGroups: RequirementGroup[] = [BASE_GROUP, 
   ...overrides,
 });
 
-// ---- The shared catalog ----
-
-/** A catalog course no curriculum links, unless memberships are given. */
 export const catalogCourse = (code: string, overrides: Partial<CourseDetail> = {}): CourseDetail => ({
   code,
   nameVi: `Học phần thử ${code}`,
@@ -117,7 +109,6 @@ export const catalogCourse = (code: string, overrides: Partial<CourseDetail> = {
 export const AFFECTED_2024: AffectedCurriculum = { curriculumId: CURRICULUM_ID, curriculumCode: 'ZZPROG2024', programCode: 'ZZPROG', cohortYear: 2024 };
 export const AFFECTED_2025: AffectedCurriculum = { curriculumId: CURRICULUM_2025_ID, curriculumCode: 'ZZPROG2025', programCode: 'ZZPROG', cohortYear: 2025 };
 
-/** ZZ101 as two cohorts link it. */
 export const SHARED_COURSE = catalogCourse('ZZ101', {
   nameEn: 'Test course ZZ101',
   memberships: [
@@ -126,12 +117,8 @@ export const SHARED_COURSE = catalogCourse('ZZ101', {
   ],
 });
 
-// ---- Access management ----
-
-/** Another synthetic account, the one an access manager looks up. */
 export const OTHER_USER_ID = '00000000-0000-4000-8000-000000000002';
 
-/** Every program, as an access manager chooses from them. */
 export const accessPrograms = (): AccessProgramList => ({
   programs: [
     { id: OTHER_PROGRAM_ID, code: 'ZZEMPTY', nameVi: 'Chương trình thử chưa có khóa' },
@@ -139,5 +126,4 @@ export const accessPrograms = (): AccessProgramList => ({
   ],
 });
 
-/** The API lists the global permissions by name. */
 export const EVERY_GRANT = grants({ programs: [programGrant()], permissions: [globalGrant('access_manager'), globalGrant('catalog_maintainer')] });

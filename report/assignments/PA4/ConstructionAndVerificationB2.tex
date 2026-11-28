@@ -1,0 +1,74 @@
+\documentclass{article}
+\usepackage{../../shared/omnicourse}
+\input{../../shared/meta.tex}
+
+\renewcommand{\docshortname}{Construction \& Verification (B2)}
+\hypersetup{pdftitle={OmniCourse -- Construction \& Verification Report B2 (PA4)}}
+
+\begin{document}
+
+\makecover{Construction \& Verification Report (B2)}{1.0}{29 November 2026}{ESE-PA4-B2-1.0}{Project Assignment 4 (PA4)}
+
+\pagenumbering{roman}
+\thispagestyle{empty}
+
+\section*{Revision history}
+\vspace{-0.3em}
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{2.2cm}p{1.3cm}Yp{3.4cm}@{}}
+\hcell{Date} & \hcell{Version} & \hcell{Description} & \hcell{Author}\\\hdrline
+\endhead
+25/11/2026 & 0.8 & Initial B2 staging verification results across F2, F5, F9, F10 and F12 (\texttt{report-b2.md}). & Nguyễn Anh Dũng, Nguyễn Hữu Quốc Thắng\\
+27/11/2026 & 1.0 & Complete B2 construction report incorporating F2 paste parser, F9 sharing/PDF UI, F10 inbox \& calendar admin, F4 readiness states, and security/WCAG/DB/ops hardening. & OmniCourse Team\\
+\end{xltabular}}
+
+\par\vspace{0.6cm}
+{\hypersetup{linkcolor=ocNavy}\tableofcontents}
+
+\clearpage
+\pagenumbering{arabic}
+\pagestyle{fancy}
+
+\section{Construction Scope Delivered in Sprint 4 (Build B2)}
+Sprint 4 advanced OmniCourse from the read-mostly B1 audit baseline to a full interactive planning, sharing, notification and
+curriculum-administration platform (ADRs 0017 and 0018 accepted on 27 November 2026):
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{1.1cm}p{3.6cm}Yp{2.1cm}@{}}
+\hcell{ID} & \hcell{Feature} & \hcell{Delivered API \& SPA Capabilities} & \hcell{Status}\\\hdrline
+\endhead
+F1 & Account \& onboarding & Hardened Argon2id auth, \texttt{select: false} password hash, per-email throttling, 30-day session cap, export \& deletion. & Built (core)\\
+F2 & Transcript import & Deterministic TSV/pipe/semicolon grades-table paste parser (\texttt{paste.ts}), typed editor, curriculum lookup, pre-save diff \& \textbf{Cancel}. & Built\\
+F3 & Degree audit & Pure integer-tenths audit with same-term duplicate deduplication and unrecorded-total graduation guard. & Built (core)\\
+F4 & Curriculum explorer & Bilingual group/course explorer with recorded prerequisites, readiness states (\emph{passed, locked, available}) and downstream unlocks. & Built (no graph)\\
+F5 & Roadmap planner & Multi-plan board, pointer/keyboard drag-and-drop, batched drop checks, 30-term cap, navigation guards, and \#137/\#138 reconciliation. & Built\\
+F9 & Plan sharing \& PDF & Owner share dialog with ADR 0010 privacy warning, public \texttt{/shared/:token} (\texttt{noindex}), and \texttt{@media print} PDF export. & Built\\
+F10 & Calendar \& inbox & School-date calendar (\texttt{/calendar}), admin editor (\texttt{/admin/calendar}), notification scheduler, \texttt{/notifications} inbox \& unread badge. & Built\\
+F11 & Quicklinks \& guides & Public bilingual guides (\texttt{G01}, \texttt{G07} published; \texttt{G02}, \texttt{G06} awaiting portal check). & Partial (B1 batch)\\
+F12 & Curriculum admin & Program/catalog/access grants, cohort CRUD, impact-versioned catalog edits, and 7 MiB permission-gated CSV bulk import. & Built (totals gated)\\
+\end{xltabular}}
+
+\section{Security, Database, Accessibility and Operations Hardening}
+Ahead of the B2 candidate tag, a comprehensive multi-layer audit and remediation pass delivered:
+\begin{itemize}
+  \item \textbf{Database \& Concurrency (\texttt{1795600000000}):} Changed overflow and combined-minimum FKs to
+        \texttt{ON DELETE RESTRICT}, guarded non-default GPA/credit flags on unlink, serialized \texttt{AccountService.requestDeletion}
+        with \texttt{ADMIN\_WRITE\_LOCK} to preserve \texttt{last\_access\_manager}, and added five missing lookup indexes.
+  \item \textbf{Security \& AI Gateway:} Added strict \texttt{Content-Security-Policy} (SHA-256 pinned boot script), HSTS and
+        Express security headers; rejected unsafe \texttt{TRUST\_PROXY=true}; released AI daily quota on unbilled connection and
+        \texttt{400/404} errors; and wired SSE client disconnects to abort upstream OpenRouter streams.
+  \item \textbf{Frontend \& WCAG 2.1 AA:} Converted all 20+ routes to lazy dynamic imports (reducing max JS chunk from
+        537.8 kB to 77.8 kB), scoped every view SFC stylesheet (enforced by \texttt{npm run lint}), fixed WCAG AA light/dark
+        contrast ratios, and eliminated W3C combobox accessible-name pollution.
+  \item \textbf{Disaster Recovery \& Rollback:} Configured HTTP \texttt{503} on degraded \texttt{GET /api/health} paired with
+        \texttt{omnicourse-deploy} automatic symlink rollback, plus \texttt{omnicourse-backup.timer} for 14-day nightly dumps.
+\end{itemize}
+
+\section{Automated Quality Gate Metrics and Sprint 5 Plan}
+On the B2 remediation branch, all automated checks pass: \texttt{npm run lint} (0 violations), \texttt{npm run typecheck} (0
+errors), \textbf{68/68} backend unit spec files (\textbf{100\%} statement coverage on \texttt{src/rules/**}), \textbf{79/79}
+frontend unit spec files (1,223 tests), and \textbf{12/12} Chromium browser spec files (66 tests). Sprint 5 (30 Nov -- 13 Dec)
+focuses on B2 staging sign-off, F8 Advisor Chat (\#77), portal verification of guides G02/G06, and formal rescoping of F6, F7
+and UC-15 as recorded in \texttt{design-differences.md}.
+
+\end{document}

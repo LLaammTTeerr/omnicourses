@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { statusOf } from '../api.js';
-import { useAuth } from '../auth/store.js';
+import { reportFailure } from '../async-load.js';
 import { useMessages } from '../locale.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
@@ -11,10 +10,6 @@ import { createPlan, fetchPlans } from './api.js';
 import { readLastPlan } from './last-plan.js';
 import { PLANNER_MESSAGES } from './messages.js';
 
-// The planner's front door (/plans): it opens a plan straight away. The one the student had open last, else their
-// first; a student with none gets a "Default plan" on their program and cohort. Without a program, or when the plans
-// cannot be read, the plans list says what to do. The list itself lives at /plans/all.
-const auth = useAuth();
 const onboarding = useOnboarding();
 const router = useRouter();
 const m = useMessages(PLANNER_MESSAGES);
@@ -23,7 +18,7 @@ const failed = ref(false);
 async function open(): Promise<void> {
   failed.value = false;
   try {
-    const { plans } = await auth.authed(fetchPlans);
+    const { plans } = await fetchPlans();
     const last = readLastPlan();
     const pick = plans.find((p) => p.id === last) ?? plans[0];
     if (pick) {
@@ -35,12 +30,10 @@ async function open(): Promise<void> {
       await router.replace({ name: 'plan-list' });
       return;
     }
-    const made = await auth.authed((token) => createPlan(token, { name: m.value.defaultPlanName, programCode: answers.program!, cohortYear: answers.cohort! }));
+    const made = await createPlan({ name: m.value.defaultPlanName, programCode: answers.program!, cohortYear: answers.cohort! });
     await router.replace({ name: 'plan', params: { id: made.id } });
   } catch (e) {
-    if (statusOf(e) === 401) return;
-    console.error('Opening the planner failed:', e);
-    failed.value = true;
+    if (reportFailure('Opening the planner', e)) failed.value = true;
   }
 }
 onMounted(open);

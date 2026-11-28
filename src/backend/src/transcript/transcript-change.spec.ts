@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { sameEntries } from './transcript-change.js';
 import type { TranscriptEntry } from './transcript-entry.js';
 
-// Synthetic rows only (AGENTS.md hard rule 3).
 const a: TranscriptEntry = { courseCode: 'ZZ101', courseName: 'Synthetic One', credits: 4, result: 'graded', grade: 4.5, term: { year: 2025, number: 1 } };
 const retake: TranscriptEntry = { ...a, grade: 8, term: { year: 2025, number: 3 } };
 const b: TranscriptEntry = { courseCode: 'ZZ102', courseName: 'Synthetic Two', credits: 3, result: 'in_progress', grade: null, term: { year: 2026, number: 1 } };

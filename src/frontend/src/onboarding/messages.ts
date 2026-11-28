@@ -1,4 +1,5 @@
 import type { Lang } from '../locale.js';
+import { OFFERED_COHORTS } from './api.js';
 import type { CreditsProblem } from './answers.js';
 
 interface OnboardingMessages {
@@ -45,6 +46,8 @@ interface GoalMessages {
   noInternship: string;
 }
 
+const OFFERED_PROGRAMS = Object.keys(OFFERED_COHORTS).join(', ');
+
 export const ONBOARDING_MESSAGES: Record<Lang, OnboardingMessages> = {
   vi: {
     title: 'Bắt đầu',
@@ -53,7 +56,7 @@ export const ONBOARDING_MESSAGES: Record<Lang, OnboardingMessages> = {
     step: (n, of, name) => `Câu ${n} / ${of} · ${name}`,
     stepNames: ['Chương trình', 'Khóa', 'Mục tiêu', 'Tải học'],
     programQuestion: 'Bạn đang học chương trình nào?',
-    programNote: 'Mỗi chương trình có CTĐT và quy định tín chỉ riêng. Bản này chỉ có APCS; chương trình khác sẽ có khi dữ liệu được kiểm tra xong.',
+    programNote: `Mỗi chương trình có CTĐT và quy định tín chỉ riêng. Bản này chỉ có ${OFFERED_PROGRAMS}; chương trình khác sẽ có khi dữ liệu được kiểm tra xong.`,
     otherPrograms: (n) => `${n} chương trình khác chưa hỗ trợ trong bản này`,
     cohortQuestion: 'Bạn vào trường năm nào?',
     cohortOption: (year) => `Khóa ${year}`,
@@ -82,7 +85,7 @@ export const ONBOARDING_MESSAGES: Record<Lang, OnboardingMessages> = {
     step: (n, of, name) => `Question ${n} of ${of} · ${name}`,
     stepNames: ['Program', 'Cohort', 'Goal', 'Load'],
     programQuestion: 'Which program are you in?',
-    programNote: 'Each program has its own curriculum and credit rules. This release has APCS only; others come once their data is checked.',
+    programNote: `Each program has its own curriculum and credit rules. This release has ${OFFERED_PROGRAMS} only; others come once their data is checked.`,
     otherPrograms: (n) => `${n} other ${n === 1 ? 'program is' : 'programs are'} not in this release yet`,
     cohortQuestion: 'Which year did you start?',
     cohortOption: (year) => `Cohort ${year}`,
@@ -132,5 +135,60 @@ export const GOAL_MESSAGES: Record<Lang, GoalMessages> = {
     internshipHint: 'Your plan will leave this term free of courses.',
     notAnswered: 'Not chosen',
     noInternship: 'No internship',
+  },
+};
+
+interface StudyMessages {
+  title: string;
+  note: string;
+  program: string;
+  cohort: string;
+  cohortOption: (year: number) => string;
+  save: string;
+  saving: string;
+  saved: string;
+  saveFailed: string;
+  loading: string;
+  loadFailed: string;
+  retry: string;
+  unfinished: string;
+  unfinishedNote: string;
+  continue: string;
+}
+
+export const STUDY_MESSAGES: Record<Lang, StudyMessages> = {
+  vi: {
+    title: 'Chương trình và mục tiêu',
+    note: 'Đổi chương trình hoặc khóa thì phần xét tốt nghiệp theo lựa chọn mới. Lộ trình đã lập vẫn giữ phiên bản CTĐT lúc lập.',
+    program: 'Chương trình',
+    cohort: 'Khóa',
+    cohortOption: (year) => `Khóa ${year}`,
+    save: 'Lưu thay đổi',
+    saving: 'Đang lưu…',
+    saved: 'Đã lưu chương trình và mục tiêu.',
+    saveFailed: 'Chưa lưu được. Thử lại sau ít phút.',
+    loading: 'Đang tải…',
+    loadFailed: 'Chưa tải được chương trình và mục tiêu của bạn.',
+    retry: 'Thử lại',
+    unfinished: 'Bạn chưa xong phần bắt đầu.',
+    unfinishedNote: 'Chọn chương trình, khóa và mục tiêu để dùng các trang khác.',
+    continue: 'Làm tiếp',
+  },
+  en: {
+    title: 'Program and goal',
+    note: 'A new program or cohort changes what the degree audit checks. Plans already made keep the curriculum version they were made with.',
+    program: 'Program',
+    cohort: 'Cohort',
+    cohortOption: (year) => `Cohort ${year}`,
+    save: 'Save changes',
+    saving: 'Saving…',
+    saved: 'Your program and goal are saved.',
+    saveFailed: 'Nothing was saved. Try again in a few minutes.',
+    loading: 'Loading…',
+    loadFailed: 'Your program and goal could not be loaded.',
+    retry: 'Try again',
+    unfinished: 'You have not finished getting started.',
+    unfinishedNote: 'Choose your program, cohort and goal to use the other pages.',
+    continue: 'Continue',
   },
 };

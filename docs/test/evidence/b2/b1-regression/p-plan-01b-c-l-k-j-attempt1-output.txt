@@ -1,0 +1,25 @@
+[2026-11-27T09:24:47.244Z] signed up b1-run-r27a-p01@example.com
+OK   setup | S1 stand-in onboarded to APCS 2024 and S1 transcript saved | observed: 200, 200
+[2026-11-27T09:24:48.902Z] Chromium 156.0.8078.4 headless, Playwright 1.64.1, viewport 1280x800
+[2026-11-27T09:24:53.277Z] first open of Plans: plan "Kế hoạch mặc định", tabs: ["Kế hoạch mặc định"]
+[2026-11-27T09:24:53.730Z] PLAN-01b: new-plan dialog body: "Kế hoạch dùng CTĐT APCS 2024 và giữ nguyên CTĐT này kể cả khi bạn đổi chương trình sau này."
+[2026-11-27T09:24:54.160Z] PLAN-01b rows: ["HK1 2026–2027","HK2 2026–2027"]
+OK   PLAN-01b | chip says Đã lưu after both adds | observed: Đã lưu
+OK   PLAN-01b | after the first reload CS160 is in row 1 and CS163 in row 2 | observed: HK1 2026–2027: CS160 | HK2 2026–2027: CS163
+node:internal/fs/promises:697
+  return new FileHandle(await PromisePrototypeThen(
+                        ^
+
+Error: ENOENT: no such file or directory, open 'E:\E:\Project\omnicourses\docs\test\evidence\b2\b1-regression\p-plan-01b-after-first-reload.png'
+    at async open (node:internal/fs/promises:697:25)
+    at async Object.writeFile (node:internal/fs/promises:1317:14)
+    at async _Page.screenshot (E:\Project\omnicourses\node_modules\playwright-core\lib\coreBundle.js:63324:11)
+    at async shot (file:///E:/Project/omnicourses/docs/test/evidence/b2/b1-regression/p-lib.mjs:183:3)
+    at async file:///E:/Project/omnicourses/docs/test/evidence/b2/b1-regression/p-plan-01b-c-l-k-j.mjs:47:3 {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'E:\\E:\\Project\\omnicourses\\docs\\test\\evidence\\b2\\b1-regression\\p-plan-01b-after-first-reload.png'
+}
+
+Node.js v24.19.0

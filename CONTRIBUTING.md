@@ -10,7 +10,7 @@ All tasks live in the team Discord server, in the **Sprint** tab, one message pe
    - **Bucket**: accepted, not started
    - **Doing**: in progress. Add the PR number as soon as the PR is open
    - **Done**: merged *and* deployed
-4. **Open a PR, get it reviewed, merge, deploy** (sections 2–4 below).
+4. **Open a PR, get it reviewed and merge it** (sections 2–4 below). Production deploys by itself.
 
 The weekly report is copied from this list, so a task that isn't updated didn't happen.
 
@@ -21,7 +21,7 @@ git switch main && git pull
 git switch -c <type>/<short-name>      # e.g. feat/degree-audit, fix/credit-cap
 ```
 
-Commit messages and PR titles follow **[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)**. CI checks both (`pr-title`, `commit-messages`). The **PR title matters most**: squash merge turns it into the one commit that lands on `main`.
+PR titles follow **[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)**, and CI checks them (`pr-title`): squash merge turns the title into the one commit that lands on `main`. Use the same format for commit messages where you can; CI does not check them, since they do not reach `main`.
 
 ```
 <type>(<scope>): <subject>
@@ -75,20 +75,24 @@ If you already pushed unsigned commits: `git rebase --exec 'git commit --amend -
   ```
   Commit the generated `.changeset/*.md` file. See [.changeset/README.md](.changeset/README.md).
 - Fill in the PR template. The **"Why this design"** section is required (see AI policy).
-- CI (`backend`, `frontend`) must be green.
+- CI must be green: the `changeset`, `signed-commits`, `pr-title`, `backend` and `frontend` checks.
 - At least **one approval** from another member. Pushing new commits dismisses earlier approvals.
 - **Admin override:** the Project Lead (repo admin) has final authority and may merge a PR without an approval (merge box → *Merge without waiting for requirements to be met*, or `gh pr merge --admin`). CI and signed commits still apply, and it is still a PR. Use it for urgent fixes or tie-breaks, and say why in the PR.
 - Reviewers: Frontend Lead for `src/frontend`, Backend Lead for `src/backend`, Project Lead for the data model and the rule engine.
+- A feature PR that adds or removes a route or a screen also updates the feature table in [README.md](README.md#what-is-built).
 
-## 4. Merge and deploy: the author does both
+Two GitHub rulesets on `main` enforce these rules. `protect-main` (pull request, CI, signed commits, no force-push or deletion) has no bypass for anyone. `require-approval` (one approval) can be bypassed only by the repository admin (LamTer, Project Lead), and only when merging a pull request. The admin still never pushes to `main` directly and never merges with red CI. Builds B0–B3 are tagged.
+
+## 4. Merge and deploy
 
 1. After approval, **the author** clicks *Squash and merge*.
-2. **The author** deploys: *Actions → Deploy → Run workflow* on `main`. At the end of a sprint, fill in `build_tag` (`B0`…`B3`).
-3. Move the Discord task to **Done**.
+2. **Production deploys by itself.** When CI passes on the merge commit, the Deploy workflow deploys `main` to production ([deploy/README.md](deploy/README.md)). Nobody runs it by hand, except in the two cases of item 3. A push to the `staging` branch deploys staging in the same way.
+3. A manual run is only for two cases. To tag a build (`B0`…`B3`), only when the Project Lead asks: `gh workflow run deploy.yml --ref main -f environment=production -f build_tag=B<n>`. To redeploy `main` when the automatic run was dropped: the same command without `build_tag`. A manual run must name `environment=production` on `main`: the default, `staging`, fails on `main`.
+4. Move the Discord task to **Done** when the deploy has finished.
 
 ### Releases
 
-Every merge to `main` updates an open **chore(release): version packages** PR (opened by GitHub Actions). It bumps the version and writes the changelog from the changesets merged so far. It goes through the same review. Merge it at the end of a sprint, then deploy with the build tag (`B0`…`B3`).
+Every merge to `main` updates an open **chore(release): version packages** PR (opened by GitHub Actions). It bumps the version and writes the changelog from the changesets merged so far. It goes through the same review. Merge it as soon as it holds a user-facing change (Project Lead, 24 November 2026: "release more often"); do not wait for the end of a sprint. Merging it is the release, and production deploys it like any other merge. Never edit `CHANGELOG.md` or a package version by hand. The bump guide is in [.changeset/README.md](.changeset/README.md).
 
 ## 5. AI policy
 

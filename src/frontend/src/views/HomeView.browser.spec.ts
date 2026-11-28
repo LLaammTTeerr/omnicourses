@@ -7,6 +7,7 @@ import { API_URL } from '../api.js';
 import { createAppRouter } from '../router.js';
 import { HEALTHY } from '../testing/health.js';
 import HomeView from './HomeView.vue';
+import { restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 
 describe('HomeView in a real browser', () => {
   let host: HTMLDivElement;
@@ -17,14 +18,13 @@ describe('HomeView in a real browser', () => {
     document.body.append(host);
   });
 
-  // The landing page links to sign-up and the guides, and reads the language and the session from Pinia.
   const plugins = () => [createPinia(), createAppRouter(createMemoryHistory())];
 
   afterEach(() => {
     wrapper?.unmount();
     wrapper = undefined;
     host.remove();
-    vi.restoreAllMocks();
+    restoreMocksAfterCheckingCalls();
   });
 
   it('shows the home page while loading, then the API and database status', async () => {
@@ -41,6 +41,15 @@ describe('HomeView in a real browser', () => {
 
     await expect.element(page.getByText('API ok · database up')).toBeVisible();
     await expect.element(page.getByText('Checking API…')).not.toBeInTheDocument();
+  });
+
+  it('offers the roadmap planner as available and only the advisor as coming soon', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(Response.json(HEALTHY));
+    wrapper = mount(HomeView, { attachTo: host, global: { plugins: plugins() } });
+
+    await expect.element(page.getByRole('heading', { level: 3, name: 'Lộ trình kéo thả', exact: true })).toBeVisible();
+    await expect.element(page.getByRole('heading', { level: 3, name: 'Trợ lý có trích dẫn Sắp có' })).toBeVisible();
+    expect(host.querySelectorAll('.feature.soon')).toHaveLength(1);
   });
 
   it('shows a degraded database response', async () => {

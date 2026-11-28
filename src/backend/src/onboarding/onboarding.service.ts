@@ -1,13 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { Term } from '../terms/term.js';
+import { Term, toTerm } from '../terms/term.js';
+import { isOfferedCohort } from './onboarding-options.js';
 import { OnboardingAnswers } from './onboarding-answers.entity.js';
 import { NO_INTERNSHIP, OnboardingDto } from './onboarding.dto.js';
 
-// The student's onboarding answers (UC-01 steps 6–10, A8, A9): their program, cohort and default
-// planning goal. Stored as given: the credit cap and every other academic rule belong to the rule
-// engine when it builds a plan (AGENTS.md hard rule 1, UC-01 §7).
+export interface StudentCohort {
+  programCode: string;
+  cohortYear: number;
+}
+
 @Injectable()
 export class OnboardingService {
   constructor(
@@ -15,17 +18,20 @@ export class OnboardingService {
     @InjectRepository(OnboardingAnswers) private readonly answers: Repository<OnboardingAnswers>,
   ) {}
 
-  /** The saved answers; every answer null and finished false before the first save. */
+  offers(programCode: string, cohortYear: number): boolean {
+    return isOfferedCohort(programCode, cohortYear);
+  }
+
   async answersFor(userId: string): Promise<OnboardingDto> {
     return toOnboarding(await this.answers.findOneBy({ userId }));
   }
 
-  /**
-   * The IDs of the students whose saved program is one of `programCodes`, by program code. With
-   * `onlyUserId`, that student alone, or nobody. Read-only: the notification inbox addresses the
-   * students of a program with it (ADR 0018). A program counts as soon as it is saved, finished
-   * or not, the same rule as the calendar's default program (ADR 0017).
-   */
+  async cohortOf(userId: string): Promise<StudentCohort | null> {
+    const answers = await this.answersFor(userId);
+    if (!answers.finished || answers.program === null || answers.cohort === null) return null;
+    return { programCode: answers.program, cohortYear: answers.cohort };
+  }
+
   async userIdsByProgram(programCodes: readonly string[], onlyUserId?: string): Promise<Map<string, string[]>> {
     const byProgram = new Map<string, string[]>();
     if (!programCodes.length) return byProgram;
@@ -40,10 +46,8 @@ export class OnboardingService {
     return byProgram;
   }
 
-  /** Replaces every answer. finished_at keeps the first Finish; finished false clears it. */
   async save(userId: string, dto: OnboardingDto): Promise<OnboardingDto> {
-    const c = toColumns(dto);
-    // One statement: two saves at once never interleave or fail on the primary key.
+    const columns = toColumns(dto);
     await this.db.query(
       `INSERT INTO "onboarding_answers" AS a (
          "user_id", "program_code", "cohort_year", "target_graduation_term_year", "target_graduation_term_number",
@@ -62,14 +66,14 @@ export class OnboardingService {
          "updated_at" = now()`,
       [
         userId,
-        c.programCode,
-        c.cohortYear,
-        c.targetGraduationTermYear,
-        c.targetGraduationTermNumber,
-        c.creditsPerTerm,
-        c.internshipTermYear,
-        c.internshipTermNumber,
-        c.noInternshipPlanned,
+        columns.programCode,
+        columns.cohortYear,
+        columns.targetGraduationTermYear,
+        columns.targetGraduationTermNumber,
+        columns.creditsPerTerm,
+        columns.internshipTermYear,
+        columns.internshipTermNumber,
+        columns.noInternshipPlanned,
         dto.finished,
       ],
     );
@@ -79,8 +83,7 @@ export class OnboardingService {
 
 type AnswerColumns = Omit<OnboardingAnswers, 'userId' | 'user' | 'finishedAt' | 'createdAt' | 'updatedAt'>;
 
-const term = (year: number | null, number: number | null): Term | null =>
-  year === null || number === null ? null : { year, number: number as Term['number'] };
+const term = (year: number | null, number: number | null): Term | null => (year === null || number === null ? null : toTerm(year, number));
 
 export function toOnboarding(row: OnboardingAnswers | null): OnboardingDto {
   if (!row) {

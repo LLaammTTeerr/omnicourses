@@ -1,0 +1,4 @@
+burst took 4863 ms, finished 08:43:41Z
+status 200 x120
+status 429 x1
+after one minute (08:44:46Z): 200

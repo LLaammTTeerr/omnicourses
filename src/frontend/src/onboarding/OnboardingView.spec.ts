@@ -8,8 +8,8 @@ import { setup } from '../testing/signed-in.js';
 import { NOT_STARTED, type Onboarding } from './api.js';
 import { onboarding } from './testing/fixtures.js';
 import { chooseOption } from '../testing/select.js';
+import { GOAL_MESSAGES, ONBOARDING_MESSAGES } from './messages.js';
 
-// Synthetic programs: APCS as the API lists it, and one the release does not offer.
 const PROGRAMS: Program[] = [
   { code: 'APCS', nameVi: 'Chương trình Tiên tiến thử', nameEn: 'Advanced Program (test)', faculty: null, trainingType: 'advanced', cohortYears: [2023, 2024, 2025] },
   { code: 'ZZCLC', nameVi: 'Chương trình thử chưa hỗ trợ', nameEn: null, faculty: null, trainingType: null, cohortYears: [2025] },
@@ -53,7 +53,7 @@ describe('OnboardingView (UC-01 steps 6–9)', () => {
   it('offers only the programs of this release, and says why another cannot be picked (A7)', async () => {
     const { w } = await render();
     expect(eyebrow(w)).toBe('Câu 1 / 4 · Chương trình');
-    expect(w.get('h1').text()).toBe('Bạn đang học chương trình nào?');
+    expect(w.get('h1').text()).toBe(ONBOARDING_MESSAGES.vi.programQuestion);
     const apcs = w.get('[data-test="program-APCS"]');
     expect(apcs.text()).toContain('Chương trình Tiên tiến thử');
     expect(apcs.attributes('disabled')).toBeUndefined();
@@ -63,7 +63,7 @@ describe('OnboardingView (UC-01 steps 6–9)', () => {
     expect(other.text()).toContain('Chương trình thử chưa hỗ trợ · ZZCLC');
 
     await next(w);
-    expect(w.get('[role="alert"]').text()).toBe('Hãy chọn một chương trình.');
+    expect(w.get('[role="alert"]').text()).toBe(ONBOARDING_MESSAGES.vi.pickProgram);
     expect(eyebrow(w)).toBe('Câu 1 / 4 · Chương trình');
   });
 
@@ -73,7 +73,6 @@ describe('OnboardingView (UC-01 steps 6–9)', () => {
     expect(w.get('[data-test="program-APCS"]').attributes('aria-pressed')).toBe('true');
     await next(w);
 
-    // Only the offered cohorts that have a curriculum.
     expect(w.findAll('[data-test^="cohort-"]').map((b) => b.text())).toEqual([expect.stringContaining('Khóa 2024'), expect.stringContaining('Khóa 2025')]);
     expect(document.activeElement).toBe(w.get('h1').element);
     await w.get('[data-test="cohort-2025"]').trigger('click');
@@ -99,8 +98,8 @@ describe('OnboardingView (UC-01 steps 6–9)', () => {
       finished: true,
     });
     expect(router.currentRoute.value.fullPath).toBe('/transcript');
-    expect(useToast().message).toBe('Đã lưu. Bạn có thể đổi các câu trả lời này trong Cài đặt.');
-  }, 15_000); // Four steps and four saves: slower than the rest on a busy machine.
+    expect(useToast().message).toBe(ONBOARDING_MESSAGES.vi.finished);
+  }, 15_000);
 
   it('resumes at the first unanswered step (A8)', async () => {
     const { w } = await render(onboarding({ finished: false, targetGraduationTerm: null }));
@@ -111,7 +110,7 @@ describe('OnboardingView (UC-01 steps 6–9)', () => {
     const { w, fetch } = await render(onboarding({ finished: false, creditsPerTerm: null }));
     await next(w);
     await w.get('#onboarding-credits').setValue('0');
-    expect(w.get('[data-test="credits-error"]').text()).toBe('Nhập một số nguyên từ 1 trở lên.');
+    expect(w.get('[data-test="credits-error"]').text()).toBe(GOAL_MESSAGES.vi.creditsProblems.whole);
     expect(w.get('#onboarding-credits').attributes('aria-invalid')).toBe('true');
     const before = puts(fetch).length;
     await next(w);
@@ -144,9 +143,64 @@ describe('OnboardingView (UC-01 steps 6–9)', () => {
     expect(w.get('[data-test="later"]').attributes('href')).toBe('/');
   });
 
-  it('still offers APCS when the program list cannot be loaded', async () => {
+  it('shows an error and retries when the program list fails to load even if saved answers loaded', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    const { w } = await render(NOT_STARTED, { 'GET /programs': status(500) });
-    expect(w.get('[data-test="program-APCS"]').text()).toContain('APCS');
+    let failPrograms = true;
+    const { w, fetch } = await render(NOT_STARTED, {
+      'GET /programs': () => (failPrograms ? status(500)() : Response.json({ programs: PROGRAMS })),
+    });
+    expect(w.find('form').exists()).toBe(false);
+    expect(w.get('[role="alert"]').text()).toContain(ONBOARDING_MESSAGES.vi.loadFailed);
+
+    failPrograms = false;
+    await w.get('[role="alert"] button').trigger('click');
+    await flushPromises();
+    expect(w.get('[data-test="program-APCS"]').text()).toContain('Chương trình Tiên tiến thử');
+    expect(fetch.mock.calls.filter(([url]) => String(url).endsWith('/programs'))).toHaveLength(2);
+  });
+
+  it('waits for the program list before showing the wizard, and retries both loads after a failure', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let resolvePrograms!: (res: Response) => void;
+    let failInitial = true;
+    const fetch = mockApi({
+      'GET /programs': () => (failInitial ? status(503)() : new Promise<Response>((resolve) => { resolvePrograms = resolve; })),
+      'GET /users/me/onboarding': () => (failInitial ? status(503)() : Response.json(NOT_STARTED)),
+    });
+    const app = await setup('/onboarding', { onboarded: null });
+    router = app.router;
+    wrapper = mount(RouterView, { global: { plugins: [app.pinia, router] }, attachTo: document.body });
+    await flushPromises();
+    expect(wrapper.get('[role="alert"]').text()).toContain(ONBOARDING_MESSAGES.vi.loadFailed);
+
+    failInitial = false;
+    await wrapper.get('[role="alert"] button').trigger('click');
+    await flushPromises();
+    expect(wrapper.text()).toContain(ONBOARDING_MESSAGES.vi.loading);
+    expect(wrapper.find('form').exists()).toBe(false);
+
+    resolvePrograms(Response.json({ programs: PROGRAMS }));
+    await flushPromises();
+    expect(wrapper.get('[data-test="program-APCS"]').text()).toContain('Chương trình Tiên tiến thử');
+    expect(fetch.mock.calls.filter(([url]) => String(url).endsWith('/programs')).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('names goal comboboxes via aria-label without wrapping labels or dangling error ids', async () => {
+    const { w } = await render(onboarding({ finished: false, creditsPerTerm: null }));
+    const grad = w.get('#onboarding-graduation');
+    expect(grad.attributes('aria-label')).toBe(GOAL_MESSAGES.vi.graduation);
+    expect(grad.element.closest('label')).toBeNull();
+    expect(grad.attributes('aria-describedby')).toBe('onboarding-graduation-hint');
+
+    await next(w);
+    const credits = w.get('#onboarding-credits');
+    const internship = w.get('#onboarding-internship');
+    expect(credits.attributes('aria-describedby')).toBe('onboarding-credits-hint');
+    expect(internship.attributes('aria-label')).toBe(GOAL_MESSAGES.vi.internship);
+    expect(internship.element.closest('label')).toBeNull();
+    expect(internship.attributes('aria-describedby')).toBe('onboarding-internship-hint');
+
+    await credits.setValue('0');
+    expect(credits.attributes('aria-describedby')).toBe('onboarding-credits-hint onboarding-credits-error');
   });
 });

@@ -1,15 +1,11 @@
 import { BadRequestException, Body, Controller, Delete, Get, Header, HttpCode, Param, type PipeTransform, Put } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiBody, ApiNoContentResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
 import { Authenticated, CurrentUser, Public } from '../auth/auth.decorators.js';
-import { PlanIdPipe } from '../plans/plans.controller.js';
+import { PLAN_NOT_FOUND_DESCRIPTION, PlanId } from '../plans/plan-id.js';
 import { User } from '../users/user.entity.js';
 import { NotSharedDto, PlanShareDto, PlanShareStateDto, SharedPlanDto, SharePlanDto } from './sharing.dto.js';
 import { SharingService } from './sharing.service.js';
 
-/**
- * The body of PUT …/share is an object or nothing at all. An array passes the global validation
- * untouched (it has no field to check), so it is refused here instead of being read as "no choice".
- */
 export class ShareBodyPipe implements PipeTransform<unknown, SharePlanDto> {
   transform(value: unknown): SharePlanDto {
     if (value === undefined) return {};
@@ -18,11 +14,6 @@ export class ShareBodyPipe implements PipeTransform<unknown, SharePlanDto> {
   }
 }
 
-const NOT_FOUND = 'No plan with this id among the signed-in student’s plans (another student’s plan included).';
-const PlanId = () => Param('id', new PlanIdPipe());
-
-// The owner's side of a shared plan (UC-09 steps 1–4, A2–A4): the signed-in student's own plans only.
-// The answers hold the link's token, so they are never stored by a cache.
 @ApiTags('sharing')
 @Authenticated()
 @Controller('plans/:id/share')
@@ -33,7 +24,7 @@ export class PlanShareController {
   @Header('Cache-Control', 'no-store')
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: PlanShareStateDto, description: 'The live link of the plan, or `share: null` when the plan is not shared.' })
-  @ApiNotFoundResponse({ description: NOT_FOUND })
+  @ApiNotFoundResponse({ description: PLAN_NOT_FOUND_DESCRIPTION })
   async state(@CurrentUser() user: User, @PlanId() id: string): Promise<PlanShareStateDto> {
     return { share: await this.sharing.shareOf(user.id, id) };
   }
@@ -48,7 +39,7 @@ export class PlanShareController {
   })
   @ApiBody({ type: SharePlanDto, required: false, description: 'The choices to set. A request with no body, or with `{}`, sets none.' })
   @ApiBadRequestResponse({ description: 'The body is not an object, or `showName` or `showTranscriptChecks` is sent and is not a boolean (`null` included).' })
-  @ApiNotFoundResponse({ description: NOT_FOUND })
+  @ApiNotFoundResponse({ description: PLAN_NOT_FOUND_DESCRIPTION })
   share(@CurrentUser() user: User, @PlanId() id: string, @Body(new ShareBodyPipe()) dto: SharePlanDto): Promise<PlanShareDto> {
     return this.sharing.share(user.id, id, { showName: dto.showName, showTranscriptChecks: dto.showTranscriptChecks });
   }
@@ -57,14 +48,12 @@ export class PlanShareController {
   @HttpCode(204)
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiNoContentResponse({ description: 'The plan is not shared any more: its link stops working at once. The same answer when it was not shared.' })
-  @ApiNotFoundResponse({ description: NOT_FOUND })
+  @ApiNotFoundResponse({ description: PLAN_NOT_FOUND_DESCRIPTION })
   async stop(@CurrentUser() user: User, @PlanId() id: string): Promise<void> {
     await this.sharing.stop(user.id, id);
   }
 }
 
-// The reader's side (UC-09 steps 6–7, ADR 0010): the one public route of this module. It only reads.
-// @Public() is on the route, not the controller, so a route added here later stays behind sign-in.
 @ApiTags('sharing')
 @Controller('shared-plans')
 export class SharedPlansController {
@@ -83,7 +72,6 @@ export class SharedPlansController {
     description: 'No live link has this token. One answer, with the same body, for a link that was stopped, whose plan or account was deleted, that was mistyped or that never existed.',
   })
   read(@Param('token') token: string): Promise<SharedPlanDto> {
-    // The noindex and no-store headers are set for the whole path prefix by sharedPlanHeaders (sharing.module.ts).
     return this.sharing.read(token);
   }
 }

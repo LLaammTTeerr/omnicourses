@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import contract from '../../../backend/openapi.json';
-import { contractEnum, contractShape, type Shape } from '../testing/contract.js';
+import { contractEnum, contractMaximum, contractNullable, contractShape, nullableKeys, type Shape } from '../testing/contract.js';
 import { TERM_NUMBERS, TRANSCRIPT_RESULTS, type Term, type Transcript, type TranscriptRow } from './api.js';
 import { MAX_CREDITS, MAX_ROWS } from './rows.js';
 
 const schemas = contract.components.schemas;
+
+const NULLABLE: Record<string, string[]> = {
+  TranscriptRowDto: nullableKeys<TranscriptRow>({ grade: true }),
+};
 
 describe('transcript types against the contract (ADR 0007, ADR 0009)', () => {
   it.each([
@@ -16,6 +20,7 @@ describe('transcript types against the contract (ADR 0007, ADR 0009)', () => {
     ['TermDto', { year: 'required', number: 'required' } satisfies Shape<Term>],
   ])('has the fields of %s', (schema, shape) => {
     expect(contractShape(schema)).toEqual(shape);
+    expect(contractNullable(schema)).toEqual(NULLABLE[schema] ?? []);
   });
 
   it('has the results and term numbers of the contract', () => {
@@ -23,8 +28,12 @@ describe('transcript types against the contract (ADR 0007, ADR 0009)', () => {
     expect([...TERM_NUMBERS].sort()).toEqual(contractEnum('TermDto', 'number'));
   });
 
+  it('caps the credits of a row where the contract does', () => {
+    expect(MAX_CREDITS).toBe(contractMaximum('TranscriptRowDto', 'credits'));
+  });
+
   it('checks the bounds the API checks', () => {
-    expect(schemas.TranscriptRowDto.properties.credits).toMatchObject({ minimum: 0, maximum: MAX_CREDITS });
+    expect(schemas.TranscriptRowDto.properties.credits).toMatchObject({ minimum: 0 });
     expect(schemas.TranscriptDto.properties.rows.description).toContain(`at most ${MAX_ROWS} rows`);
   });
 });

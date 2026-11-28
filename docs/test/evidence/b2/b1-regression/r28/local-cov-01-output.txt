@@ -1,0 +1,30 @@
+# TC-B1-COV-01, tree 4b038fe (git archive in a scratch folder), Node v24.19.0, SWC_NATIVE_BINDING_CACHE=C:\swc-native-cache
+2026-11-28T07:54:53Z
+=== COV-01a: production files in src/backend/src/rules (find, without *.spec.ts and testing/)
+src/backend/src/rules/attempts.ts
+src/backend/src/rules/audit.ts
+src/backend/src/rules/coverage.ts
+src/backend/src/rules/credit-caps.ts
+src/backend/src/rules/gpa.ts
+src/backend/src/rules/grades.ts
+src/backend/src/rules/graduation.ts
+src/backend/src/rules/plan-issues.ts
+src/backend/src/rules/prerequisites.ts
+src/backend/src/rules/rules.module.ts
+src/backend/src/rules/rules.service.ts
+src/backend/src/rules/standing.ts
+src/backend/src/rules/types.ts
+count: 13
+=== COV-01b/c baseline, unmodified tree: npx vitest run --coverage --coverage.reportOnFailure src/rules, started 07:54:53Z
+ Test Files  10 passed (10)
+      Tests  142 passed (142)
+ src/rules         |   98.67 |    96.91 |   99.43 |   98.78 |                   
+exit 0
+--- appended to src/rules/gpa.ts: an exported function, covUncovered(x), with an if branch of 500 statements that no test calls
+=== COV-01c modified tree: the same command, started 07:55:00Z
+ Test Files  10 passed (10)
+      Tests  142 passed (142)
+ src/rules         |   50.58 |    96.37 |   98.87 |   44.54 |                   
+ERROR: Coverage for statements (50.58%) does not meet "src/rules/**" threshold (80%)
+exit 1
+--- gpa.ts restored from its copy; no covUncovered left; equal to `git show 4b038fe:src/backend/src/rules/gpa.ts` apart from line endings (git archive wrote CRLF)

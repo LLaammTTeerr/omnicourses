@@ -1,9 +1,9 @@
 # ADR 0008: Real-browser test provider
 
-- Status: proposed
+- Status: accepted (2026-11-27, Lâm)
 - Date: 2026-10-29
-- Owner: Thắng (test automation)
-- Reviewers: Hoà (frontend), Lâm (CI)
+- Deciders: Thắng (test automation), Lâm (Project Lead)
+- Reviewer: Hoà (frontend)
 
 ## Context
 

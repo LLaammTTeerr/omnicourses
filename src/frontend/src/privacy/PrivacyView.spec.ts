@@ -5,11 +5,11 @@ import { useLocale } from '../locale.js';
 import { mockApi } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import PrivacyView from './PrivacyView.vue';
+import { PRIVACY_MESSAGES } from './messages.js';
 
 let wrapper: VueWrapper | undefined;
 
 async function render(signedIn = false) {
-  // The notice is static: any API call is a mistake, and mockApi fails it.
   const fetch = mockApi({});
   const { pinia, router } = await setup('/privacy', { signedIn });
   wrapper = mount(PrivacyView, { global: { plugins: [pinia, router] }, attachTo: document.body });
@@ -32,7 +32,7 @@ describe('PrivacyView (UC-01 step 2, TC-B1-USER-01p)', () => {
   it('opens signed out, with no API call', async () => {
     const { w, router, fetch } = await render();
     expect(router.currentRoute.value.name).toBe('privacy');
-    expect(w.get('h1').text()).toBe('Quyền riêng tư');
+    expect(w.get('h1').text()).toBe(PRIVACY_MESSAGES.vi.title);
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -45,14 +45,14 @@ describe('PrivacyView (UC-01 step 2, TC-B1-USER-01p)', () => {
     }
     expect(stored[0]).toContain('thời điểm bạn đồng ý');
     const text = w.text();
-    expect(text).toContain('Đến khi bạn xóa tài khoản.');
+    expect(text).toContain(PRIVACY_MESSAGES.vi.kept);
     expect(text).toContain('Sau 30 ngày');
     expect(text).toContain('Đăng nhập lại trước hạn đó sẽ hủy việc xóa.');
     expect(text).toContain('14 bản gần nhất');
     expect(text).toContain('giữ 7 ngày');
     expect(text).toContain('Không bao giờ gửi tên, email hay mã số sinh viên.');
     expect(text).toContain('không bao giờ hỏi hay lưu mật khẩu cổng thông tin');
-    expect(text).toContain('Cập nhật ngày 12/11/2026.');
+    expect(text).toContain('Cập nhật ngày 26/11/2026.');
   });
 
   it('names the Settings labels the student will see to export or delete', async () => {
@@ -71,12 +71,12 @@ describe('PrivacyView (UC-01 step 2, TC-B1-USER-01p)', () => {
     expect(document.documentElement.lang).toBe('en');
     const text = w.text();
     expect(text).not.toMatch(/[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i);
-    expect(text).toContain('Until you delete your account.');
+    expect(text).toContain(PRIVACY_MESSAGES.en.kept);
     expect(text).toContain('After 30 days');
     expect(text).toContain('Signing in again before then cancels the deletion.');
     expect(text).toContain('AI usage counts');
     expect(text).toContain('Never what you asked or what the AI answered.');
-    expect(text).toContain('Last updated 12 Nov 2026.');
+    expect(text).toContain('Last updated 26 Nov 2026.');
     expect(w.get('[data-test="export"]').text()).toContain('Settings → Your data → Export data');
     expect(w.get('[data-test="delete"]').text()).toContain('Settings → Your data → Delete account');
   });

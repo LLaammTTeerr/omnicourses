@@ -1,14 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { ArrayMaxSize, IsArray, IsDefined, IsIn, IsInt, IsNumber, IsString, Matches, Max, MaxLength, Min, MinLength, ValidateBy, ValidateIf, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsDefined, IsIn, IsInt, IsNumber, IsString, Matches, Max, Min, MinLength, ValidateBy, ValidateIf, ValidateNested } from 'class-validator';
 import { COURSE_CODE_PATTERN } from '../common/course-code.js';
-import { trimString } from '../common/transforms.js';
+import { MaxCodePoints, NoNullCharacter, trimString } from '../common/field-validators.js';
 import { TermDto } from '../terms/term.dto.js';
+import { NAME_MAX_LENGTH } from '../common/column-limits.js';
 import { TRANSCRIPT_RESULTS, TranscriptEntry, TranscriptResult } from './transcript-entry.js';
 
 export const MAX_TRANSCRIPT_ROWS = 300;
+const MAX_ROW_CREDITS = 30;
+const MAX_GRADE = 10;
 
-export class TranscriptRowDto implements TranscriptEntry {
+class TranscriptRowDto implements TranscriptEntry {
   @ApiProperty({ example: 'CSC10001' })
   @Transform(({ value }) => (typeof value === 'string' ? value.trim().toUpperCase() : value))
   @IsString()
@@ -18,17 +21,17 @@ export class TranscriptRowDto implements TranscriptEntry {
   @ApiProperty({ example: 'Introduction to Programming' })
   @Transform(trimString)
   @IsString()
+  @NoNullCharacter
   @MinLength(1)
-  @MaxLength(255)
+  @MaxCodePoints(NAME_MAX_LENGTH)
   courseName!: string;
 
-  @ApiProperty({ example: 4, minimum: 0, maximum: 30 })
+  @ApiProperty({ example: 4, minimum: 0, maximum: MAX_ROW_CREDITS })
   @IsInt()
   @Min(0)
-  @Max(30)
+  @Max(MAX_ROW_CREDITS)
   credits!: number;
 
-  // Must be sent: a row without a result is incomplete and cannot be saved (UC-02 A2).
   @ApiProperty({
     enum: TRANSCRIPT_RESULTS,
     example: 'graded',
@@ -37,14 +40,11 @@ export class TranscriptRowDto implements TranscriptEntry {
   @IsIn(TRANSCRIPT_RESULTS)
   result!: TranscriptResult;
 
-  // Required when graded; otherwise null or left out. ValidateIf gates every rule below,
-  // so a grade sent with another result is still checked, and refused by nullUnlessGraded.
-  // A missing or unknown result is the result's error alone: nullUnlessGraded lets it pass.
   @ApiProperty({ type: Number, nullable: true, required: false, example: 8.5, description: '10-point scale, one decimal. Required when result is graded; null otherwise.' })
   @ValidateIf((row: TranscriptRowDto) => row.result === 'graded' || (row.grade !== null && row.grade !== undefined))
   @IsNumber({ maxDecimalPlaces: 1 })
   @Min(0)
-  @Max(10)
+  @Max(MAX_GRADE)
   @ValidateBy({
     name: 'nullUnlessGraded',
     validator: {
@@ -57,7 +57,6 @@ export class TranscriptRowDto implements TranscriptEntry {
   })
   grade!: number | null;
 
-  // @ValidateNested() alone lets a missing term through.
   @ApiProperty({ type: TermDto })
   @IsDefined()
   @ValidateNested()

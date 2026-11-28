@@ -1,6 +1,6 @@
 # ADR 0014: The plan model
 
-- Status: proposed
+- Status: accepted (2026-11-27, Lâm)
 - Date: 2026-11-09
 - Deciders: Lâm (Project Lead)
 - Reviewers: Hoà (F5 planner, F7 what-if), Triết (rule engine), Dũng (F9 sharing)
@@ -24,15 +24,24 @@ AGENTS.md hard rule 1 leaves every academic rule to the rule engine, and [ADR 00
 | **A course is placed at most once in a plan.** A partial unique index on `(plan_id, course_code)`. | Allow repeats | The planner prototype stores a plan as course → term. A retake after a failed attempt is still one placement, in the term of the retake. Two slots of the same group are allowed: each holds its own credits. |
 | **The planner saves the whole board in one `PUT /api/plans/{id}/placements`,** which replaces every placement in one transaction, under a row lock on the plan. Any invalid placement refuses the whole request. | One route per move (add, move, remove) | The planner already holds the whole board for undo (UC-05 A3). All-or-nothing replacement cannot leave half a move saved, and a lost response is recovered by reading the plan again (TC-B2-PLAN-02). The transcript uses the same pattern (ADR 0007). |
 | **The plans module checks shape and references only.** Codes must exist in the catalog; a slot's group must belong to the plan's curriculum; a course outside the curriculum is allowed. **No prerequisite, offering term, credit cap or coverage check.** | Refuse a plan that breaks a rule | Hard rule 1 and ADR 0012. Whether a course outside the curriculum counts is a coverage question for the engine. |
-| **Violations come from the rule engine through a `PlanIssuesProvider` interface** (`src/backend/src/plans/plan-issues.ts`), served later as `GET /api/plans/{id}/issues`. Not stored. | Store violations with the plan | They change whenever the transcript, the curriculum or the rules change; computing them on read keeps them current (UC-05 A7). Issues are codes with parameters, as in ADR 0006. |
+| **Violations come from the rule engine through `RulesService`** (`src/backend/src/rules/rules.service.ts`; was a `PlanIssuesProvider` interface in `plans/plan-issues.ts`, renamed, see the amendment below), served later as `GET /api/plans/{id}/issues`. Not stored. | Store violations with the plan | They change whenever the transcript, the curriculum or the rules change; computing them on read keeps them current (UC-05 A7). Issues are codes with parameters, as in ADR 0006. |
 | **A what-if copy is a duplicated plan** (`POST /api/plans/{id}/duplicate`). Discarding it deletes it. | A separate scenario table | UC-06 saves the copy "as a new plan"; a copy is already a plan. |
 | **Another student's plan answers 404, as a missing or malformed id does.** | 403 | A 403 would confirm that the plan exists. |
 | **No primary or active plan in the database yet.** The UI remembers the open plan. | An `is_primary` column | It needs an "exactly one per student" rule and a choice of the next primary on delete, and nothing in B1 reads it. Add it when sharing, notifications or the advisor need "the student's plan". |
 
+- 2026-11-26: Bounds on input, not rules: at most 30 terms, 30 placements in a term and 300 placements in a plan. They stop oversized requests. They are far above any real plan: APCS has 12 terms of about 8 courses.
+- 2026-11-26: A copy reads the original plan with `FOR SHARE`, so a save of the original that is in progress finishes first and the copy never holds half of it.
+- 2026-11-26: A save locks the plan row with `FOR NO KEY UPDATE`, as the transcript does (ADR 0007). Two saves of one plan then run one after the other, and the lock does not block the `KEY SHARE` lock that an insert that references the plan takes (a copy, a link).
+
 ## Consequences
 
-- The rule engine registers a `PlanIssuesProvider` and serves `GET /api/plans/{id}/issues` (ADR 0013, "Plan issues").
+- The rule engine (`RulesService`, was `PlanIssuesProvider`; renamed, see the amendment below) serves `GET /api/plans/{id}/issues` (ADR 0013, "Plan issues").
 - The sharing module (F9, ADR 0010) needs a read-only method on `PlansService` that reads a plan by id for a share token. Its share table will have its own `user_id` and `plan_id … ON DELETE CASCADE`, so deleting a plan stops its links (UC-09 A5).
 - F12 must refuse to delete a curriculum or requirement group that a plan uses; the database refuses it already. A course-code correction must update `plan_placements.course_code` in the same migration as the transcript (ADR 0011).
 - The plan generator saves its result with `POST /api/plans` and `terms` in the body, in one request.
 - Open: whether past terms belong in a plan or are always read from the transcript. The model allows both; the prototype draws past terms from the transcript.
+- 2026-11-26: The drag preview adds the dropped placement at the end of each target term. The planner draws a drop in the same place, so the positions in each report match the planner's tiles.
+
+## Amendment, 26 November 2026: no provider interface
+
+*Decided by the coordinator under the Project Lead's standing delegation, 26 November 2026 (backend cleanup).* `PlanIssuesProvider` and the `PLAN_ISSUES_PROVIDER` token are removed. `PlansController` and `SharingService` inject `RulesService`, and the plan-issue types are in `rules/types.ts`. Violations are still computed on read and never stored. The plan id route parameter, its 404 answer and its description are in `plans/plan-id.ts`, which `sharing` uses too. See ADR 0013, amendment of 26 November 2026.

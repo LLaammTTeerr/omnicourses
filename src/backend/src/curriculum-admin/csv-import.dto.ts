@@ -1,17 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
+import { MaxCodePoints } from '../common/field-validators.js';
 import { CourseDto } from '../curriculum/curriculum.dto.js';
 import { AffectedCurriculumDto, ImportRowErrorDto } from './admin-errors.js';
+import { CSV_MAX_BYTES, CSV_MAX_RECORDS, inMiB } from './csv-file.js';
 import { COURSE_FIELDS, type CourseField } from './curriculum-admin.dto.js';
 
-// Request and response shapes of the F12 CSV import (ADR 0011, "CSV contract and UC-11
-// handoff"). The file travels as JSON text, never as an upload the server keeps.
+export const REVIEW_VERSION_MAX_LENGTH = 128;
 
 export const CATALOG_FILE = 'catalog_courses';
 export const GROUP_LINKS_FILE = 'group_links';
 
-const CSV_DESCRIPTION =
-  'The whole file as text: UTF-8, optional BOM, comma-delimited, LF or CRLF, fields quoted with doubled quotes where needed. At most 1 MiB and 1,000 data records.';
+const CSV_DESCRIPTION = `The whole file as text: UTF-8, optional BOM, comma-delimited, LF or CRLF, fields quoted with doubled quotes where needed. At most ${inMiB(CSV_MAX_BYTES)} and ${CSV_MAX_RECORDS.toLocaleString('en')} data records.`;
 
 export class ImportPreviewRequestDto {
   @ApiProperty({ description: CSV_DESCRIPTION })
@@ -24,10 +24,10 @@ export class ImportConfirmRequestDto {
   @IsString()
   csv!: string;
 
-  @ApiProperty({ maxLength: 128, description: 'The reviewVersion of the preview of this file. It is refused once the file, the saved values or the references it covers have changed.' })
+  @ApiProperty({ maxLength: REVIEW_VERSION_MAX_LENGTH, description: 'The reviewVersion of the preview of this file. It is refused once the file, the saved values or the references it covers have changed.' })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(128)
+  @MaxCodePoints(REVIEW_VERSION_MAX_LENGTH)
   reviewVersion!: string;
 }
 
@@ -42,7 +42,7 @@ export class ImportSummaryDto {
   noOps!: number;
 }
 
-export class CatalogImportRowDto extends CourseDto {
+class CatalogImportRowDto extends CourseDto {
   @ApiProperty({ example: 2, description: 'The logical CSV record; the header is record 1' })
   record!: number;
 
@@ -85,7 +85,7 @@ export class CatalogImportPreviewDto extends ImportPreviewDto {
   affectedCurricula!: AffectedCurriculumDto[];
 }
 
-export class GroupLinkImportRowDto {
+class GroupLinkImportRowDto {
   @ApiProperty({ example: 2, description: 'The logical CSV record; the header is record 1' })
   record!: number;
 

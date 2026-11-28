@@ -1,25 +1,13 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, ValidateIf } from 'class-validator';
-import { CreditCapsDto } from '../audit/audit.dto.js';
-import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
-import { PLACEMENT_KINDS, type PlacementKind } from '../plans/plan-board.js';
-import { PLAN_ISSUE_CODES, PLAN_ISSUE_KINDS, type PlanIssueCode, type PlanIssueKind } from '../plans/plan-issues.js';
-import { TERM_KINDS, type TermKind } from '../rules/credit-caps.js';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
+import { IsBoolean } from 'class-validator';
+import { GRADUATION_STATUSES, type GraduationVerdict, PLACEMENT_KINDS, PLAN_ISSUE_CODES, PLAN_ISSUE_KINDS, type PlacementKind, type PlanIssueCode, type PlanIssueKind } from '../rules/types.js';
+import { ifPresent } from '../common/field-validators.js';
 import { TermDto } from '../terms/term.dto.js';
+import { CreditCapsDto, PlanCombinedMinimumCoverageDto, PlanGroupCoverageDto, PlanTermLoadDto } from '../plans/plan-issues.dto.js';
 
-// F9 sharing (UC-09, ADR 0010). Two contracts: what the owner sees of their link, and what a
-// reader of the link sees of the plan. The second lists every field on purpose: a reader gets
-// these and nothing else (UC-09 step 2).
-
-/** A choice that is sent must be a boolean: null is refused, not read as "left out". */
-const ifSent = ValidateIf((_: object, value: unknown) => value !== undefined);
-
-// Both choices follow one rule: only an explicit true turns a choice on, an explicit false turns it
-// off, and a field left out keeps what the link has (off on a new link). So a page that sends one
-// choice never changes the other.
 export class SharePlanDto {
   @ApiProperty({ required: false, description: "Whether a reader sees the owner's display name. Left out: unchanged on a live link, hidden on a new one." })
-  @ifSent
+  @ifPresent
   @IsBoolean()
   showName?: boolean;
 
@@ -28,7 +16,7 @@ export class SharePlanDto {
     description:
       "Whether a reader sees the checks the rule engine decides from the owner's transcript (missing prerequisites, courses already passed or in progress, requirements not covered) and the coverage of each requirement. With it on, a reader can tell which courses the owner has passed, failed or is taking; grades and transcript rows are never shown. Left out: unchanged on a live link, off on a new one.",
   })
-  @ifSent
+  @ifPresent
   @IsBoolean()
   showTranscriptChecks?: boolean;
 }
@@ -55,7 +43,7 @@ export class PlanShareStateDto {
   share!: PlanShareDto | null;
 }
 
-export class SharedProgramDto {
+class SharedProgramDto {
   @ApiProperty({ example: 'APCS' })
   code!: string;
 
@@ -66,7 +54,7 @@ export class SharedProgramDto {
   nameEn!: string | null;
 }
 
-export class SharedCurriculumDto {
+class SharedCurriculumDto {
   @ApiProperty({ example: 'APCS2024', description: 'The curriculum version the plan was made with.' })
   code!: string;
 
@@ -103,18 +91,12 @@ export class SharedPlacementDto {
   requirementGroupName!: string | null;
 }
 
-export class SharedPlanTermDto {
-  @ApiProperty({ type: TermDto })
-  term!: TermDto;
-
-  @ApiProperty({ enum: TERM_KINDS, nullable: true, description: "null: the program's training type is not recorded." })
-  kind!: TermKind | null;
-
+class SharedPlanTermDto extends PlanTermLoadDto {
   @ApiProperty({ example: 16, description: "The term's load as the rule engine counts it: courses at their catalog credits plus slots at theirs." })
-  credits!: number;
+  declare credits: number;
 
   @ApiProperty({ type: CreditCapsDto, nullable: true, description: 'The credit caps of the term (ADR 0012); null when the training type is not recorded.' })
-  caps!: CreditCapsDto | null;
+  declare caps: CreditCapsDto | null;
 
   @ApiProperty({ type: [SharedPlacementDto], description: 'In order.' })
   placements!: SharedPlacementDto[];
@@ -172,44 +154,13 @@ export class SharedPlanIssueDto {
   combinedMinimumName?: string | null;
 }
 
-export class SharedGroupCoverageDto {
-  @ApiProperty({ example: 'Kiến thức Math' })
-  name!: string;
-
-  @ApiProperty({ enum: REQUIREMENT_GROUP_KINDS })
-  kind!: RequirementGroupKind;
-
-  @ApiProperty({ type: Number, nullable: true, description: 'null: the group has no minimum of its own.' })
-  requiredCredits!: number | null;
-
+class SharedGroupCoverageDto extends OmitType(PlanGroupCoverageDto, ['id'] as const) {
   @ApiProperty({ description: 'Credits passed, in progress or placed, toward the cohort total.' })
-  credits!: number;
-
-  @ApiProperty({ type: Number, nullable: true })
-  remainingCredits!: number | null;
-
-  @ApiProperty()
-  met!: boolean;
+  declare credits: number;
 }
 
-export class SharedCombinedMinimumCoverageDto {
-  @ApiProperty({ example: 'Kiến thức tự chọn' })
-  name!: string;
+class SharedCombinedMinimumCoverageDto extends OmitType(PlanCombinedMinimumCoverageDto, ['id'] as const) {}
 
-  @ApiProperty({ example: 43 })
-  creditsMin!: number;
-
-  @ApiProperty()
-  credits!: number;
-
-  @ApiProperty()
-  remainingCredits!: number;
-
-  @ApiProperty()
-  met!: boolean;
-}
-
-/** The rule engine's coverage of the plan (PlanCoverage of GET /plans/{id}/issues), by name and with no id. */
 export class SharedPlanCoverageDto {
   @ApiProperty({ type: [SharedGroupCoverageDto] })
   groups!: SharedGroupCoverageDto[];
@@ -226,11 +177,10 @@ export class SharedPlanCoverageDto {
   @ApiProperty({ type: Number, nullable: true })
   totalRemaining!: number | null;
 
-  @ApiProperty({ enum: ['done', 'not_yet'], description: 'done: every requirement the data can check would be met with the plan completed; the school still checks the rest (Điều 17.3).' })
-  graduation!: 'done' | 'not_yet';
+  @ApiProperty({ enum: GRADUATION_STATUSES, description: 'done: every requirement the data can check would be met with the plan completed; the school still checks the rest (Điều 17.3).' })
+  graduation!: GraduationVerdict;
 }
 
-/** Everything a reader of a shared plan's link gets (UC-09 step 2). No field identifies the owner except `ownerName`, when they chose it. */
 export class SharedPlanDto {
   @ApiProperty({ example: 'Main plan' })
   name!: string;
@@ -273,7 +223,6 @@ export class SharedPlanDto {
 
 export const NOT_SHARED_MESSAGE = 'This plan is not shared';
 
-/** The one answer to every link that does not open a plan: stopped, deleted, mistyped or never created. */
 export class NotSharedDto {
   @ApiProperty({ example: 404 })
   statusCode!: number;

@@ -6,8 +6,6 @@ import { CurriculumService } from './curriculum.service.js';
 
 const COHORT_YEAR = /^\d{4}$/;
 
-// F4 reads (ADR 0005). Signed-in users only, through the global AuthGuard; F12 writes
-// live elsewhere (ADR 0011). Nothing here says whether a student may take a course.
 @ApiTags('curriculum')
 @Authenticated()
 @Controller()
@@ -26,7 +24,7 @@ export class CurriculumController {
   @ApiOkResponse({ type: CurriculumDto, description: 'The curriculum of the cohort, with its requirement groups and their courses.' })
   @ApiNotFoundResponse({ description: 'The program does not exist, has no curriculum for this cohort, or the cohort is not a 4-digit year.' })
   getCurriculum(@Param('program') program: string, @Param('cohort') cohort: string): Promise<CurriculumDto> {
-    if (!COHORT_YEAR.test(cohort)) throw new NotFoundException('No curriculum for this program and cohort');
+    if (!COHORT_YEAR.test(cohort) || program.includes('\u0000')) throw new NotFoundException('No curriculum for this program and cohort');
     return this.curriculum.getCurriculum(program, Number(cohort));
   }
 

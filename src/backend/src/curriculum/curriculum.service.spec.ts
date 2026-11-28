@@ -1,16 +1,16 @@
 import { NotFoundException } from '@nestjs/common';
-import type { ObjectLiteral, Repository } from 'typeorm';
+import type { DataSource, EntityManager, ObjectLiteral, Repository } from 'typeorm';
 import { describe, expect, it, vi } from 'vitest';
-import type { Course } from './course.entity.js';
-import type { CourseRules, CourseRulesService } from './course-rules.service.js';
+import { Course } from './course.entity.js';
+import type { CourseRules } from './curriculum-rules.js';
+import type { CurriculumRulesReader } from './curriculum-rules.reader.js';
 import { CurriculumController } from './curriculum.controller.js';
-import type { Curriculum } from './curriculum.entity.js';
+import { Curriculum } from './curriculum.entity.js';
 import { CurriculumService } from './curriculum.service.js';
 import type { Program } from './program.entity.js';
-import type { RequirementGroupCourse } from './requirement-group-course.entity.js';
-import type { RequirementGroup } from './requirement-group.entity.js';
+import type { RequirementGroup, RequirementGroupCourse } from './requirement-group.entity.js';
+import { seedCurricula } from './seed-curricula.js';
 
-// Synthetic catalog: no real curriculum is needed to check the shapes and the order.
 const course = (code: string, credits = 4): Course =>
   ({ code, nameVi: `Học phần ${code}`, nameEn: null, credits, theoryPeriods: 45, labPeriods: null, exercisePeriods: 0, projectPeriods: 0 }) as Course;
 
@@ -50,12 +50,12 @@ function service(overrides: { curriculum?: Curriculum | null; course?: Course | 
     ]),
   });
   const links = repo<RequirementGroupCourse>({ find: vi.fn().mockResolvedValue(overrides.links ?? []) });
-  const rulesFor = vi.fn().mockResolvedValue(overrides.rules ?? { prerequisites: new Map(), offeringTerms: new Map() });
+  const courseRules = vi.fn().mockResolvedValue(overrides.rules ?? { prerequisites: new Map(), offeringTerms: new Map() });
   return {
     findOne,
     findOneBy,
-    rulesFor,
-    svc: new CurriculumService(programs, repo<Curriculum>({ findOne }), repo<Course>({ findOneBy }), links, { rulesFor } as unknown as CourseRulesService),
+    courseRules,
+    svc: new CurriculumService(programs, repo<Curriculum>({ findOne }), repo<Course>({ findOneBy }), links, { courseRules } as unknown as CurriculumRulesReader),
   };
 }
 
@@ -78,7 +78,6 @@ describe('CurriculumService', () => {
       ['Bắt buộc', 'compulsory', 8, null, ['ZZ001', 'ZZ002']],
       ['Tự chọn', 'elective', null, 4, ['ZZ001', 'ZZ003']],
     ]);
-    // The same course may sit in two groups; the catalog fields come through untouched, nulls kept.
     expect(result.requirementGroups[0].courses[0]).toEqual({
       code: 'ZZ001',
       nameVi: 'Học phần ZZ001',
@@ -95,16 +94,15 @@ describe('CurriculumService', () => {
 
   it('reads prerequisites and offering terms nothing recorded as null, never as none', async () => {
     const result = await service().svc.getCurriculum('ZZ', 2030);
-    // An empty list would read as "none"; the data is missing, not empty (test plan, data gaps).
     const courses = result.requirementGroups.flatMap((g) => g.courses);
     expect(courses.every((c) => c.prerequisites === null && c.offeringTerms === null)).toBe(true);
   });
 
   it('serves the rules recorded for this curriculum, in every group the course sits in', async () => {
-    const rules = { prerequisites: new Map([['ZZ001', []], ['ZZ002', ['ZZ001']]]), offeringTerms: new Map([['ZZ002', [1, 3]]]) };
-    const { svc, rulesFor } = service({ rules });
+    const rules: CourseRules = { prerequisites: new Map([['ZZ001', []], ['ZZ002', ['ZZ001']]]), offeringTerms: new Map([['ZZ002', [1, 3]]]) };
+    const { svc, courseRules } = service({ rules });
     const result = await svc.getCurriculum('ZZ', 2030);
-    expect(rulesFor).toHaveBeenCalledWith('c1');
+    expect(courseRules).toHaveBeenCalledWith('c1');
     const rows = result.requirementGroups.flatMap((g) => g.courses.map((c) => [g.name, c.code, c.prerequisites, c.offeringTerms]));
     expect(rows).toEqual([
       ['Bắt buộc', 'ZZ001', [], null],
@@ -162,7 +160,7 @@ describe('CurriculumService bulk reads for plans', () => {
   function bulk(found: { curriculum?: Partial<Curriculum> | null; courses?: Course[] } = {}) {
     const findOne = vi.fn().mockResolvedValue(found.curriculum === undefined ? { id: 'c1', requirementGroups: [{ id: 'g1' }, { id: 'g2' }] } : found.curriculum);
     const find = vi.fn().mockResolvedValue(found.courses ?? []);
-    const svc = new CurriculumService(repo<Program>({}), repo<Curriculum>({ findOne }), repo<Course>({ find }), repo<RequirementGroupCourse>({}), {} as CourseRulesService);
+    const svc = new CurriculumService(repo<Program>({}), repo<Curriculum>({ findOne }), repo<Course>({ find }), repo<RequirementGroupCourse>({}), {} as CurriculumRulesReader);
     return { svc, findOne, find };
   }
 
@@ -174,23 +172,13 @@ describe('CurriculumService bulk reads for plans', () => {
     expect(findOne).not.toHaveBeenCalled();
   });
 
-  it('answers which codes the catalog has in one query, never asking about a malformed or repeated code', async () => {
-    const { svc, find } = bulk({ courses: [course('ZZ001')] });
-    expect(await svc.knownCourseCodes(['ZZ001', 'ZZ002', 'ZZ001', 'zz003'])).toEqual(new Set(['ZZ001']));
-    expect(find).toHaveBeenCalledTimes(1);
-    expect(JSON.stringify(find.mock.calls[0][0].where.code)).toContain('["ZZ001","ZZ002"]');
-    const none = bulk();
-    expect(await none.svc.knownCourseCodes(['bad code'])).toEqual(new Set());
-    expect(none.find).not.toHaveBeenCalled();
-  });
-
   it('gives the catalog name and credits of the codes it has, in one query, never asking about a malformed or repeated code', async () => {
     const { svc, find } = bulk({ courses: [{ ...course('ZZ001', 3), nameEn: 'Test course' }] });
-    expect(await svc.courseSummaries(['ZZ001', 'ZZ002', 'ZZ001', 'zz003'])).toEqual(new Map([['ZZ001', { nameVi: 'Học phần ZZ001', nameEn: 'Test course', credits: 3 }]]));
+    expect(await svc.catalogCourses(['ZZ001', 'ZZ002', 'ZZ001', 'zz003'])).toEqual(new Map([['ZZ001', { nameVi: 'Học phần ZZ001', nameEn: 'Test course', credits: 3 }]]));
     expect(find).toHaveBeenCalledTimes(1);
     expect(JSON.stringify(find.mock.calls[0][0].where.code)).toContain('["ZZ001","ZZ002"]');
     const none = bulk();
-    expect(await none.svc.courseSummaries(['bad code'])).toEqual(new Map());
+    expect(await none.svc.catalogCourses(['bad code'])).toEqual(new Map());
     expect(none.find).not.toHaveBeenCalled();
   });
 
@@ -210,6 +198,37 @@ describe('CurriculumService bulk reads for plans', () => {
   it('lists the requirement group ids of a curriculum, none for an unknown one', async () => {
     expect(await bulk().svc.requirementGroupIds('c1')).toEqual(new Set(['g1', 'g2']));
     expect(await bulk({ curriculum: null }).svc.requirementGroupIds('c9')).toEqual(new Set());
+  });
+
+  it('uses the transaction EntityManager when given to catalogCourses and requirementGroupIds', async () => {
+    const { svc, find, findOne } = bulk();
+    const txFind = vi.fn().mockResolvedValue([course('ZZ001', 4)]);
+    const txFindOne = vi.fn().mockResolvedValue({ id: 'c1', requirementGroups: [{ id: 'g9' }] });
+    const manager = {
+      getRepository: vi.fn((entity: unknown) => (entity === Course ? { find: txFind } : entity === Curriculum ? { findOne: txFindOne } : {})),
+    } as unknown as EntityManager;
+
+    expect(await svc.catalogCourses(['ZZ001'], manager)).toEqual(new Map([['ZZ001', { nameVi: 'Học phần ZZ001', nameEn: null, credits: 4 }]]));
+    expect(await svc.requirementGroupIds('c1', manager)).toEqual(new Set(['g9']));
+    expect(find).not.toHaveBeenCalled();
+    expect(findOne).not.toHaveBeenCalled();
+    expect(txFind).toHaveBeenCalledOnce();
+    expect(txFindOne).toHaveBeenCalledOnce();
+  });
+});
+
+describe('seedCurricula', () => {
+  it('acquires ADMIN_WRITE_LOCK at the start of its transaction', async () => {
+    const calls: [string, unknown[] | undefined][] = [];
+    const em = {
+      query: vi.fn(async (sql: string, params?: unknown[]) => {
+        calls.push([sql, params]);
+        return [];
+      }),
+    };
+    const dataSource = { transaction: vi.fn((work: (m: typeof em) => unknown) => work(em)) } as unknown as DataSource;
+    await seedCurricula(dataSource, [], []);
+    expect(calls[0]).toEqual(['SELECT pg_advisory_xact_lock($1)', [11_012_001]]);
   });
 });
 

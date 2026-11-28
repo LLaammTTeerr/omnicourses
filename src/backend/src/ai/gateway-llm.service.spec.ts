@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { z } from 'zod';
+import { Clock } from '../config/clock.js';
 import { AI_REASONS, AiUnavailableError } from './ai-unavailable.error.js';
 import { type CostGuard, GatewayLlmService } from './gateway-llm.service.js';
 import type { ChatEvent, ChatRequest } from './llm.service.js';
@@ -8,12 +9,11 @@ import { ModelClient, ModelMessage, ModelStreamEvent, ModelTool, ModelToolCall }
 const context = { userId: '00000000-0000-4000-8000-000000000001', feature: 'test' };
 const usage = { inputTokens: 10, outputTokens: 5 };
 
-/** Scripted model: each complete()/stream() call takes the next reply. */
 class ScriptedModel extends ModelClient {
   completions: Array<string | Error> = [];
   turns: Array<{ text?: string; toolCalls?: ModelToolCall[] } | Error> = [];
   completeCalls: Array<Parameters<ModelClient['complete']>[0]> = [];
-  streamCalls: Array<{ messages: ModelMessage[]; tools: ModelTool[]; toolChoice?: 'auto' | 'none' }> = [];
+  streamCalls: Array<{ messages: ModelMessage[]; tools: ModelTool[]; toolChoice?: 'auto' | 'none'; signal?: AbortSignal }> = [];
 
   async complete(request: Parameters<ModelClient['complete']>[0]) {
     this.completeCalls.push(request);
@@ -23,8 +23,7 @@ class ScriptedModel extends ModelClient {
   }
 
   async *stream(request: Parameters<ModelClient['stream']>[0]): AsyncIterable<ModelStreamEvent> {
-    // Snapshot: the gateway keeps appending to the same array.
-    this.streamCalls.push({ messages: [...request.messages], tools: request.tools, toolChoice: request.toolChoice });
+    this.streamCalls.push({ messages: [...request.messages], tools: request.tools, toolChoice: request.toolChoice, signal: request.signal });
     const turn = this.turns.shift() ?? { text: '' };
     if (turn instanceof Error) {
       yield { type: 'text', delta: 'partial ' };
@@ -51,7 +50,7 @@ describe('GatewayLlmService', () => {
   beforeEach(() => {
     model = new ScriptedModel();
     guard = { reserve: vi.fn(async () => 'row-1'), finish: vi.fn(async () => undefined), release: vi.fn(async () => undefined) };
-    llm = new GatewayLlmService(model, guard, config);
+    llm = new GatewayLlmService(model, guard, config, new Clock());
   });
 
   describe('structured', () => {
@@ -87,14 +86,14 @@ describe('GatewayLlmService', () => {
     });
 
     it('answers ai_unavailable without calling the model when no model is configured', async () => {
-      llm = new GatewayLlmService(model, guard, { ...config, structuredModel: null });
+      llm = new GatewayLlmService(model, guard, { ...config, structuredModel: null }, new Clock());
       await expect(llm.structured(request)).rejects.toThrow(new AiUnavailableError(AI_REASONS.notConfigured));
       expect(model.completeCalls).toHaveLength(0);
       expect(guard.reserve).not.toHaveBeenCalled();
     });
 
     it('answers ai_unavailable without reserving a call when the provider has no key, so it does not count', async () => {
-      llm = new GatewayLlmService(null, guard, config);
+      llm = new GatewayLlmService(null, guard, config, new Clock());
       await expect(llm.structured(request)).rejects.toThrow(new AiUnavailableError(AI_REASONS.notConfigured));
       expect(guard.reserve).not.toHaveBeenCalled();
       expect(guard.finish).not.toHaveBeenCalled();
@@ -134,6 +133,13 @@ describe('GatewayLlmService', () => {
       await expect(llm.structured(request)).rejects.toThrow(new AiUnavailableError('Daily AI limit reached, try again tomorrow'));
       expect(model.completeCalls).toHaveLength(0);
       expect(guard.reserve).toHaveBeenCalledWith(context, 'small-model');
+    });
+
+    it('threads AbortSignal through structured model calls', async () => {
+      const controller = new AbortController();
+      model.completions = ['{"targetGraduationTerm":null,"creditsPerTerm":18}'];
+      await llm.structured({ ...request, signal: controller.signal });
+      expect(model.completeCalls[0].signal).toBe(controller.signal);
     });
   });
 
@@ -281,9 +287,17 @@ describe('GatewayLlmService', () => {
     });
 
     it('does not reserve a call or reach the model without a provider key', async () => {
-      llm = new GatewayLlmService(null, guard, config);
+      llm = new GatewayLlmService(null, guard, config, new Clock());
       await expect(collect(llm.chat(request))).rejects.toThrow(new AiUnavailableError(AI_REASONS.notConfigured));
       expect(guard.reserve).not.toHaveBeenCalled();
+    });
+
+    it('threads AbortSignal through every chat turn', async () => {
+      const controller = new AbortController();
+      model.turns = [{ toolCalls: [{ id: 'call-1', name: 'search_regulations', arguments: '{"query":"cap"}' }] }, { text: 'Up to 25.' }];
+      await collect(llm.chat({ ...request, signal: controller.signal }));
+      expect(model.streamCalls[0].signal).toBe(controller.signal);
+      expect(model.streamCalls[1].signal).toBe(controller.signal);
     });
   });
 });

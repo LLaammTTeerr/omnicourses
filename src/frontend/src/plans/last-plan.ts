@@ -1,6 +1,6 @@
-// The plan the student had open last, so the planner's front door (PlannerEntry.vue) opens it again. A convenience
-// on this browser only; missing storage just opens the first plan.
-const KEY = 'oc-last-plan';
+import { ACCOUNT_STORAGE_KEYS } from '../account-storage.js';
+
+const KEY = ACCOUNT_STORAGE_KEYS.lastPlan;
 
 export function readLastPlan(): string | null {
   try {
@@ -13,7 +13,5 @@ export function readLastPlan(): string | null {
 export function rememberLastPlan(id: string): void {
   try {
     localStorage.setItem(KEY, id);
-  } catch {
-    // Not kept: private mode or storage blocked.
-  }
+  } catch {}
 }

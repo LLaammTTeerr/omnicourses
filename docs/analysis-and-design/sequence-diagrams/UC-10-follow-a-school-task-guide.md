@@ -23,7 +23,7 @@ sequenceDiagram
     Reader->>View: opens /guides
     View->>Api: fetchGuides()
     Api->>Throttle: GET /api/guides, no Authorization header
-    Throttle->>Guard: allowed (120 a minute per address)
+    Throttle->>Guard: allowed (120 a minute per route and address)
     Guard->>Guard: route is @Public(), skip the token check
     Guard->>Ctrl: list()
     Ctrl->>Svc: list()
@@ -94,5 +94,5 @@ sequenceDiagram
 
 - **Other failures** (429, 5xx, no answer within 30 s): `useAsyncLoad` puts the view in its failed state, and `LoadFailed.vue` shows a message with a retry button that calls the same fetch again.
 - **A withdrawn guide and a draft** answer the same 404 as an unknown id, so the API does not reveal that they exist. A draft is never in the database: the seed stores only published and withdrawn texts.
-- **Out of date:** `isOutOfDate` (`guides/out-of-date.ts`) is true when `lastCheckedOn` is more than `OUT_OF_DATE_MONTHS` (6) months before today's date in Vietnam. The clock is injected as `GUIDES_CLOCK`, so tests set the date.
+- **Out of date:** `isOutOfDate` (`guides/out-of-date.ts`) is true when `lastCheckedOn` is more than `OUT_OF_DATE_MONTHS` (6) months before today's date in Vietnam. The clock is injected as `Clock` (`config/clock.ts`), so tests set the date.
 - **Where the texts come from:** `npm run db:seed -w src/backend` validates the files in `guides/content/` (`validate-guide.ts`) and stores them (`seed-guides.ts`). No route writes a guide.

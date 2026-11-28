@@ -1,0 +1,24 @@
+ADM 07h run at 2026-11-25T06:06:28.201Z
+POST /auth/sign-in (b2-a3@example.com) → 200
+POST /auth/sign-in (b2-a2@example.com) → 200
+POST /auth/sign-in (b2-a1@example.com) → 200
+GET /admin/programs → 200
+GET /admin/programs → 200
+GET /programs/APCS/curricula/2024 → 200
+GET /programs/CNTT-TCTA-KHMT/curricula/2025 → 200
+  values {"APCS":"d3f524f8-e51b-42dd-91ac-013b15d5e033","APCS24":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","KHMT":"74ce84b9-c698-43ea-8470-1988a50656a8","KHMT25":"f7622c13-3e5b-4d6c-95b0-17308c767846","AC":"c052bbaf-ceda-4f6d-aad6-16be64e37324","AE":"f7ca386e-f8db-41c2-9350-1bec627aafa0","KG":"307a0d8d-a333-418c-8399-ad4bd8fd74b3"}
+POST /admin/catalog/imports/preview → 200 {"fileType":"catalog_courses","rows":[{"record":2,"action":"update","code":"ZZADM07A","nameVi":"Học phần thử ADM-07 A","nameEn":null,"credits":4,"theoryPeriods":45,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0,"changedFields":["credits"],"current":{"code":"ZZADM07A","nameVi":"Học phần thử ADM-07 A","nameEn":null,"credits":3,"theoryPeriods":45,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0},"affectedCurricula":[{"curriculumId":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","curriculumCode":"APCS2024","programCode":"APCS","cohortYear":2024}]}],"errors":[],"summary":{"inserts":0,"updates":1,"noOps":0},"affectedCurricula":[{"curriculumId":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","curriculumCode":"APCS2024","programCode":"APCS","cohortYear":2024}],"reviewVersion":"9EYoinCfAUrwohICz243RkUfnkOkvNVmFpQSmI4uBbQ"}
+  OK  first preview: ZZADM07A update, changedFields ["credits"], current 3, affectedCurricula APCS2024 only (row and top)
+PUT /admin/programs/74ce84b9-c698-43ea-8470-1988a50656a8/cohorts/f7622c13-3e5b-4d6c-95b0-17308c767846/requirement-groups/307a0d8d-a333-418c-8399-ad4bd8fd74b3/courses/ZZADM07A → 204 ""
+  OK  A2 link 204
+POST /admin/catalog/imports/confirm → 409 {"statusCode":409,"code":"impact_changed","message":"The file, or the saved data it touches, changed since the preview; preview it again"}
+  OK  confirm with V1: 409 impact_changed, no new version
+GET /courses/ZZADM07A → 200
+  OK  GET still 3 credits
+POST /admin/catalog/imports/preview → 200 {"fileType":"catalog_courses","rows":[{"record":2,"action":"update","code":"ZZADM07A","nameVi":"Học phần thử ADM-07 A","nameEn":null,"credits":4,"theoryPeriods":45,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0,"changedFields":["credits"],"current":{"code":"ZZADM07A","nameVi":"Học phần thử ADM-07 A","nameEn":null,"credits":3,"theoryPeriods":45,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0},"affectedCurricula":[{"curriculumId":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","curriculumCode":"APCS2024","programCode":"APCS","cohortYear":2024},{"curriculumId":"f7622c13-3e5b-4d6c-95b0-17308c767846","curriculumCode":"CNTT-TCTA-KHMT-2025","programCode":"CNTT-TCTA-KHMT","cohortYear":2025}]}],"errors":[],"summary":{"inserts":0,"updates":1,"noOps":0},"affectedCurricula":[{"curriculumId":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","curriculumCode":"APCS2024","programCode":"APCS","cohortYear":2024},{"curriculumId":"f7622c13-3e5b-4d6c-95b0-17308c767846","curriculumCode":"CNTT-TCTA-KHMT-2025","programCode":"CNTT-TCTA-KHMT","cohortYear":2025}],"reviewVersion":"8WnShqOehBYFK7Yl1wgl20G4sHV3LJBFe_cLUwNMkoE"}
+  OK  second preview lists APCS2024 and CNTT-TCTA-KHMT-2025, V2 differs from V1
+POST /admin/catalog/imports/confirm → 200 {"fileType":"catalog_courses","summary":{"inserts":0,"updates":1,"noOps":0}}
+  OK  confirm with V2: 200, updates 1
+GET /courses/ZZADM07A → 200 {"code":"ZZADM07A","nameVi":"Học phần thử ADM-07 A","nameEn":null,"credits":4,"theoryPeriods":45,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0,"memberships":[{"programCode":"APCS","cohortYear":2024,"curriculumCode":"APCS2024","requirementGroupId":"c052bbaf-ceda-4f6d-aad6-16be64e37324","requirementGroupName":"Tự chọn Computer Science (C)","kind":"elective"},{"programCode":"CNTT-TCTA-KHMT","cohortYear":2025,"curriculumCode":"CNTT-TCTA-KHMT-2025","requirementGroupId":"307a0d8d-a333-418c-8399-ad4bd8fd74b3","requirementGroupName":"Kiến thức bắt buộc chuyên ngành","kind":"elective"}]}
+  OK  GET 4 credits
+All checks OK

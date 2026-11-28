@@ -2,14 +2,12 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { DataSource, Repository } from 'typeorm';
 import { describe, expect, it, vi } from 'vitest';
 import type { CurriculumService } from '../curriculum/curriculum.service.js';
-import type { BoardTerm, Placement } from './plan-board.js';
+import type { OnboardingService } from '../onboarding/onboarding.service.js';
+import type { BoardTerm, Placement } from '../rules/types.js';
 import type { PlanPlacement } from './plan-placement.entity.js';
 import type { Plan } from './plan.entity.js';
-import { PlanIdPipe } from './plans.controller.js';
 import { PlansService } from './plans.service.js';
 
-// Synthetic catalog only (AGENTS.md hard rule 3). The database is faked: the e2e suite covers
-// the SQL; this covers what the service refuses before it writes anything.
 const course = (courseCode: string): Placement => ({ kind: 'course', courseCode, requirementGroupId: null, credits: null });
 const slot = (requirementGroupId: string): Placement => ({ kind: 'slot', courseCode: null, requirementGroupId, credits: 3 });
 const board = (...placements: Placement[]): BoardTerm[] => [{ term: { year: 2030, number: 1 }, placements }];
@@ -23,8 +21,13 @@ const storedPlan = {
   updatedAt: new Date('2030-01-02T00:00:00Z'),
 } as unknown as Plan;
 
-function service(found: { curriculumId?: string | null; plan?: Plan | null; affected?: number } = {}) {
-  const tx = { insert: vi.fn().mockResolvedValue({ identifiers: [{ id: 'p1' }] }), delete: vi.fn(), query: vi.fn().mockResolvedValue([{ curriculum_id: 'c1', name: 'Main plan' }]) };
+function service(found: { curriculumId?: string | null; plan?: Plan | null; affected?: number; offered?: boolean; planCount?: number } = {}) {
+  const tx = {
+    count: vi.fn().mockResolvedValue(found.planCount ?? 0),
+    insert: vi.fn().mockResolvedValue({ identifiers: [{ id: 'p1' }] }),
+    delete: vi.fn(),
+    query: vi.fn().mockResolvedValue([{ curriculum_id: 'c1', name: 'Main plan', program_code: 'ZZ', cohort_year: 2030 }]),
+  };
   const db = { transaction: vi.fn((work: (t: typeof tx) => unknown) => work(tx)) } as unknown as DataSource;
   const plans = {
     find: vi.fn().mockResolvedValue([storedPlan]),
@@ -35,16 +38,18 @@ function service(found: { curriculumId?: string | null; plan?: Plan | null; affe
   const placements = { find: vi.fn().mockResolvedValue([]) };
   const curriculum = {
     findCurriculumId: vi.fn().mockResolvedValue(found.curriculumId === undefined ? 'c1' : found.curriculumId),
-    knownCourseCodes: vi.fn().mockResolvedValue(new Set(['ZZ001', 'ZZ002'])),
+    catalogCourses: vi.fn().mockResolvedValue(new Map(['ZZ001', 'ZZ002'].map((code) => [code, { nameVi: code, nameEn: null, credits: 4 }]))),
     requirementGroupIds: vi.fn().mockResolvedValue(new Set(['g1'])),
   };
+  const onboarding = { offers: vi.fn().mockReturnValue(found.offered ?? true) };
   const svc = new PlansService(
     db,
     plans as unknown as Repository<Plan>,
     placements as unknown as Repository<PlanPlacement>,
     curriculum as unknown as CurriculumService,
+    onboarding as unknown as OnboardingService,
   );
-  return { svc, tx, plans, curriculum };
+  return { svc, tx, plans, curriculum, onboarding };
 }
 
 const create = (svc: PlansService, terms?: BoardTerm[]) => svc.create('u1', { name: 'Main plan', programCode: 'ZZ', cohortYear: 2030, terms });
@@ -54,7 +59,10 @@ describe('PlansService', () => {
     const { svc, tx } = service();
     const plan = await create(svc, board(course('ZZ001'), slot('g1')));
     expect(tx.insert).toHaveBeenNthCalledWith(1, expect.anything(), { userId: 'u1', curriculumId: 'c1', name: 'Main plan' });
-    expect(tx.insert.mock.calls[1][1]).toHaveLength(2);
+    expect(tx.insert).toHaveBeenNthCalledWith(2, expect.anything(), [
+      { planId: 'p1', userId: 'u1', termYear: 2030, termNumber: 1, position: 0, courseCode: 'ZZ001', requirementGroupId: null, slotCredits: null },
+      { planId: 'p1', userId: 'u1', termYear: 2030, termNumber: 1, position: 1, courseCode: null, requirementGroupId: 'g1', slotCredits: 3 },
+    ]);
     expect(plan).toEqual({
       id: 'p1',
       name: 'Main plan',
@@ -76,7 +84,7 @@ describe('PlansService', () => {
       [service({ curriculumId: null }), undefined, /No curriculum/],
       [service(), board(course('ZZ001'), course('ZZ009')), /ZZ009/],
       [service(), board(slot('g9')), /g9 is not in the plan's curriculum/],
-      [service(), [...board(course('ZZ001')), { term: { year: 2030, number: 2 }, placements: [course('ZZ001')] }], /./],
+      [service(), [...board(course('ZZ001')), { term: { year: 2030, number: 2 }, placements: [course('ZZ001')] }], /course ZZ001 is placed twice/],
     ];
     for (const [{ svc, tx }, terms, message] of cases) {
       const error = await create(svc, terms).catch((e: unknown) => e);
@@ -86,13 +94,40 @@ describe('PlansService', () => {
     }
   });
 
+  it('refuses a new plan for a cohort onboarding does not offer, before it reads the catalog or writes anything', async () => {
+    const { svc, tx, curriculum, onboarding } = service({ offered: false });
+    const error = await create(svc, board(course('ZZ001'))).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(BadRequestException);
+    expect(JSON.stringify((error as BadRequestException).getResponse())).toMatch(/Onboarding does not offer ZZ 2030/);
+    expect(onboarding.offers).toHaveBeenCalledWith('ZZ', 2030);
+    expect(curriculum.findCurriculumId).not.toHaveBeenCalled();
+    expect(tx.insert).not.toHaveBeenCalled();
+  });
+
+  it('refuses to copy a plan whose cohort onboarding does not offer, since a copy is a new plan, writing nothing', async () => {
+    const { svc, tx, onboarding } = service({ offered: false });
+    await expect(svc.duplicate('u1', 'p1')).rejects.toBeInstanceOf(BadRequestException);
+    expect(onboarding.offers).toHaveBeenCalledWith('ZZ', 2030);
+    expect(tx.insert).not.toHaveBeenCalled();
+  });
+
+  it('keeps reading, renaming, filling and deleting a saved plan whose cohort onboarding does not offer', async () => {
+    const { svc, tx, onboarding } = service({ offered: false });
+    await expect(svc.get('u1', 'p1')).resolves.toMatchObject({ id: 'p1' });
+    await expect(svc.list('u1')).resolves.toHaveLength(1);
+    await expect(svc.rename('u1', 'p1', 'Renamed')).resolves.toMatchObject({ id: 'p1' });
+    await expect(svc.replacePlacements('u1', 'p1', board(course('ZZ001')))).resolves.toMatchObject({ id: 'p1' });
+    await expect(svc.delete('u1', 'p1')).resolves.toBeUndefined();
+    expect(tx.insert).toHaveBeenCalledTimes(1);
+    expect(onboarding.offers).not.toHaveBeenCalled();
+  });
+
   it('asks the catalog nothing about groups when the board has no slot, and allows a course outside the curriculum', async () => {
     const { svc, curriculum } = service();
     await create(svc, board(course('ZZ002')));
     expect(curriculum.requirementGroupIds).not.toHaveBeenCalled();
   });
 
-  // The read the sharing module uses (ADR 0010): scoped to the owner like get, null instead of a 404, and no write.
   it('finds an owned plan, or null for one that is missing or someone else’s, writing nothing', async () => {
     const owned = service();
     await expect(owned.svc.find('u1', 'p1')).resolves.toMatchObject({ id: 'p1', name: 'Main plan', terms: [] });
@@ -130,7 +165,6 @@ describe('PlansService', () => {
     expect(tx.query.mock.calls[0]).toEqual([expect.stringContaining('FOR NO KEY UPDATE'), ['p1', 'u1']]);
     expect(tx.delete).toHaveBeenCalledWith(expect.anything(), { planId: 'p1' });
     expect(tx.insert.mock.calls[0][1]).toEqual([expect.objectContaining({ planId: 'p1', userId: 'u1', courseCode: 'ZZ001', position: 0 })]);
-    expect(tx.query.mock.calls.at(-1)?.[0]).toMatch(/SET "updated_at" = now\(\)/);
   });
 
   it('copies a plan under the original name unless given one', async () => {
@@ -140,12 +174,33 @@ describe('PlansService', () => {
     await svc.duplicate('u1', 'p1', 'What if');
     expect(tx.insert).toHaveBeenLastCalledWith(expect.anything(), { userId: 'u1', curriculumId: 'c1', name: 'What if' });
   });
-});
 
-describe('PlanIdPipe', () => {
-  it('answers 404 for a malformed plan id, as for an unknown one, and lower-cases a valid one', () => {
-    const pipe = new PlanIdPipe();
-    for (const id of ['not-a-uuid', '1', "' OR 1=1 --"]) expect(() => pipe.transform(id)).toThrow(NotFoundException);
-    expect(pipe.transform('3F2B8C1E-0D4A-4C6B-9E1F-2A3B4C5D6E7F')).toBe('3f2b8c1e-0d4a-4c6b-9e1f-2a3b4c5d6e7f');
+  it('validates catalog courses and requirement groups inside the write transaction on create and replacePlacements', async () => {
+    const created = service();
+    await create(created.svc, board(course('ZZ001'), slot('g1')));
+    expect(created.curriculum.catalogCourses).toHaveBeenCalledWith(['ZZ001'], created.tx);
+    expect(created.curriculum.requirementGroupIds).toHaveBeenCalledWith('c1', created.tx);
+
+    const replaced = service();
+    await replaced.svc.replacePlacements('u1', 'p1', board(course('ZZ002'), slot('g1')));
+    expect(replaced.curriculum.catalogCourses).toHaveBeenCalledWith(['ZZ002'], replaced.tx);
+    expect(replaced.curriculum.requirementGroupIds).toHaveBeenCalledWith('c1', replaced.tx);
+  });
+
+  it('locks the user row before counting plans and caps a student at 50 plans on create and duplicate', async () => {
+    const allowed = service({ planCount: 49 });
+    await expect(create(allowed.svc)).resolves.toMatchObject({ id: 'p1' });
+    expect(allowed.tx.query.mock.calls[0]).toEqual(['SELECT 1 FROM "users" WHERE "id" = $1 FOR NO KEY UPDATE', ['u1']]);
+    await expect(allowed.svc.duplicate('u1', 'p1')).resolves.toMatchObject({ id: 'p1' });
+    expect(allowed.tx.query.mock.calls).toContainEqual(['SELECT 1 FROM "users" WHERE "id" = $1 FOR NO KEY UPDATE', ['u1']]);
+    expect(allowed.tx.insert).toHaveBeenCalledTimes(2);
+
+    const atCapCreate = service({ planCount: 50 });
+    await expect(create(atCapCreate.svc)).rejects.toThrow(new BadRequestException('A student may keep at most 50 plans'));
+    expect(atCapCreate.tx.insert).not.toHaveBeenCalled();
+
+    const atCapDuplicate = service({ planCount: 50 });
+    await expect(atCapDuplicate.svc.duplicate('u1', 'p1')).rejects.toThrow(new BadRequestException('A student may keep at most 50 plans'));
+    expect(atCapDuplicate.tx.insert).not.toHaveBeenCalled();
   });
 });

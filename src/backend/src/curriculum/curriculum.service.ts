@@ -1,16 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { EntityManager, In, Repository } from 'typeorm';
+import { byText } from '../common/collections.js';
 import { isCourseCode } from '../common/course-code.js';
 import { Course } from './course.entity.js';
-import { type CourseRules, CourseRulesService } from './course-rules.service.js';
+import type { CourseRules } from './curriculum-rules.js';
+import { cohortCurriculum, CurriculumRulesReader } from './curriculum-rules.reader.js';
 import { Curriculum } from './curriculum.entity.js';
 import { CourseDetailDto, CourseDto, CurriculumCourseDto, CurriculumDto, ProgramDto, ProgramSummaryDto, RequirementGroupDto } from './curriculum.dto.js';
 import { Program } from './program.entity.js';
-import { RequirementGroupCourse } from './requirement-group-course.entity.js';
-import type { RequirementGroup } from './requirement-group.entity.js';
+import { type RequirementGroup, RequirementGroupCourse } from './requirement-group.entity.js';
 
-/** A catalog course as a plan tile names it. */
 export interface CourseSummary {
   nameVi: string;
   nameEn: string | null;
@@ -23,15 +23,9 @@ export interface CurriculumLabels {
   nameVi: string;
   nameEn: string | null;
   program: { code: string; nameVi: string; nameEn: string | null };
-  /** Requirement group id to its name. */
   groupNames: Map<string, string>;
 }
 
-/** Code-point order: the same on every machine, unlike a locale collation. */
-const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
-
-// Serves the curriculum data the seed or, later, F12 (ADR 0011) stored. It decides no
-// academic rule (AGENTS.md hard rule 1): the rule engine reads these shapes and decides.
 @Injectable()
 export class CurriculumService {
   constructor(
@@ -39,10 +33,9 @@ export class CurriculumService {
     @InjectRepository(Curriculum) private readonly curriculums: Repository<Curriculum>,
     @InjectRepository(Course) private readonly courses: Repository<Course>,
     @InjectRepository(RequirementGroupCourse) private readonly links: Repository<RequirementGroupCourse>,
-    private readonly rules: CourseRulesService,
+    private readonly rules: CurriculumRulesReader,
   ) {}
 
-  /** Every program by code, with the cohorts that have a curriculum, oldest first. */
   async listPrograms(): Promise<ProgramDto[]> {
     const rows = await this.programs.find({ relations: { curriculums: true } });
     return rows
@@ -50,24 +43,19 @@ export class CurriculumService {
       .sort((a, b) => byText(a.code, b.code));
   }
 
-  /** The curriculum of one cohort of a program, or null when there is none. */
   async findCurriculum(programCode: string, cohortYear: number): Promise<CurriculumDto | null> {
-    if (!Number.isInteger(cohortYear)) return null;
-    const row = await this.curriculums.findOne({
-      where: { cohortYear, program: { code: programCode } },
-      relations: { program: true, requirementGroups: { courseLinks: { course: true } } },
-    });
-    return row ? curriculumDto(row, await this.rules.rulesFor(row.id)) : null;
+    const where = cohortCurriculum(programCode, cohortYear);
+    if (!where) return null;
+    const row = await this.curriculums.findOne({ where, relations: { program: true, requirementGroups: { courseLinks: { course: true } } } });
+    return row ? curriculumDto(row, await this.rules.courseRules(row.id)) : null;
   }
 
-  /** Like findCurriculum, for a route: a missing curriculum is a 404. */
   async getCurriculum(programCode: string, cohortYear: number): Promise<CurriculumDto> {
     const curriculum = await this.findCurriculum(programCode, cohortYear);
     if (!curriculum) throw new NotFoundException('No curriculum for this program and cohort');
     return curriculum;
   }
 
-  /** A catalog course with every requirement group that links to it, or null. The code must be exact (ADR 0007). */
   async findCourse(code: string): Promise<CourseDetailDto | null> {
     if (!isCourseCode(code)) return null;
     const course = await this.courses.findOneBy({ code });
@@ -89,48 +77,27 @@ export class CurriculumService {
     return { ...courseDto(course), memberships };
   }
 
-  /** Like findCourse, for a route: an unknown or malformed code is a 404. */
   async getCourse(code: string): Promise<CourseDetailDto> {
     const course = await this.findCourse(code);
     if (!course) throw new NotFoundException('No course has this code');
     return course;
   }
 
-  /** The id of the curriculum of one cohort of a program, or null when there is none. */
   async findCurriculumId(programCode: string, cohortYear: number): Promise<string | null> {
-    if (!Number.isInteger(cohortYear)) return null;
-    const row = await this.curriculums.findOne({ select: { id: true }, where: { cohortYear, program: { code: programCode } } });
+    const where = cohortCurriculum(programCode, cohortYear);
+    if (!where) return null;
+    const row = await this.curriculums.findOne({ select: { id: true }, where });
     return row?.id ?? null;
   }
 
-  /** The codes among these that the catalog has, in one query (a whole plan at once). Codes must be exact (ADR 0007). */
-  async knownCourseCodes(codes: readonly string[]): Promise<Set<string>> {
-    const wellFormed = [...new Set(codes)].filter(isCourseCode);
-    if (!wellFormed.length) return new Set();
-    const rows = await this.courses.find({ select: { code: true }, where: { code: In(wellFormed) } });
-    return new Set(rows.map((c) => c.code));
-  }
-
-  /** Catalog credits by code for the codes among these that the catalog has, in one query (a whole plan at once). */
-  async courseCredits(codes: readonly string[]): Promise<Map<string, number>> {
+  async catalogCourses(codes: readonly string[], manager?: EntityManager): Promise<Map<string, CourseSummary>> {
     const wellFormed = [...new Set(codes)].filter(isCourseCode);
     if (!wellFormed.length) return new Map();
-    const rows = await this.courses.find({ select: { code: true, credits: true }, where: { code: In(wellFormed) } });
-    return new Map(rows.map((c) => [c.code, c.credits]));
-  }
-
-  /** Catalog name and credits by code, for the codes among these that the catalog has, in one query (a whole plan at once). */
-  async courseSummaries(codes: readonly string[]): Promise<Map<string, CourseSummary>> {
-    const wellFormed = [...new Set(codes)].filter(isCourseCode);
-    if (!wellFormed.length) return new Map();
-    const rows = await this.courses.find({ select: { code: true, nameVi: true, nameEn: true, credits: true }, where: { code: In(wellFormed) } });
+    const courses = manager ? manager.getRepository(Course) : this.courses;
+    const rows = await courses.find({ select: { code: true, nameVi: true, nameEn: true, credits: true }, where: { code: In(wellFormed) } });
     return new Map(rows.map((c) => [c.code, { nameVi: c.nameVi, nameEn: c.nameEn, credits: c.credits }]));
   }
 
-  /**
-   * What a screen needs to name a curriculum without listing its courses: its code, cohort and names,
-   * its program, and the name of each requirement group. Null when there is no such curriculum.
-   */
   async curriculumLabels(curriculumId: string): Promise<CurriculumLabels | null> {
     const row = await this.curriculums.findOne({ where: { id: curriculumId }, relations: { program: true, requirementGroups: true } });
     if (!row) return null;
@@ -144,56 +111,56 @@ export class CurriculumService {
     };
   }
 
-  /** The ids of the requirement groups of one curriculum; empty when there is none. */
-  async requirementGroupIds(curriculumId: string): Promise<Set<string>> {
-    const row = await this.curriculums.findOne({ select: { id: true, requirementGroups: { id: true } }, where: { id: curriculumId }, relations: { requirementGroups: true } });
+  async requirementGroupIds(curriculumId: string, manager?: EntityManager): Promise<Set<string>> {
+    const curriculums = manager ? manager.getRepository(Curriculum) : this.curriculums;
+    const row = await curriculums.findOne({ select: { id: true, requirementGroups: { id: true } }, where: { id: curriculumId }, relations: { requirementGroups: true } });
     return new Set(row?.requirementGroups.map((g) => g.id) ?? []);
   }
 }
 
-function programSummary(p: Program): ProgramSummaryDto {
-  return { code: p.code, nameVi: p.nameVi, nameEn: p.nameEn, faculty: p.faculty, trainingType: p.trainingType };
+function programSummary(program: Program): ProgramSummaryDto {
+  return { code: program.code, nameVi: program.nameVi, nameEn: program.nameEn, faculty: program.faculty, trainingType: program.trainingType };
 }
 
-export function courseDto(c: Course): CourseDto {
+export function courseDto(course: Course): CourseDto {
   return {
-    code: c.code,
-    nameVi: c.nameVi,
-    nameEn: c.nameEn,
-    credits: c.credits,
-    theoryPeriods: c.theoryPeriods,
-    labPeriods: c.labPeriods,
-    exercisePeriods: c.exercisePeriods,
-    projectPeriods: c.projectPeriods,
+    code: course.code,
+    nameVi: course.nameVi,
+    nameEn: course.nameEn,
+    credits: course.credits,
+    theoryPeriods: course.theoryPeriods,
+    labPeriods: course.labPeriods,
+    exercisePeriods: course.exercisePeriods,
+    projectPeriods: course.projectPeriods,
   };
 }
 
-function curriculumCourseDto(c: Course, rules: CourseRules): CurriculumCourseDto {
-  return { ...courseDto(c), prerequisites: rules.prerequisites.get(c.code) ?? null, offeringTerms: rules.offeringTerms.get(c.code) ?? null };
+function curriculumCourseDto(course: Course, rules: CourseRules): CurriculumCourseDto {
+  return { ...courseDto(course), prerequisites: rules.prerequisites.get(course.code) ?? null, offeringTerms: rules.offeringTerms.get(course.code) ?? null };
 }
 
-function groupDto(g: RequirementGroup, rules: CourseRules): RequirementGroupDto {
+function groupDto(group: RequirementGroup, rules: CourseRules): RequirementGroupDto {
   return {
-    id: g.id,
-    name: g.name,
-    kind: g.kind,
-    creditsTotal: g.creditsTotal,
-    creditsTotalMin: g.creditsTotalMin,
-    officialNotes: g.officialNotes,
-    courses: g.courseLinks.map((link) => curriculumCourseDto(link.course, rules)).sort((a, b) => byText(a.code, b.code)),
+    id: group.id,
+    name: group.name,
+    kind: group.kind,
+    creditsTotal: group.creditsTotal,
+    creditsTotalMin: group.creditsTotalMin,
+    officialNotes: group.officialNotes,
+    courses: group.courseLinks.map((link) => curriculumCourseDto(link.course, rules)).sort((a, b) => byText(a.code, b.code)),
   };
 }
 
-export function curriculumDto(c: Curriculum, rules: CourseRules): CurriculumDto {
+function curriculumDto(curriculum: Curriculum, rules: CourseRules): CurriculumDto {
   return {
-    id: c.id,
-    code: c.code,
-    program: programSummary(c.program),
-    cohortYear: c.cohortYear,
-    nameVi: c.nameVi,
-    nameEn: c.nameEn,
-    language: c.language,
-    totalCreditsMin: c.totalCreditsMin,
-    requirementGroups: c.requirementGroups.map((g) => groupDto(g, rules)).sort((a, b) => byText(a.name, b.name)),
+    id: curriculum.id,
+    code: curriculum.code,
+    program: programSummary(curriculum.program),
+    cohortYear: curriculum.cohortYear,
+    nameVi: curriculum.nameVi,
+    nameEn: curriculum.nameEn,
+    language: curriculum.language,
+    totalCreditsMin: curriculum.totalCreditsMin,
+    requirementGroups: curriculum.requirementGroups.map((g) => groupDto(g, rules)).sort((a, b) => byText(a.name, b.name)),
   };
 }

@@ -3,42 +3,21 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { type Account, authed, grantGlobal, grantProgram, runSuffix } from './support/admin.js';
 import { bootApp } from './support/app.js';
+import { offerAlso } from './support/offer.js';
 import { signedInUser } from './support/users.js';
 
-// TC-B2-ADM-02 and TC-B2-ADM-03 (ADR 0011, "Verification required with implementation"; UC-11
-// A1 and A2): the program and cohort routes. Synthetic programs, cohorts, courses and accounts
-// only (AGENTS.md hard rule 3), unique per run and removed in afterAll, because e2e files share
-// one database with the seeded curricula. Nothing here touches a seeded program: other files
-// assert APCS exactly. Each describe boots its own app: the rate limit counts 120 requests a
-// minute per app.
-
-type Account = { token: string; userId: string };
-
-const run = () => randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
 
 function client(app: () => INestApplication) {
   const http = () => request(app().getHttpServer());
-  const as = ({ token }: Account) => {
-    const auth = (test: request.Test) => test.set('Authorization', `Bearer ${token}`);
-    return {
-      get: (path: string) => auth(http().get(path)),
-      post: (path: string, body: object = {}) => auth(http().post(path)).send(body),
-      put: (path: string, body: object = {}) => auth(http().put(path)).send(body),
-      patch: (path: string, body: object = {}) => auth(http().patch(path)).send(body),
-      delete: (path: string) => auth(http().delete(path)),
-    };
-  };
-  return { http, as };
+  return { http, as: authed(app) };
 }
 
-/** No route deletes a program or a cohort, so the fixture leaves in SQL, in foreign-key order. */
 async function removeFixture(db: DataSource, programPrefix: string, users: Account[], coursePrefix?: string): Promise<void> {
-  // Plans, placements, onboarding answers, transcript rows and grants go with their user.
   await db.query('DELETE FROM users WHERE id = ANY($1)', [users.map((u) => u.userId)]);
   const programs = 'SELECT id FROM programs WHERE code LIKE $1';
   await db.query(`DELETE FROM program_admin_grants WHERE program_id IN (${programs})`, [`${programPrefix}%`]);
-  // Groups, links, prerequisite lists and offering terms go with their curriculum.
   await db.query(`DELETE FROM curriculums WHERE program_id IN (${programs})`, [`${programPrefix}%`]);
   await db.query('DELETE FROM programs WHERE code LIKE $1', [`${programPrefix}%`]);
   if (coursePrefix) await db.query('DELETE FROM courses WHERE code LIKE $1', [`${coursePrefix}%`]);
@@ -54,7 +33,7 @@ describe('Program and cohort administration API (e2e)', () => {
   let db: DataSource;
   const { http, as } = client(() => app);
 
-  const suffix = run();
+  const suffix = runSuffix();
   const P = `ZZP-${suffix}`;
   const [codeA, codeB] = [`${P}-A`, `${P}-B`];
   const users: Account[] = [];
@@ -68,22 +47,24 @@ describe('Program and cohort administration API (e2e)', () => {
   let a2024: string;
   let a2025: string;
   let b2024: string;
+  let apiGroupId: string;
+  let apiStudent: Account;
 
-  /** Every stored column of this run's programs and cohorts, with the time of the last write. */
   const programRows = () => db.query('SELECT * FROM programs WHERE code LIKE $1 ORDER BY code', [`${P}%`]) as Promise<Record<string, unknown>[]>;
   const cohortRows = () =>
     db.query('SELECT c.* FROM curriculums c JOIN programs p ON p.id = c.program_id WHERE p.code LIKE $1 ORDER BY p.code, c.cohort_year', [`${P}%`]) as Promise<Record<string, unknown>[]>;
   const stored = async () => ({ programs: await programRows(), cohorts: await cohortRows() });
   const grantsOn = (program: string) => db.query('SELECT user_id FROM program_admin_grants WHERE program_id = $1', [program]) as Promise<{ user_id: string }[]>;
-  const refusal = (res: request.Response) => [res.status, res.body.code, res.body.permission];
+  const refusal = (response: request.Response) => [response.status, response.body.code, response.body.permission];
 
   beforeAll(async () => {
     app = await bootApp();
     db = app.get(DataSource);
+    offerAlso(app, codeB, [2024]);
     [manager, adminA, adminB, maintainer, stranger] = await Promise.all([signedInUser(app), signedInUser(app), signedInUser(app), signedInUser(app), signedInUser(app)]);
     users.push(manager, adminA, adminB, maintainer, stranger);
-    // The fixture's access manager and catalog maintainer; the bootstrap command has its own tests.
-    await db.query(`INSERT INTO global_admin_grants (user_id, permission) VALUES ($1, 'access_manager'), ($2, 'catalog_maintainer')`, [manager.userId, maintainer.userId]);
+    await grantGlobal(db, manager.userId, 'access_manager');
+    await grantGlobal(db, maintainer.userId, 'catalog_maintainer');
   });
 
   afterAll(async () => {
@@ -99,12 +80,10 @@ describe('Program and cohort administration API (e2e)', () => {
     expect(await programRows()).toEqual([]);
 
     const created = await as(manager).post(programsPath, body).expect(201);
-    // The code is trimmed and upper-cased; no training type is recorded.
     expect(created.body).toEqual({ id: expect.any(String), code: codeA, nameVi: 'Chương trình thử A', nameEn: null, faculty: null, trainingType: null, updatedAt: expect.any(String) });
     programA = created.body.id;
     expect(await programRows()).toMatchObject([{ id: programA, code: codeA, name_vi: 'Chương trình thử A', name_en: null, faculty: null, training_type: null }]);
 
-    // Creation never grants editing access (ADR 0011): no grant row, no program to edit, no write.
     expect(await grantsOn(programA)).toEqual([]);
     expect((await as(manager).get(programsPath).expect(200)).body).toEqual({ programs: [] });
     const before = await stored();
@@ -113,10 +92,9 @@ describe('Program and cohort administration API (e2e)', () => {
       await as(manager).post(cohortsPath(programA), { cohortYear: 2024, code: `${codeA}-2024`, nameVi: 'Khóa thử' }),
       await as(manager).get(cohortsPath(programA)),
     ];
-    for (const res of refused) expect(refusal(res)).toEqual([403, 'permission_required', 'program_admin']);
+    for (const response of refused) expect(refusal(response)).toEqual([403, 'permission_required', 'program_admin']);
     expect(await stored()).toEqual(before);
 
-    // The access manager finds the new program to grant, and its administrator can then edit it.
     const { body: access } = await as(manager).get('/api/admin/access/programs').expect(200);
     expect(access.programs).toContainEqual({ id: programA, code: codeA, nameVi: 'Chương trình thử A' });
     await as(manager).put(`/api/admin/access/users/${adminA.userId}/programs/${programA}`).expect(200);
@@ -125,7 +103,6 @@ describe('Program and cohort administration API (e2e)', () => {
     expect(edited.body).toEqual({ id: programA, code: codeA, nameVi: 'Chương trình thử A', nameEn: 'Trial Program A', faculty: 'Khoa thử', trainingType: null, updatedAt: expect.any(String) });
     expect(new Date(edited.body.updatedAt).getTime()).toBeGreaterThan(new Date(created.body.updatedAt).getTime());
     expect((await as(adminA).get(programsPath).expect(200)).body).toEqual({ programs: [{ id: programA, code: codeA, nameVi: 'Chương trình thử A', curricula: [] }] });
-    // The grant still gives no right to create a program.
     expect(refusal(await as(adminA).post(programsPath, { code: codeB, nameVi: 'Chương trình thử B' }))).toEqual([403, 'permission_required', 'access_manager']);
   });
 
@@ -139,26 +116,25 @@ describe('Program and cohort administration API (e2e)', () => {
       await http().get(cohort),
       await http().patch(cohort).send({ nameVi: 'x' }),
     ];
-    expect(refused.map((res) => res.status)).toEqual([401, 401, 401, 401, 401, 401]);
+    expect(refused.map((response) => response.status)).toEqual([401, 401, 401, 401, 401, 401]);
   });
 
   it('refuses a duplicate program code and saves nothing, also when two requests race', async () => {
     const before = await programRows();
     for (const code of [codeA, codeA.toLowerCase(), ` ${codeA} `]) {
-      const res = await as(manager).post(programsPath, { code, nameVi: 'Chương trình trùng mã' });
-      expect([res.status, res.body.code]).toEqual([409, 'duplicate_code']);
+      const response = await as(manager).post(programsPath, { code, nameVi: 'Chương trình trùng mã' });
+      expect([response.status, response.body.code]).toEqual([409, 'duplicate_code']);
     }
     expect(await programRows()).toEqual(before);
 
-    // Two concurrent creations of one new code: the F12 lock lets one check and insert at a time.
     const racing = await Promise.all([1, 2].map((n) => as(manager).post(programsPath, { code: codeB, nameVi: `Chương trình thử B ${n}` })));
-    expect(racing.map((res) => res.status).sort()).toEqual([201, 409]);
-    expect(racing.find((res) => res.status === 409)!.body.code).toBe('duplicate_code');
+    expect(racing.map((response) => response.status).sort()).toEqual([201, 409]);
+    expect(racing.find((response) => response.status === 409)!.body.code).toBe('duplicate_code');
     const rows = await programRows();
     expect(rows.map((r) => r.code)).toEqual([codeA, codeB]);
     programB = rows[1].id as string;
-    expect(racing.find((res) => res.status === 201)!.body).toMatchObject({ id: programB, code: codeB, nameVi: rows[1].name_vi });
-    await db.query('INSERT INTO program_admin_grants (user_id, program_id) VALUES ($1, $2)', [adminB.userId, programB]);
+    expect(racing.find((response) => response.status === 201)!.body).toMatchObject({ id: programB, code: codeB, nameVi: rows[1].name_vi });
+    await grantProgram(db, adminB.userId, programB);
   });
 
   it('edits only the details of a program: the code, the training type and unknown fields are refused, not ignored', async () => {
@@ -172,24 +148,39 @@ describe('Program and cohort administration API (e2e)', () => {
       await as(adminA).patch(programPath(programA), { nameVi: null }),
       await as(adminA).patch(programPath(programA), { faculty: 'x'.repeat(101) }),
       await as(adminA).patch(programPath('not-a-uuid'), { nameVi: 'x' }),
-      await as(manager).post(programsPath, { code: `${P}-C`, nameVi: 'x', trainingType: 'standard' }),
+      await as(manager).post(programsPath, { code: `${P}-C`, nameVi: 'x', trainingType: 'dai_tra' }),
       await as(manager).post(programsPath, { code: `${P} C`, nameVi: 'x' }),
       await as(manager).post(programsPath, { code: `${P}_C`, nameVi: 'x' }),
       await as(manager).post(programsPath, { code: `${P}-${'C'.repeat(50)}`, nameVi: 'x' }),
       await as(manager).post(programsPath, { code: `${P}-C` }),
     ];
-    for (const res of bad) expect([res.status, res.body.code]).toEqual([400, 'validation_failed']);
+    for (const response of bad) expect([response.status, response.body.code]).toEqual([400, 'validation_failed']);
     expect(bad[0].body.message).toContain('code: property code should not exist');
     expect(bad[3].body.message).toContain('trainingType: property trainingType should not exist');
+    expect(bad[8].body.message).toContain('trainingType must be one of the following values: advanced, joint, high_quality, standard');
     expect(await programRows()).toEqual(before);
 
-    // An empty change writes nothing; a blank optional value clears the column.
     expect((await as(adminA).patch(programPath(programA), {}).expect(200)).body).toMatchObject({ id: programA, nameEn: 'Trial Program A' });
     expect((await as(adminA).patch(programPath(programA), { nameVi: 'Chương trình thử A', faculty: 'Khoa thử' }).expect(200)).body).toMatchObject({ id: programA });
     expect(await programRows()).toEqual(before);
     const cleared = await as(adminA).patch(programPath(programA), { nameVi: 'Chương trình thử A (sửa)', nameEn: ' ', faculty: null }).expect(200);
     expect(cleared.body).toMatchObject({ code: codeA, nameVi: 'Chương trình thử A (sửa)', nameEn: null, faculty: null, trainingType: null });
     expect(await programRows()).toMatchObject([{ code: codeA, name_vi: 'Chương trình thử A (sửa)', name_en: null, faculty: null, training_type: null }, { code: codeB }]);
+  });
+
+  it('lets the access manager set the training type once, when creating a program, and no one change it later', async () => {
+    const code = `${P}-T`;
+    const created = await as(manager).post(programsPath, { code, nameVi: 'Chương trình thử T', trainingType: 'joint' }).expect(201);
+    expect(created.body).toMatchObject({ code, trainingType: 'joint' });
+    expect(await db.query('SELECT training_type FROM programs WHERE id = $1', [created.body.id])).toEqual([{ training_type: 'joint' }]);
+    expect(refusal(await as(adminA).post(programsPath, { code: `${P}-U`, nameVi: 'x', trainingType: 'standard' }))).toEqual([403, 'permission_required', 'access_manager']);
+    const byManager = await as(manager).patch(programPath(created.body.id), { trainingType: 'standard' });
+    expect([byManager.status, byManager.body.code]).toEqual([400, 'validation_failed']);
+    await grantProgram(db, adminA.userId, created.body.id);
+    const changed = await as(adminA).patch(programPath(created.body.id), { trainingType: 'standard' });
+    expect([changed.status, changed.body.code]).toEqual([400, 'validation_failed']);
+    expect(changed.body.message).toContain('trainingType: property trainingType should not exist');
+    expect(await db.query('SELECT training_type FROM programs WHERE id = $1', [created.body.id])).toEqual([{ training_type: 'joint' }]);
   });
 
   it('adds cohorts to a program, each one empty, and lists and reads them', async () => {
@@ -201,7 +192,6 @@ describe('Program and cohort administration API (e2e)', () => {
     a2024 = first.body.id;
     expect(first.body).toEqual({ id: a2024, programId: programA, cohortYear: 2024, code: `${codeA}-2024`, nameVi: 'Khóa thử 2024', nameEn: null, language: null, totalCreditsMin: null, updatedAt: expect.any(String) });
 
-    // Oldest first, whatever the order of entry.
     expect((await as(adminA).get(cohortsPath(programA)).expect(200)).body).toEqual({ cohorts: [first.body, second.body] });
     expect((await as(adminA).get(cohortPath(programA, a2024)).expect(200)).body).toEqual(first.body);
     expect((await as(adminA).get(programsPath).expect(200)).body.programs[0].curricula).toEqual([
@@ -209,7 +199,6 @@ describe('Program and cohort administration API (e2e)', () => {
       { id: a2025, code: `${codeA}-2025`, cohortYear: 2025 },
     ]);
 
-    // A new cohort is a curriculums row and nothing else: no group, rule or credit total.
     expect(await cohortRows()).toMatchObject([
       { id: a2024, program_id: programA, cohort_year: 2024, total_credits_min: null },
       { id: a2025, program_id: programA, cohort_year: 2025, total_credits_min: null },
@@ -217,7 +206,6 @@ describe('Program and cohort administration API (e2e)', () => {
     for (const table of ['requirement_groups', 'course_prerequisite_lists', 'course_prerequisites', 'course_offering_terms', 'combined_minimums']) {
       expect([table, await db.query(`SELECT 1 FROM ${table} WHERE curriculum_id = ANY($1)`, [[a2024, a2025]])]).toEqual([table, []]);
     }
-    // The curriculum API serves it at once (UC-11 step 5), to any signed-in user.
     const { body: read } = await as(stranger).get(`/api/programs/${codeA}/curricula/2024`).expect(200);
     expect(read).toMatchObject({ id: a2024, code: `${codeA}-2024`, cohortYear: 2024, totalCreditsMin: null, requirementGroups: [], program: { code: codeA, trainingType: null } });
   });
@@ -228,17 +216,15 @@ describe('Program and cohort administration API (e2e)', () => {
     expect([sameYear.status, sameYear.body.code]).toEqual([409, 'duplicate_cohort']);
     const sameCode = await as(adminA).post(cohortsPath(programA), { cohortYear: 2026, code: `${codeA.toLowerCase()}-2024`, nameVi: 'Khóa trùng mã' });
     expect([sameCode.status, sameCode.body.code]).toEqual([409, 'duplicate_code']);
-    // The curriculum code is unique among all curricula, not only within the program.
     const otherProgram = await as(adminB).post(cohortsPath(programB), { cohortYear: 2026, code: `${codeA}-2025`, nameVi: 'Khóa trùng mã' });
     expect([otherProgram.status, otherProgram.body.code]).toEqual([409, 'duplicate_code']);
     expect(await cohortRows()).toEqual(before);
 
-    // The same year in another program is another cohort (unique by program and year).
     b2024 = (await as(adminB).post(cohortsPath(programB), { cohortYear: 2024, code: `${codeB}-2024`, nameVi: 'Khóa thử B 2024' }).expect(201)).body.id;
     expect((await cohortRows()).map((c) => [c.program_id, c.cohort_year])).toEqual([[programA, 2024], [programA, 2025], [programB, 2024]]);
   });
 
-  it('refuses a change of a cohort identifier, the gated credit total and a year outside 2000 to 2100', async () => {
+  it('refuses a change of a cohort identifier, a credit total that is not a whole number from 0 and a year outside 2000 to 2100', async () => {
     const before = await cohortRows();
     const cohort = { code: `${codeA}-2027`, nameVi: 'Khóa thử' };
     const bad = [
@@ -246,12 +232,12 @@ describe('Program and cohort administration API (e2e)', () => {
       await as(adminA).patch(cohortPath(programA, a2024), { programId: programB }),
       await as(adminA).patch(cohortPath(programA, a2024), { code: `${codeA}-2030` }),
       await as(adminA).patch(cohortPath(programA, a2024), { nameVi: 'Tên khác', cohortYear: 2024 }),
-      await as(adminA).patch(cohortPath(programA, a2024), { totalCreditsMin: 120 }),
-      await as(adminA).patch(cohortPath(programA, a2024), { totalCreditsMin: null }),
+      await as(adminA).patch(cohortPath(programA, a2024), { totalCreditsMin: -1 }),
+      await as(adminA).patch(cohortPath(programA, a2024), { totalCreditsMin: 120.5 }),
       await as(adminA).patch(cohortPath(programA, a2024), { nameVi: '' }),
       await as(adminA).patch(cohortPath(programA, a2024), { language: 'x'.repeat(11) }),
       await as(adminA).patch(cohortPath(programA, 'not-a-uuid'), { nameVi: 'x' }),
-      await as(adminA).post(cohortsPath(programA), { ...cohort, cohortYear: 2027, totalCreditsMin: 120 }),
+      await as(adminA).post(cohortsPath(programA), { ...cohort, cohortYear: 2027, totalCreditsMin: '120' }),
       await as(adminA).post(cohortsPath(programA), { ...cohort, cohortYear: 2027, programId: programB }),
       await as(adminA).post(cohortsPath(programA), { ...cohort, cohortYear: 1999 }),
       await as(adminA).post(cohortsPath(programA), { ...cohort, cohortYear: 2101 }),
@@ -260,41 +246,37 @@ describe('Program and cohort administration API (e2e)', () => {
       await as(adminA).post(cohortsPath(programA), cohort),
       await as(adminA).post(cohortsPath(programA), { cohortYear: 2027, code: `${codeA} 2027`, nameVi: 'Khóa thử' }),
     ];
-    for (const res of bad) expect([res.status, res.body.code]).toEqual([400, 'validation_failed']);
+    for (const response of bad) expect([response.status, response.body.code]).toEqual([400, 'validation_failed']);
     expect(bad[0].body.message).toContain('cohortYear: property cohortYear should not exist');
-    expect(bad[4].body.message).toContain('totalCreditsMin: property totalCreditsMin should not exist');
+    expect(bad[4].body.message).toContain('totalCreditsMin must not be less than 0');
+    expect(bad[5].body.message).toContain('totalCreditsMin must be an integer number');
     expect(await cohortRows()).toEqual(before);
 
-    // A total that the database already holds (a seeded cohort has one) is shown and survives an unrelated edit.
     await db.query('UPDATE curriculums SET total_credits_min = 120 WHERE id = $1', [a2024]);
     const edited = await as(adminA).patch(cohortPath(programA, a2024), { nameVi: 'Khóa thử 2024 (sửa)', nameEn: 'Trial 2024', language: ' vi ' }).expect(200);
     expect(edited.body).toEqual({ id: a2024, programId: programA, cohortYear: 2024, code: `${codeA}-2024`, nameVi: 'Khóa thử 2024 (sửa)', nameEn: 'Trial 2024', language: 'vi', totalCreditsMin: 120, updatedAt: expect.any(String) });
     expect(new Date(edited.body.updatedAt).getTime()).toBeGreaterThan((before[0].updated_at as Date).getTime());
     const after = await cohortRows();
     expect(after[0]).toMatchObject({ id: a2024, program_id: programA, cohort_year: 2024, code: `${codeA}-2024`, name_vi: 'Khóa thử 2024 (sửa)', name_en: 'Trial 2024', language: 'vi', total_credits_min: 120 });
-    // The other cohorts did not move.
     expect(after.slice(1)).toEqual(before.slice(1));
     expect((await as(adminA).patch(cohortPath(programA, a2025), { language: '' }).expect(200)).body).toMatchObject({ id: a2025, nameEn: 'Trial 2025', language: null });
   });
 
   it("keeps a program's administrator out of another program, also through substituted IDs", async () => {
     const before = await stored();
-    // Program B in the path: no grant, and nothing of B is shown.
     const direct = [
       await as(adminA).patch(programPath(programB), { nameVi: 'Chiếm quyền' }),
       await as(adminA).get(cohortsPath(programB)),
       await as(adminA).post(cohortsPath(programB), { cohortYear: 2030, code: `${codeB}-2030`, nameVi: 'Chiếm quyền' }),
       await as(adminA).get(cohortPath(programB, b2024)),
       await as(adminA).patch(cohortPath(programB, b2024), { nameVi: 'Chiếm quyền' }),
-      // An unknown program has no grant either: it answers like one the caller may not edit.
       await as(adminA).get(cohortsPath(randomUUID())),
       await as(stranger).get(cohortPath(programA, a2024)),
       await as(maintainer).patch(cohortPath(programA, a2024), { nameVi: 'Chiếm quyền' }),
     ];
-    for (const res of direct) expect(refusal(res)).toEqual([403, 'permission_required', 'program_admin']);
+    for (const response of direct) expect(refusal(response)).toEqual([403, 'permission_required', 'program_admin']);
     for (const res of direct) expect(JSON.stringify(res.body)).not.toContain(codeB);
 
-    // Program A in the path, a cohort of B in the ID: not found, never read or written.
     const substituted = [
       await as(adminA).get(cohortPath(programA, b2024)),
       await as(adminA).patch(cohortPath(programA, b2024), { nameVi: 'Chiếm quyền' }),
@@ -302,19 +284,17 @@ describe('Program and cohort administration API (e2e)', () => {
       await as(adminB).patch(cohortPath(programB, a2024), { nameVi: 'Chiếm quyền' }),
     ];
     for (const res of substituted) expect([res.status, res.body.code, res.body.message]).toEqual([404, 'not_found', 'No such cohort in this program']);
-    // A body cannot move a cohort to another program, or create one there.
     expect((await as(adminA).patch(cohortPath(programA, a2024), { programId: programB }).expect(400)).body.code).toBe('validation_failed');
     expect(await stored()).toEqual(before);
   });
 
-  // A program as these routes leave it: no training type and no credit total (ADR 0011: no route
-  // enters either yet). The rule engine reports both as not recorded; it does not assume a value.
   it('serves a program entered through the API with no credit cap and no credit total, never a guessed one', async () => {
     const course = `ZZP${suffix}1`;
     await as(maintainer).post('/api/admin/catalog/courses', { code: course, nameVi: `Học phần ${course}`, credits: 4 }).expect(201);
     const { id: group } = (await as(adminB).post(`${cohortPath(programB, b2024)}/requirement-groups`, { name: 'zz bắt buộc', kind: 'compulsory' }).expect(201)).body;
+    apiGroupId = group;
     await as(adminB).put(`${cohortPath(programB, b2024)}/requirement-groups/${group}/courses/${course}`).expect(204);
-    const student = await signedInUser(app);
+    const student = (apiStudent = await signedInUser(app));
     users.push(student);
     await db.query('INSERT INTO onboarding_answers (user_id, program_code, cohort_year, finished_at) VALUES ($1, $2, 2024, now())', [student.userId, codeB]);
     await as(student)
@@ -324,16 +304,38 @@ describe('Program and cohort administration API (e2e)', () => {
       .post('/api/plans', { name: 'zz-e2e', programCode: codeB, cohortYear: 2024, terms: [{ term: { year: 2031, number: 1 }, placements: [{ kind: 'course', courseCode: course }] }] })
       .expect(201);
 
-    // The plan check: the load of the term is reported as not checked, with no cap.
     const { body: issues } = await as(student).get(`/api/plans/${plan.body.id}/issues`).expect(200);
     expect(issues).toMatchObject({ trainingType: null, terms: [{ term: { year: 2031, number: 1 }, kind: null, credits: 4, caps: null }], coverage: { totalRequired: null, totalRemaining: null } });
     expect((issues.issues as { code: string; kind: string }[]).filter((i) => i.code.startsWith('caps') || i.code.startsWith('load')).map((i) => [i.code, i.kind])).toEqual([['caps_not_checked', 'unknown']]);
-    // The audit: no cap on the term, no total to reach, and the total listed as not checked.
     const { body: audit } = await as(student).get('/api/users/me/audit').expect(200);
     expect(audit).toMatchObject({ programCode: codeB, trainingType: null, curriculumCode: `${codeB}-2024`, credits: { towardTotal: 4, totalRequired: null, remaining: null } });
     expect(audit.terms).toMatchObject([{ kind: null, caps: null, capViolations: [] }]);
     expect(audit.groups).toMatchObject([{ id: group, requiredCredits: null, remainingCredits: null }]);
     expect((audit.graduation.notChecked as { id: string }[]).map((c) => c.id)).toContain('total_credits');
+  });
+
+  it('lets the administrator enter the cohort and group credit totals, and the audit then checks them', async () => {
+    const groupPath = `${cohortPath(programB, b2024)}/requirement-groups/${apiGroupId}`;
+    expect((await as(adminB).patch(groupPath, { creditsTotal: 4 }).expect(200)).body).toMatchObject({ id: apiGroupId, kind: 'compulsory', creditsTotal: 4, creditsTotalMin: null });
+    expect((await as(adminB).patch(cohortPath(programB, b2024), { totalCreditsMin: 130 }).expect(200)).body).toMatchObject({ id: b2024, totalCreditsMin: 130 });
+    expect((await as(adminA).patch(cohortPath(programB, b2024), { totalCreditsMin: 1 })).status).toBe(403);
+    const { body: read } = await as(stranger).get(`/api/programs/${codeB}/curricula/2024`).expect(200);
+    expect(read).toMatchObject({ totalCreditsMin: 130, requirementGroups: [{ id: apiGroupId, creditsTotal: 4, creditsTotalMin: null }] });
+
+    const { body: audit } = await as(apiStudent).get('/api/users/me/audit').expect(200);
+    expect(audit).toMatchObject({ credits: { towardTotal: 4, totalRequired: 130, remaining: 126 } });
+    expect(audit.groups).toMatchObject([{ id: apiGroupId, requiredCredits: 4 }]);
+    expect((audit.graduation.notChecked as { id: string }[]).map((c) => c.id)).not.toContain('total_credits');
+
+    await as(adminB).patch(cohortPath(programB, b2024), { totalCreditsMin: null }).expect(200);
+    await as(adminB).patch(groupPath, { creditsTotal: null }).expect(200);
+    const { body: cleared } = await as(apiStudent).get('/api/users/me/audit').expect(200);
+    expect(cleared).toMatchObject({ credits: { totalRequired: null, remaining: null } });
+    expect(cleared.groups).toMatchObject([{ id: apiGroupId, requiredCredits: null }]);
+
+    const created = await as(adminB).post(cohortsPath(programB), { cohortYear: 2026, code: `${codeB}-2026`, nameVi: 'Khóa thử B 2026', totalCreditsMin: 0 }).expect(201);
+    expect(created.body).toMatchObject({ cohortYear: 2026, totalCreditsMin: 0 });
+    expect(await db.query('SELECT total_credits_min FROM curriculums WHERE id = $1', [created.body.id])).toEqual([{ total_credits_min: 0 }]);
   });
 
   it('blocks the next program or cohort write once the grant is revoked', async () => {
@@ -346,19 +348,17 @@ describe('Program and cohort administration API (e2e)', () => {
       await as(adminA).patch(cohortPath(programA, a2025), { nameVi: 'Sau khi thu hồi' }),
       await as(adminA).get(cohortsPath(programA)),
     ];
-    for (const res of refused) expect(refusal(res)).toEqual([403, 'permission_required', 'program_admin']);
+    for (const response of refused) expect(refusal(response)).toEqual([403, 'permission_required', 'program_admin']);
     expect(await stored()).toEqual(before);
   });
 });
 
-// Review findings of #161. Its own app and run prefix: the first describe is close to the rate
-// limit, and the race below sends 20 requests at once.
 describe('Program and cohort routes: an empty cohort, races, path IDs and stored text (e2e)', () => {
   let app: INestApplication;
   let db: DataSource;
   const { as } = client(() => app);
 
-  const P = `ZZQ-${run()}`;
+  const P = `ZZQ-${runSuffix()}`;
   const [codeA, codeB] = [`${P}-A`, `${P}-B`];
   const users: Account[] = [];
   let manager: Account;
@@ -370,14 +370,14 @@ describe('Program and cohort routes: an empty cohort, races, path IDs and stored
   const programRows = () => db.query('SELECT * FROM programs WHERE code LIKE $1 ORDER BY code', [`${P}%`]) as Promise<Record<string, unknown>[]>;
   const cohortRows = () =>
     db.query('SELECT c.* FROM curriculums c JOIN programs p ON p.id = c.program_id WHERE p.code LIKE $1 ORDER BY p.code, c.cohort_year', [`${P}%`]) as Promise<Record<string, unknown>[]>;
-  const grant = (user: Account, program: string) => db.query('INSERT INTO program_admin_grants (user_id, program_id) VALUES ($1, $2)', [user.userId, program]);
+  const grant = (user: Account, program: string) => grantProgram(db, user.userId, program);
 
   beforeAll(async () => {
     app = await bootApp();
     db = app.get(DataSource);
     [manager, adminA, adminB] = await Promise.all([signedInUser(app), signedInUser(app), signedInUser(app)]);
     users.push(manager, adminA, adminB);
-    await db.query(`INSERT INTO global_admin_grants (user_id, permission) VALUES ($1, 'access_manager')`, [manager.userId]);
+    await grantGlobal(db, manager.userId, 'access_manager');
     programA = (await as(manager).post(programsPath, { code: codeA, nameVi: 'Chương trình thử A' }).expect(201)).body.id;
     programB = (await as(manager).post(programsPath, { code: codeB, nameVi: 'Chương trình thử B' }).expect(201)).body.id;
     await grant(adminA, programA);
@@ -389,39 +389,35 @@ describe('Program and cohort routes: an empty cohort, races, path IDs and stored
     await app?.close();
   });
 
-  // Not a decision: this pins what the code does today, so that a change to it is seen. ADR 0011
-  // leaves open both what the rule engine should answer for a cohort with no requirement group
-  // ("Cohort credit total") and whether a plan may be saved against a cohort still being entered
-  // ("Visibility to students"). When a human decides either, change this test with the decision.
-  it('pins an undecided answer (ADR 0011 open questions 2 and 4): a direct plan for an empty cohort is saved, and its check reads graduation done', async () => {
-    await as(adminA).post(cohortsPath(programA), { cohortYear: 2026, code: `${codeA}-2026`, nameVi: 'Khóa thử trống' }).expect(201);
-    // A student who never chose the program: no onboarding answer, only a direct request.
+  it('refuses a direct plan for an empty cohort onboarding does not offer (Project Lead, 25 November 2026), and an older plan there still reads graduation done (ADR 0011 open question 2)', async () => {
+    const { id: curriculumId } = (await as(adminA).post(cohortsPath(programA), { cohortYear: 2026, code: `${codeA}-2026`, nameVi: 'Khóa thử trống' }).expect(201)).body;
     const student = await signedInUser(app);
     users.push(student);
-    const plan = await as(student).post('/api/plans', { name: 'zz-e2e empty cohort', programCode: codeA, cohortYear: 2026 }).expect(201);
-    expect(plan.body.curriculum).toMatchObject({ code: `${codeA}-2026`, programCode: codeA, cohortYear: 2026 });
+    const refused = await as(student).post('/api/plans', { name: 'zz-e2e empty cohort', programCode: codeA, cohortYear: 2026 }).expect(400);
+    expect(refused.body.message).toBe(`Onboarding does not offer ${codeA} 2026 to students`);
+    expect(await db.query('SELECT id FROM plans WHERE user_id = $1', [student.userId])).toEqual([]);
 
-    const { body: issues } = await as(student).get(`/api/plans/${plan.body.id}/issues`).expect(200);
+    const [{ id }] = await db.query(`INSERT INTO plans (user_id, curriculum_id, name) VALUES ($1, $2, 'zz-e2e empty cohort') RETURNING id`, [student.userId, curriculumId]);
+    const plan = await as(student).get(`/api/plans/${id}`).expect(200);
+    expect(plan.body.curriculum).toMatchObject({ code: `${codeA}-2026`, programCode: codeA, cohortYear: 2026 });
+    const { body: issues } = await as(student).get(`/api/plans/${id}/issues`).expect(200);
     expect(issues.coverage).toMatchObject({ groups: [], combinedMinimums: [], totalRequired: null, graduation: 'done' });
   });
 
   it('lets one of 20 concurrent cohort creations with one code, split across two programs, through', async () => {
-    // One caller per request: each write also locks its caller's users row, so requests of one
-    // caller would wait for each other even without the F12 lock.
     const callers = await Promise.all(Array.from({ length: 20 }, () => signedInUser(app)));
     users.push(...callers);
     await Promise.all(callers.map((caller, i) => grant(caller, i % 2 ? programB : programA)));
     const before = await cohortRows();
     const code = `${P}-RACE`;
-    // A different year for each request, so that the code is the only thing the requests share.
     const racing = await Promise.all(
       callers.map((caller, i) => as(caller).post(cohortsPath(i % 2 ? programB : programA), { cohortYear: 2040 + i, code, nameVi: `Khóa đua ${i}` })),
     );
 
-    expect(racing.map((res) => res.status).sort()).toEqual([201, ...Array<number>(19).fill(409)]);
+    expect(racing.map((response) => response.status).sort()).toEqual([201, ...Array<number>(19).fill(409)]);
     for (const res of racing.filter((r) => r.status === 409)) expect(res.body.code).toBe('duplicate_code');
     const added = (await cohortRows()).filter((row) => !before.some((b) => b.id === row.id));
-    expect(added.map((row) => [row.code, row.id])).toEqual([[code, racing.find((res) => res.status === 201)!.body.id]]);
+    expect(added.map((row) => [row.code, row.id])).toEqual([[code, racing.find((response) => response.status === 201)!.body.id]]);
   });
 
   it('accepts a program or cohort ID in upper case from the holder of the grant, and still refuses others', async () => {
@@ -432,7 +428,6 @@ describe('Program and cohort routes: an empty cohort, races, path IDs and stored
     expect((await as(adminA).get(cohortPath(PROGRAM, COHORT)).expect(200)).body).toEqual(cohort);
     expect((await as(adminA).patch(cohortPath(PROGRAM, COHORT), { nameEn: 'Trial 2027' }).expect(200)).body).toMatchObject({ id: cohort.id, nameEn: 'Trial 2027' });
     expect((await as(adminA).patch(programPath(PROGRAM), { faculty: 'Khoa thử' }).expect(200)).body).toMatchObject({ id: programA, faculty: 'Khoa thử' });
-    // The same route of the other program's administrator, in upper case too: still no grant.
     const refused = await as(adminB).get(cohortPath(PROGRAM, COHORT));
     expect([refused.status, refused.body.code, refused.body.permission]).toEqual([403, 'permission_required', 'program_admin']);
   });
@@ -440,7 +435,6 @@ describe('Program and cohort routes: an empty cohort, races, path IDs and stored
   it('refuses a null character and a value too long in code points with 400, never a 500, and saves nothing', async () => {
     const { id: stored } = (await as(adminA).post(cohortsPath(programA), { cohortYear: 2031, code: `${codeA}-2031`, nameVi: 'Khóa thử 2031' }).expect(201)).body;
     const before = { programs: await programRows(), cohorts: await cohortRows() };
-    // 255 code points to class-validator's MaxLength, which skips the variation selector; 256 to PostgreSQL.
     const tooLong = (max: number) => 'x'.repeat(max - 1) + '\u2764\uFE0F';
     const cohort = { cohortYear: 2030, code: `${codeA}-2030`, nameVi: 'Khóa thử' };
     const sent: [() => request.Test, string][] = [
@@ -454,28 +448,21 @@ describe('Program and cohort routes: an empty cohort, races, path IDs and stored
       [() => as(adminA).patch(cohortPath(programA, stored), { nameVi: 'Khóa\u0000' }), 'nameVi must not contain a null character (U+0000)'],
     ];
     for (const [send, message] of sent) {
-      const res = await send();
-      expect([res.status, res.body.code, res.body.message]).toEqual([400, 'validation_failed', [message]]);
+      const response = await send();
+      expect([response.status, response.body.code, response.body.message]).toEqual([400, 'validation_failed', [message]]);
     }
     expect({ programs: await programRows(), cohorts: await cohortRows() }).toEqual(before);
-    // The longest value that fits is stored whole: 255 code points, 257 UTF-16 units.
     const longest = 'x'.repeat(253) + '\u{1F600}\u{1F600}';
     expect((await as(adminA).patch(programPath(programA), { nameEn: longest }).expect(200)).body.nameEn).toBe(longest);
   });
 });
 
-// TC-B2-ADM-03 (UC-11 A1, "Earlier cohorts stay unchanged"; ADR 0011: "Adding a cohort preserves
-// the original curriculum identity, membership, saved plans and audit/validation results").
-// The whole fixture is entered through the API, as an administrator would enter it: a program,
-// its first cohort, groups, links, prerequisites and offering terms. Only what no route can set
-// yet is written in SQL: the training type, the credit totals, and the student's onboarding
-// answers (onboarding offers the release's programs only).
 describe('Adding a cohort leaves the first cohort as it was (e2e)', () => {
   let app: INestApplication;
   let db: DataSource;
   const { as } = client(() => app);
 
-  const suffix = run();
+  const suffix = runSuffix();
   const P = `ZZQ-${suffix}`;
   const [C1, C2, C3, C4] = [1, 2, 3, 4].map((n) => `ZZQ${suffix}${n}`);
   const users: Account[] = [];
@@ -493,7 +480,6 @@ describe('Adding a cohort leaves the first cohort as it was (e2e)', () => {
   const rows = (sql: string, params: unknown[]) => db.query(sql, params) as Promise<Record<string, unknown>[]>;
   const ofCurriculum = (table: string, order: string) => rows(`SELECT * FROM ${table} WHERE curriculum_id = $1 ORDER BY ${order}`, [first]);
 
-  /** Everything the first cohort stores, and everything its student reads: stored rows with their write times, and the API answers. */
   async function firstCohort() {
     return {
       stored: {
@@ -524,11 +510,12 @@ describe('Adding a cohort leaves the first cohort as it was (e2e)', () => {
   beforeAll(async () => {
     app = await bootApp();
     db = app.get(DataSource);
+    offerAlso(app, P, [2024]);
     [manager, admin, maintainer, student] = await Promise.all([signedInUser(app), signedInUser(app), signedInUser(app), signedInUser(app)]);
     users.push(manager, admin, maintainer, student);
-    await db.query(`INSERT INTO global_admin_grants (user_id, permission) VALUES ($1, 'access_manager'), ($2, 'catalog_maintainer')`, [manager.userId, maintainer.userId]);
+    await grantGlobal(db, manager.userId, 'access_manager');
+    await grantGlobal(db, maintainer.userId, 'catalog_maintainer');
 
-    // UC-11 A2, then A1, then the basic flow.
     program = (await as(manager).post(programsPath, { code: P, nameVi: 'Chương trình thử' }).expect(201)).body.id;
     await as(manager).put(`/api/admin/access/users/${admin.userId}/programs/${program}`).expect(200);
     first = (await as(admin).post(cohortsPath(program), { cohortYear: 2024, code: `${P}-2024`, nameVi: 'Khóa thử 2024', language: 'vi' }).expect(201)).body.id;
@@ -549,7 +536,6 @@ describe('Adding a cohort leaves the first cohort as it was (e2e)', () => {
     await db.query('UPDATE requirement_groups SET credits_total = 8 WHERE id = $1', [core]);
     await db.query('UPDATE requirement_groups SET credits_total_min = 4 WHERE id = $1', [elective]);
 
-    // A student of the first cohort, with a transcript and a saved plan.
     await db.query('INSERT INTO onboarding_answers (user_id, program_code, cohort_year, finished_at) VALUES ($1, $2, 2024, now())', [student.userId, P]);
     const row = (courseCode: string, result: string, grade: number | null, year: number, number: number) => ({ courseCode, courseName: `Synthetic ${courseCode}`, credits: 4, result, grade, term: { year, number } });
     await as(student).put('/api/users/me/transcript', { rows: [row(C1, 'graded', 8, 2024, 1), row(C3, 'in_progress', null, 2024, 2)] }).expect(200);
@@ -581,7 +567,6 @@ describe('Adding a cohort leaves the first cohort as it was (e2e)', () => {
     const courses = (read.curriculum.requirementGroups as { courses: { code: string; prerequisites: string[] | null; offeringTerms: number[] | null }[] }[]).flatMap((g) => g.courses);
     expect(Object.fromEntries(courses.map((c) => [c.code, [c.prerequisites, c.offeringTerms]]))).toEqual({ [C1]: [null, [1]], [C2]: [[C1], [2]], [C3]: [[], null], [C4]: [null, null] });
     expect(read.plan.curriculum).toEqual({ id: first, code: `${P}-2024`, programCode: P, cohortYear: 2024 });
-    // The baseline is not empty: the audit and the plan check hold findings about this cohort's data.
     expect(read.audit).toMatchObject({ curriculumCode: `${P}-2024` });
     expect(JSON.stringify(read.audit)).toContain(C1);
     expect(JSON.stringify(read.issues)).toContain(C4);
@@ -593,7 +578,6 @@ describe('Adding a cohort leaves the first cohort as it was (e2e)', () => {
     expect(created.body).toMatchObject({ programId: program, cohortYear: 2025, totalCreditsMin: null });
     expect(await firstCohort()).toEqual(before);
 
-    // It copied nothing: no group, link, rule or credit total.
     for (const table of ['requirement_groups', 'course_prerequisite_lists', 'course_prerequisites', 'course_offering_terms', 'combined_minimums']) {
       expect([table, await rows(`SELECT 1 FROM ${table} WHERE curriculum_id = $1`, [second])]).toEqual([table, []]);
     }
@@ -604,7 +588,6 @@ describe('Adding a cohort leaves the first cohort as it was (e2e)', () => {
   });
 
   it("enters the second cohort's own curriculum from the shared catalog, and the first still reads the same", async () => {
-    // The same group name and the same course, with other rules: cohorts share courses, not membership.
     const { id: group } = (await as(admin).post(`${cohort(second)}/requirement-groups`, { name: 'zz bắt buộc', kind: 'compulsory' }).expect(201)).body;
     for (const code of [C1, C4]) await as(admin).put(`${cohort(second)}/requirement-groups/${group}/courses/${code}`).expect(204);
     await as(admin).put(`${cohort(second)}/courses/${C1}/prerequisites`, { prerequisites: [C4] }).expect(200);
@@ -612,7 +595,6 @@ describe('Adding a cohort leaves the first cohort as it was (e2e)', () => {
     await as(admin).patch(cohort(second), { nameEn: 'Trial 2025', language: 'en' }).expect(200);
     expect(await firstCohort()).toEqual(before);
 
-    // One catalog course, linked by both cohorts, with each cohort's own rules.
     expect(await rows('SELECT count(*)::int AS n FROM courses WHERE code = $1', [C1])).toEqual([{ n: 1 }]);
     const { body: course } = await as(student).get(`/api/courses/${C1}`).expect(200);
     expect((course.memberships as { cohortYear: number; requirementGroupName: string }[]).map((m) => [m.cohortYear, m.requirementGroupName])).toEqual([

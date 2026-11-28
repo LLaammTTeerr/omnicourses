@@ -1,6 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
   blankToNull,
+  calendarEventChanges,
+  calendarEventMatches,
+  calendarEventValues,
+  cohortChanges,
+  cohortMatches,
+  cohortValues,
+  newCalendarEventBody,
+  newCohortBody,
+  newProgramBody,
+  programChanges,
+  programMatches,
+  programValues,
   courseChanges,
   courseHas,
   courseIn,
@@ -15,13 +27,13 @@ import {
   storedCode,
   storedPrerequisites,
 } from './forms.js';
+import { REGISTRATION } from '../calendar/testing/fixtures.js';
 import { BASE_GROUP, catalogCourse, curriculum, ELECTIVE_GROUP, GROUP_BASE_ID, GROUP_ELECTIVE_ID } from './testing/fixtures.js';
 
 describe('what a form sends: the values typed, never a judgement of them', () => {
   it('reads a number box as a number, an empty one as null, and anything else as the text typed', () => {
     expect([enteredNumber('4'), enteredNumber(' 45 '), enteredNumber('0'), enteredNumber('-1'), enteredNumber('1.5')]).toEqual([4, 45, 0, -1, 1.5]);
     expect([enteredNumber(''), enteredNumber('   ')]).toEqual([null, null]);
-    // A typing mistake is never null, which would clear a period count: the API refuses the text by name.
     expect([enteredNumber('4o'), enteredNumber('ba'), enteredNumber('1e3'), enteredNumber('0x10'), enteredNumber('1,5')]).toEqual(['4o', 'ba', '1e3', '0x10', '1,5']);
   });
 
@@ -62,7 +74,6 @@ describe('what a form sends: the values typed, never a judgement of them', () =>
       labPeriods: null,
       exercisePeriods: 15,
     });
-    // The code is not a field of a correction, whatever the form holds.
     expect(courseChanges(saved, { ...form, code: 'ZZ201' })).toEqual({});
   });
 
@@ -104,7 +115,6 @@ describe('finding a change again in reloaded data (UC-11 A7)', () => {
     expect(storedPrerequisites({ state: 'none' })).toEqual([]);
     expect(storedPrerequisites({ state: 'list', codes: [' zz102', 'ZZ101 '] })).toEqual(['ZZ101', 'ZZ102']);
     expect([sameList(null, null), sameList([], []), sameList(['ZZ101'], ['ZZ101']), sameList([1, 3], [1, 3])]).toEqual([true, true, true, true]);
-    // An empty recorded list is not "not recorded", in either direction.
     expect([sameList(null, []), sameList([], null), sameList(undefined, []), sameList(['ZZ101'], ['ZZ102']), sameList(['ZZ101'], ['ZZ101', 'ZZ102'])]).toEqual([false, false, false, false, false]);
   });
 
@@ -113,9 +123,92 @@ describe('finding a change again in reloaded data (UC-11 A7)', () => {
     expect(courseHas(saved, { credits: 3, nameVi: ' Tên mới ', labPeriods: null })).toBe(true);
     expect(courseHas(saved, { credits: 4 })).toBe(false);
     expect(courseHas(saved, { labPeriods: 0 })).toBe(false);
-    // A value the API would have refused is never found saved.
     expect(courseHas(saved, { credits: 'ba' })).toBe(false);
-    // A create that left a period box out says nothing about that field.
     expect(courseHas(saved, { code: 'zz200', nameVi: 'Tên mới', nameEn: null, credits: 3 })).toBe(true);
+  });
+});
+
+describe('the program and cohort forms (UC-11 A1, A2): what is typed, and nothing the API does not take', () => {
+  const PROGRAM = { code: 'ZZ-NEW', nameVi: 'Chương trình thử', nameEn: null, faculty: 'Khoa thử' };
+  const COHORT = {
+    id: '00000000-0000-4000-8000-0000000000c9',
+    programId: '00000000-0000-4000-8000-0000000000a1',
+    cohortYear: 2026,
+    code: 'ZZ-NEW-2026',
+    nameVi: 'Khóa thử 2026',
+    nameEn: null,
+    language: 'vi',
+    totalCreditsMin: null,
+    updatedAt: '2026-11-25T02:00:00.000Z',
+  };
+
+  it('builds a new program with the code as typed, blank boxes as null, and no training type', () => {
+    expect(newProgramBody({ code: ' zz-new ', nameVi: ' Chương trình thử ', nameEn: ' ', faculty: '' })).toEqual({ code: ' zz-new ', nameVi: ' Chương trình thử ', nameEn: null, faculty: null });
+  });
+
+  it('sends only the changed program details, never the code, and recognises them once saved', () => {
+    expect(programChanges(PROGRAM, programValues(PROGRAM))).toEqual({});
+    const typed = { ...programValues(PROGRAM), nameEn: 'Test program', faculty: ' ' };
+    expect(programChanges(PROGRAM, typed)).toEqual({ nameEn: 'Test program', faculty: null });
+    expect(programMatches({ ...PROGRAM, nameEn: 'Test program', faculty: null }, typed)).toBe(true);
+    expect(programMatches(PROGRAM, typed)).toBe(false);
+    expect(programMatches(PROGRAM, { ...programValues(PROGRAM), code: ' zz-new ' }, true)).toBe(true);
+  });
+
+  it('builds a new cohort with the year as a number when it reads as one, and no credit total', () => {
+    expect(newCohortBody({ cohortYear: ' 2026 ', code: 'zz-new-2026', nameVi: 'Khóa thử', nameEn: '', language: ' ' })).toEqual({ cohortYear: 2026, code: 'zz-new-2026', nameVi: 'Khóa thử', nameEn: null, language: null });
+    expect(newCohortBody({ ...cohortValues(null), cohortYear: '2O26' }).cohortYear).toBe('2O26');
+  });
+
+  it('sends only the changed cohort details, never the year or the code, and recognises a new cohort by them', () => {
+    expect(cohortChanges(COHORT, cohortValues(COHORT))).toEqual({});
+    expect(cohortChanges(COHORT, { ...cohortValues(COHORT), cohortYear: '2027', code: 'X', language: '' })).toEqual({ language: null });
+    expect(cohortMatches(COHORT, { ...cohortValues(COHORT), code: 'zz-new-2026 ' }, true)).toBe(true);
+    expect(cohortMatches(COHORT, { ...cohortValues(COHORT), cohortYear: '2025' }, true)).toBe(false);
+  });
+
+  it('builds a calendar event body omitting blank endsOn and turning blank optional fields to null, and diffs edits cleanly (F10)', () => {
+    expect(newCalendarEventBody(calendarEventValues(null))).toEqual({
+      academicYear: null,
+      term: null,
+      kind: null,
+      startsOn: '',
+      title: '',
+      titleEn: null,
+      sourceUrl: null,
+      notes: null,
+    });
+    expect(
+      newCalendarEventBody({
+        academicYear: ' 2026 ',
+        term: '1',
+        kind: 'registration',
+        startsOn: '2026-09-01',
+        endsOn: '2026-09-05',
+        title: ' Đăng ký HK1 ',
+        titleEn: ' Term 1 registration ',
+        sourceUrl: 'https://example.edu.vn/reg',
+        notes: '  ',
+      }),
+    ).toEqual({
+      academicYear: 2026,
+      term: 1,
+      kind: 'registration',
+      startsOn: '2026-09-01',
+      endsOn: '2026-09-05',
+      title: 'Đăng ký HK1',
+      titleEn: 'Term 1 registration',
+      sourceUrl: 'https://example.edu.vn/reg',
+      notes: null,
+    });
+    expect(calendarEventChanges(REGISTRATION, calendarEventValues(REGISTRATION))).toEqual({});
+    expect(calendarEventChanges(REGISTRATION, { ...calendarEventValues(REGISTRATION), title: `  ${REGISTRATION.title}  ` })).toEqual({});
+    expect(calendarEventChanges(REGISTRATION, { ...calendarEventValues(REGISTRATION), title: '  Đăng ký HK2 mới  ' })).toEqual({
+      title: 'Đăng ký HK2 mới',
+    });
+    const shortened = { ...calendarEventValues(REGISTRATION), term: '' as const, endsOn: '', notes: ' ' };
+    expect(calendarEventChanges(REGISTRATION, shortened)).toEqual({ term: null, endsOn: '2026-11-10', notes: null });
+    expect(calendarEventMatches({ ...REGISTRATION, term: null, endsOn: '2026-11-10', notes: null }, shortened)).toBe(true);
+    expect(calendarEventMatches(REGISTRATION, shortened)).toBe(false);
   });
 });

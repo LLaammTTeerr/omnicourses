@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { addDays, DAY_MS, msUntilVietnamMidnight, vietnamDate } from './time.js';
 
 describe('vietnamDate', () => {
-  // Dũng's rule 4 (ADR 0018): days follow Vietnam time, UTC+7.
   it('changes day at 17:00:00 UTC exactly', () => {
     expect(vietnamDate(new Date('2026-12-01T16:59:59.999Z'))).toBe('2026-12-01');
     expect(vietnamDate(new Date('2026-12-01T17:00:00.000Z'))).toBe('2026-12-02');
@@ -39,5 +38,7 @@ describe('addDays', () => {
     expect(addDays('2028-02-28', 1)).toBe('2028-02-29');
     expect(addDays('2027-01-04', -7)).toBe('2026-12-28');
     expect(addDays('2026-12-02', 0)).toBe('2026-12-02');
+    expect(addDays('2026-05-13', -1)).toBe('2026-05-12');
+    expect(addDays('2026-02-28', 1)).toBe('2026-03-01');
   });
 });

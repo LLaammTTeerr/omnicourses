@@ -1,32 +1,19 @@
 <script setup lang="ts">
-import { computed, nextTick, reactive, ref, shallowRef } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { HttpError, statusOf } from '../api.js';
-import { useAsyncLoad } from '../async-load.js';
 import { afterSignIn } from '../auth/redirect.js';
-import { useAuth } from '../auth/store.js';
-import { fetchPrograms } from '../curriculum/api.js';
 import { groupClass } from '../groups.js';
-import { useLocale, useMessages } from '../locale.js';
+import { useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import BrandLink from '../shell/BrandLink.vue';
 import Icon from '../shell/Icon.vue';
 import LangButton from '../shell/LangButton.vue';
 import ThemeButton from '../shell/ThemeButton.vue';
 import { useToast } from '../shell/toast.js';
-import type { Onboarding } from './api.js';
-import { creditsProblem, errorsByField, goalAnswers, goalDraft, programChoices, resumeStep, type AnswerField, type GoalDraft } from './answers.js';
+import { creditsProblem, resumeStep, useAnswerForm, type AnswerField } from './answers.js';
 import GoalFields from './GoalFields.vue';
 import { ONBOARDING_MESSAGES } from './messages.js';
-import { useOnboarding } from './store.js';
 
-// Onboarding (UC-01 steps 6–9, UI prototypes: onboarding.html): program, cohort, then the default planning goal.
-// Every step saves the whole object with finished false, so a student who leaves resumes at the first unanswered
-// step (A8); Finish saves it with finished true. The program list comes from the curriculum API, and only the
-// programs and cohorts the release offers can be picked (A7).
-const auth = useAuth();
-const onboarding = useOnboarding();
-const locale = useLocale();
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
@@ -34,61 +21,19 @@ const m = useMessages(ONBOARDING_MESSAGES);
 
 const STEPS = 4;
 const step = ref(0);
-const program = ref<string | null>(null);
-const cohort = ref<number | null>(null);
-const goal = reactive<GoalDraft>({ graduation: '', credits: '', internship: '' });
-
-const { status, reload } = useAsyncLoad('the onboarding answers', async () => {
-  const answers = await onboarding.load();
-  program.value = answers.program;
-  cohort.value = answers.cohort;
-  Object.assign(goal, goalDraft(answers));
+const { status, reload, program, cohort, goal, choices, cohorts, programName, saving, saveFailed, apiErrors, goalErrors, otherErrors, save } = useAnswerForm((answers) => {
   step.value = resumeStep(answers);
 });
-// The names of the programs. Without them the offered codes still show, so onboarding never waits on this list.
-const programs = useAsyncLoad('the programs', () => auth.authed(fetchPrograms));
-const choices = computed(() => programChoices(programs.data.value?.programs ?? []));
 const offered = computed(() => choices.value.filter((choice) => choice.offered));
 const notOffered = computed(() => choices.value.filter((choice) => !choice.offered));
-const cohorts = computed(() => choices.value.find((choice) => choice.code === program.value)?.cohorts ?? []);
-const programName = (choice: (typeof choices.value)[number]) =>
-  (locale.lang === 'en' ? choice.program?.nameEn : null) ?? choice.program?.nameVi ?? choice.code;
 
 function pickProgram(code: string): void {
   program.value = code;
-  // A cohort belongs to its program.
   if (cohort.value !== null && !cohorts.value.includes(cohort.value)) cohort.value = null;
   missing.value = null;
 }
 
 const missing = ref<'program' | 'cohort' | null>(null);
-const saving = ref(false);
-const saveFailed = ref(false);
-const apiErrors = shallowRef<Partial<Record<AnswerField, string[]>>>({});
-const otherErrors = computed(() => [...(apiErrors.value.program ?? []), ...(apiErrors.value.cohort ?? []), ...(apiErrors.value.finished ?? [])]);
-
-function answers(finished: boolean): Onboarding {
-  return { program: program.value, cohort: cohort.value, ...goalAnswers(goal), finished };
-}
-
-async function save(finished: boolean): Promise<boolean> {
-  saving.value = true;
-  saveFailed.value = false;
-  apiErrors.value = {};
-  try {
-    await onboarding.save(answers(finished));
-    return true;
-  } catch (e) {
-    if (statusOf(e) === 400 && e instanceof HttpError) apiErrors.value = errorsByField(e.details);
-    else if (statusOf(e) !== 401) {
-      console.error('Saving the onboarding answers failed:', e);
-      saveFailed.value = true;
-    }
-    return false;
-  } finally {
-    saving.value = false;
-  }
-}
 
 const heading = ref<HTMLElement | null>(null);
 async function show(next: number): Promise<void> {
@@ -102,7 +47,6 @@ async function onNext(): Promise<void> {
   if (step.value === 1 && cohort.value === null) return void (missing.value = 'cohort');
   missing.value = null;
   if (step.value === 0) return show(1);
-  // The API takes a program only together with its cohort, so saving starts after the cohort.
   if (step.value === 3 && creditsProblem(goal.credits)) return;
   const last = step.value === STEPS - 1;
   if (!(await save(last))) return showRejected();
@@ -111,7 +55,6 @@ async function onNext(): Promise<void> {
   await router.replace(afterSignIn(route.query.redirect));
 }
 
-// The step that asks each answer: a refused answer is shown where the student can change it.
 const STEP_OF: Record<AnswerField, number> = { program: 0, cohort: 1, finished: 0, targetGraduationTerm: 2, creditsPerTerm: 3, internshipTerm: 3 };
 function showRejected(): Promise<void> | void {
   const steps = (Object.keys(apiErrors.value) as AnswerField[]).map((field) => STEP_OF[field]);
@@ -119,18 +62,13 @@ function showRejected(): Promise<void> | void {
 }
 
 const goalFields = computed(() => (step.value === 2 ? (['graduation'] as const) : (['credits', 'internship'] as const)));
-const goalErrors = computed(() => ({
-  graduation: apiErrors.value.targetGraduationTerm,
-  credits: apiErrors.value.creditsPerTerm,
-  internship: apiErrors.value.internshipTerm,
-}));
 const question = computed(() => [m.value.programQuestion, m.value.cohortQuestion, m.value.graduationQuestion, m.value.loadQuestion][step.value]);
 
 usePageTitle(() => m.value.title);
 </script>
 
 <template>
-  <main id="main" class="wizard" tabindex="-1">
+  <div class="wizard">
     <div class="wizard-top">
       <BrandLink :to="{ name: 'home' }" />
       <ol class="dots" :aria-label="m.steps">
@@ -176,7 +114,6 @@ usePageTitle(() => m.value.title);
             <small>{{ choice.code }}</small>
           </button>
         </div>
-        <!-- A7: the other programs are named, so a student who does not see theirs knows why. -->
         <details v-if="notOffered.length" class="not-offered" data-test="not-offered">
           <summary>{{ m.otherPrograms(notOffered.length) }}</summary>
           <ul>
@@ -233,12 +170,11 @@ usePageTitle(() => m.value.title);
         </button>
       </div>
     </form>
-  </main>
+  </div>
 </template>
 
-<style>
+<style scoped>
 .wizard { max-width: 860px; margin: 0 auto; display: grid; gap: 26px; padding: 24px 16px 96px; align-content: start; min-height: 100vh; }
-.wizard:focus { outline: none; }
 .wizard-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .wizard-tools { display: flex; gap: 6px; align-items: center; }
 .dots { display: flex; gap: 8px; align-items: center; list-style: none; margin: 0; padding: 0; }
@@ -255,7 +191,6 @@ usePageTitle(() => m.value.title);
 }
 .opt:hover:not([disabled]) { border-color: var(--edge-strong); }
 .opt[aria-pressed='true'] { background: var(--hi); border-color: var(--info); box-shadow: 0 0 0 1px var(--info); }
-/* The tick says "chosen" as well as the colour. */
 .opt[aria-pressed='true']::after {
   content: '✓'; position: absolute; top: 12px; right: 14px; width: 22px; height: 22px; border-radius: 50%;
   background: var(--info); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px;
@@ -267,6 +202,6 @@ usePageTitle(() => m.value.title);
 .wizard-nav { display: flex; justify-content: space-between; gap: 12px; }
 .wizard-nav .btn.primary { min-width: 140px; justify-content: center; }
 @media (max-width: 420px) {
-  .wizard-top .brand-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .wizard-top :deep(.brand-name) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 }
 </style>

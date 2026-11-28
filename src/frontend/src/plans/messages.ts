@@ -1,17 +1,13 @@
 import type { Lang } from '../locale.js';
 import type { PlanIssue, PlanIssueCode, PlanIssueKind } from './api.js';
 
-// The planner's words. Each issue code of the rule engine is worded here from its parameters (ADR 0006: issues are
-// codes with parameters); the API's `message` is English only. Wording an issue never judges the plan: the engine
-// already has.
+export type WordedIssue = Pick<PlanIssue, 'code' | 'term' | 'courseCode' | 'offeredTermNumbers' | 'credits' | 'limit'> & Partial<Pick<PlanIssue, 'missingCourseCodes' | 'requirementGroupId' | 'combinedMinimumId'>>;
 
-/** What an issue's wording may need besides the issue itself. */
 export interface IssueContext {
-  /** The name of a requirement group or a combined minimum, by id. */
-  requirementName: (issue: PlanIssue) => string | null;
+  requirementName: (issue: WordedIssue) => string | null;
 }
 
-type Worder = (issue: PlanIssue, ctx: IssueContext) => string;
+type Worder = (issue: WordedIssue, ctx: IssueContext) => string;
 
 interface PlannerMessages {
   title: string;
@@ -49,14 +45,16 @@ interface PlannerMessages {
   deleteBody: string;
   keep: string;
   deleting: string;
-  // Editor
   allPlans: string;
   editorLead: string;
   keyboardHint: string;
   notFound: string;
   saved: string;
   saving: string;
+  savingWait: string;
   notSaved: string;
+  signedOutNotSaved: string;
+  saveSessionEnded: string;
   saveFailed: string;
   saveRefused: (details: string) => string;
   checking: string;
@@ -74,12 +72,9 @@ interface PlannerMessages {
   inTranscript: string;
   passedMark: string;
   dropToRemove: string;
-  /** The bin shown while a placed course is dragged: dropped there, it goes back to the course list. */
   binLabel: string;
   binHint: string;
-  /** The jump from an issue to its course on the board. */
   goTo: string;
-  /** A citation that links to the regulation, as a short label and its tooltip. */
   sourceTitle: (citation: string) => string;
   noIssuesTitle: string;
   noTermViolations: string;
@@ -87,17 +82,13 @@ interface PlannerMessages {
   unknownsLeft: (n: number) => string;
   newTag: string;
   goneTag: string;
-  /** A passed course in the "Taken" strip opens the curriculum explorer at it. */
   showInExplorer: (code: string) => string;
   dropHere: string;
   addTerm: (term: string) => string;
   termsLabel: string;
   credits: (n: number) => string;
-  /** After the load figure: "/ 22 TC", or the unit alone when the term has no cap on record. */
   ofCap: (max: number | null) => string;
-  /** Before the load of a term with a course of unknown credits (load_not_checked): its load is a lower bound. */
   atLeast: string;
-  /** The months a term runs, from the calendar the API uses (term 1 from September, 2 from January, 3 from June). */
   termMonths: (term: { year: number; number: 1 | 2 | 3 }) => string;
   caps: (min: number | null, max: number) => string;
   capsUnknown: string;
@@ -114,15 +105,15 @@ interface PlannerMessages {
   added: (code: string, term: string) => string;
   removed: (code: string) => string;
   liftCancelled: (code: string) => string;
-  // Toolbar, tabs, status strip
   undo: string;
   undone: (what: string) => string;
   nothingToUndo: string;
   whatIf: string;
   whatIfName: (name: string) => string;
   whatIfHint: string;
+  share: string;
+  shareHint: string;
   plansLabel: string;
-  /** The plan made for a student who has none, the first time the planner opens. */
   defaultPlanName: string;
   opening: string;
   backToList: string;
@@ -138,12 +129,9 @@ interface PlannerMessages {
   openPlan: (name: string) => string;
   statusLabel: string;
   invalid: (n: number) => string;
-  /** No violation, and every rule checked. */
   noViolation: string;
-  /** No violation, but `n` rules the engine could not check: not a pass (#80). */
   noViolationUnknown: (n: number) => string;
   coverageTitle: (group: string, credits: number, required: number | null) => string;
-  // Tray, past terms, current term, tiles
   allGroups: string;
   groupFilter: string;
   slotNotChosen: string;
@@ -155,10 +143,8 @@ interface PlannerMessages {
   inProgress: string;
   locked: string;
   takenBefore: (grade: string) => string;
-  // Drag preview and the issues panel
   dropChecking: string;
   dropFailed: string;
-  /** A drop the engine could not fully check: never worded as a pass (#80). */
   dropUnknown: (what: string) => string;
   previewOf: (code: string, term: string) => string;
   previewDelta: (delta: number) => string;
@@ -166,7 +152,6 @@ interface PlannerMessages {
   expand: string;
   groupsShort: (n: number) => string;
   issueTitle: Record<PlanIssueCode, string>;
-  // Issues
   issuesTitle: string;
   issuesLead: string;
   noIssues: string;
@@ -174,7 +159,6 @@ interface PlannerMessages {
   kindHeadings: Record<PlanIssueKind, string>;
   kindsPlural: Record<PlanIssueKind, (n: number) => string>;
   notRecordedYet: string;
-  /** What is not recorded, for the one line a tile gives its unknowns. */
   unknownWhat: (codes: PlanIssueCode[]) => string;
   source: string;
   wholePlan: string;
@@ -188,7 +172,8 @@ interface PlannerMessages {
 }
 
 const list = (codes: readonly (string | number)[]) => codes.join(', ');
-const code = (issue: PlanIssue) => issue.courseCode ?? '?';
+const code = (issue: WordedIssue) => issue.courseCode ?? '?';
+const missing = (issue: WordedIssue) => issue.missingCourseCodes ?? [];
 const UNKNOWN_WHAT: Record<Lang, Partial<Record<PlanIssueCode, string>>> = {
   vi: { prerequisites_not_recorded: 'môn tiên quyết', offering_terms_not_recorded: 'học kỳ mở môn', credits_not_recorded: 'số tín chỉ', caps_not_checked: 'giới hạn tín chỉ', load_not_checked: 'số tín chỉ của học kỳ' },
   en: { prerequisites_not_recorded: 'prerequisites', offering_terms_not_recorded: 'offering terms', credits_not_recorded: 'credits', caps_not_checked: 'credit caps', load_not_checked: 'term load' },
@@ -237,7 +222,10 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     notFound: 'Không có kế hoạch này trong các kế hoạch của bạn.',
     saved: 'Đã lưu',
     saving: 'Đang lưu…',
+    savingWait: 'Đang lưu lộ trình, vui lòng đợi giây lát.',
     notSaved: 'Chưa lưu',
+    signedOutNotSaved: 'Hết phiên · chưa lưu',
+    saveSessionEnded: 'Phiên đăng nhập đã kết thúc — thay đổi vừa rồi chưa được lưu. Hãy đăng nhập lại.',
     saveFailed: 'Chưa lưu được thay đổi. Kế hoạch đã trở về lần lưu gần nhất.',
     saveRefused: (details) => `Máy chủ không nhận thay đổi này (${details}). Kế hoạch đã trở về lần lưu gần nhất.`,
     checking: 'Đang kiểm tra…',
@@ -294,6 +282,8 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     whatIf: 'What-if',
     whatIfName: (name) => `What-if: ${name}`,
     whatIfHint: 'Thử thay đổi trên một bản sao. Kế hoạch này giữ nguyên.',
+    share: 'Chia sẻ',
+    shareHint: 'Chia sẻ liên kết chỉ đọc hoặc in kế hoạch ra PDF',
     plansLabel: 'Các kế hoạch',
     defaultPlanName: 'Kế hoạch mặc định',
     opening: 'Đang mở kế hoạch…',
@@ -372,7 +362,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     met: 'Đủ',
     short: (n) => `Thiếu ${n} TC`,
     issue: {
-      prerequisite_not_met: (i) => `${code(i)} cần học xong ${list(i.missingCourseCodes)} ở một học kỳ trước.`,
+      prerequisite_not_met: (i) => `${code(i)} cần học xong ${list(missing(i))} ở một học kỳ trước.`,
       prerequisites_not_recorded: (i) => `${code(i)}: chưa ghi nhận môn tiên quyết.`,
       not_offered: (i) => `${code(i)} không mở ở HK${i.term?.number ?? '?'}; chỉ mở HK${list(i.offeredTermNumbers)}.`,
       offering_terms_not_recorded: (i) => `${code(i)}: chưa ghi nhận học kỳ mở môn.`,
@@ -388,7 +378,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
       requirement_not_covered: (i, ctx) =>
         `${ctx.requirementName(i) ?? 'Tổng số tín chỉ'} còn thiếu` +
         (i.limit === null ? '' : `: ${i.credits ?? 0}/${i.limit} TC`) +
-        (i.missingCourseCodes.length ? `; chưa xếp ${list(i.missingCourseCodes)}.` : '.'),
+        (missing(i).length ? `; chưa xếp ${list(missing(i))}.` : '.'),
     },
   },
   en: {
@@ -433,7 +423,10 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     notFound: 'This plan is not among your plans.',
     saved: 'Saved',
     saving: 'Saving…',
+    savingWait: 'Saving your plan — please wait a moment.',
     notSaved: 'Not saved',
+    signedOutNotSaved: 'Session expired · not saved',
+    saveSessionEnded: 'Your session has ended — your last change was not saved. Please sign in again.',
     saveFailed: 'The change could not be saved. The plan is back to its last saved state.',
     saveRefused: (details) => `The server refused this change (${details}). The plan is back to its last saved state.`,
     checking: 'Checking…',
@@ -490,6 +483,8 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     whatIf: 'What-if',
     whatIfName: (name) => `What-if: ${name}`,
     whatIfHint: 'Try a change on a copy. This plan stays as it is.',
+    share: 'Share',
+    shareHint: 'Share a read-only link with an advisor or print as PDF',
     plansLabel: 'Plans',
     defaultPlanName: 'Default plan',
     opening: 'Opening your plan…',
@@ -570,7 +565,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     met: 'Met',
     short: (n) => `${n} cr short`,
     issue: {
-      prerequisite_not_met: (i) => `${code(i)} needs ${list(i.missingCourseCodes)} passed or placed in an earlier term.`,
+      prerequisite_not_met: (i) => `${code(i)} needs ${list(missing(i))} passed or placed in an earlier term.`,
       prerequisites_not_recorded: (i) => `${code(i)}: prerequisites not recorded yet.`,
       not_offered: (i) => `${code(i)} is not taught in term ${i.term?.number ?? '?'}; it is taught in term ${list(i.offeredTermNumbers)}.`,
       offering_terms_not_recorded: (i) => `${code(i)}: offering terms not recorded yet.`,
@@ -586,7 +581,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
       requirement_not_covered: (i, ctx) =>
         `${ctx.requirementName(i) ?? 'Total credits'} still short` +
         (i.limit === null ? '' : `: ${i.credits ?? 0}/${i.limit} credits`) +
-        (i.missingCourseCodes.length ? `; not placed: ${list(i.missingCourseCodes)}.` : '.'),
+        (missing(i).length ? `; not placed: ${list(missing(i))}.` : '.'),
     },
   },
 };

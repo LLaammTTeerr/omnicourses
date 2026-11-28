@@ -20,10 +20,10 @@ const privacy = useMessages({ vi: 'Quyền riêng tư', en: 'Privacy' });
   </footer>
 </template>
 
-<style>
+<style scoped>
 .pub-foot {
   border-top: 1px solid var(--edge); padding: 28px clamp(16px, 4vw, 48px) 48px; display: flex; gap: 12px 20px; flex-wrap: wrap;
   justify-content: space-between; font-size: 13.5px; color: var(--ink-3); background: var(--surface);
 }
-.pub-foot a { color: var(--ink-2); }
+.pub-foot :deep(a) { color: var(--ink-2); }
 </style>

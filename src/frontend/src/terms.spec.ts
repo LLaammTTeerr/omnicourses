@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { currentTerm, goalTerms, parseTermKey, sameTerm, termKey, termName, vietnamDate } from './terms.js';
 
-// The same cases as the API's current-term.spec, so the choices match what the API accepts.
-
 describe('currentTerm', () => {
   it.each([
     ['2026-09-01', { year: 2026, number: 1 }],

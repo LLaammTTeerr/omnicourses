@@ -1,15 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import type { CurriculumRules } from '../curriculum/curriculum-rules.reader.js';
-import type { BoardTerm, Placement } from '../plans/plan-board.js';
-import type { PlanIssue } from '../plans/plan-issues.js';
+import type { CurriculumRules } from '../curriculum/curriculum-rules.js';
 import type { Term } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
-import { CAP_CITATION, PETITION_NOTE } from './credit-caps.js';
-import { checkPlan, CURRICULUM_CITATION, GRADUATION_CITATION, IMPROVEMENT_CITATION, OFFERING_CITATION, PLAN_MODEL_CITATION, PREREQUISITE_CITATION, projectedTranscript } from './plan-issues.js';
+import { placements } from './coverage.js';
+import { checkPlan, projectedTranscript } from './plan-issues.js';
+import type { BoardTerm, Placement, PlanIssue } from './types.js';
 import { course as fixtureCourse, graded, group, term, ungraded, zzCurriculum } from './testing/fixtures.js';
 
-// Synthetic curriculum and transcripts only (AGENTS.md hard rule 3): zzCurriculum is Tiên tiến,
-// 10–22 credits in every term, and needs 38 credits.
+const PREREQUISITE_CITATION = 'QĐ 1175/QĐ-KHTN Điều 3.1.c';
+const OFFERING_CITATION = 'QĐ 1175/QĐ-KHTN Điều 6.5, 7.1.a';
+const CAP_CITATION = 'QĐ 1175/QĐ-KHTN Điều 7.2';
+const IMPROVEMENT_CITATION = 'QĐ 1175/QĐ-KHTN Điều 14.2';
+const CURRICULUM_CITATION = 'QĐ 1175/QĐ-KHTN Điều 15.1';
+const GRADUATION_CITATION = 'QĐ 1175/QĐ-KHTN Điều 17.3.b';
+const PLAN_MODEL_CITATION = 'ADR 0014';
+const PETITION_NOTE = 'Allowed by a petition that the faculty supports and the Rector approves (QĐ 1175/QĐ-KHTN Điều 7.2.b).';
 
 const course = (courseCode: string): Placement => ({ kind: 'course', courseCode, requirementGroupId: null, credits: null });
 const slot = (requirementGroupId: string, credits: number): Placement => ({ kind: 'slot', courseCode: null, requirementGroupId, credits });
@@ -18,17 +23,13 @@ const at = (t: Term, ...placements: Placement[]): BoardTerm => ({ term: t, place
 const ALL_CODES = zzCurriculum().groups.flatMap((g) => g.courses.map((c) => c.code));
 const NONE: Record<string, string[]> = Object.fromEntries(ALL_CODES.map((c) => [c, []]));
 const EVERY_TERM: Record<string, number[]> = Object.fromEntries(ALL_CODES.map((c) => [c, [1, 2, 3]]));
-/** A group wholly outside the cohort total, like CLC 2025's Giáo dục thể chất. */
 const PE_GROUP = group('pe', 'compulsory', 2, [fixtureCourse('ZZPE2', 2, { countsTowardTotal: false, countsTowardGpa: false })]);
 
 interface Options {
   transcript?: TranscriptEntry[];
   rules?: CurriculumRules;
-  /** Recorded prerequisites; by default every curriculum course is recorded with none. */
   prerequisites?: Record<string, string[]>;
-  /** Recorded offering terms; by default every curriculum course is taught in every term. */
   offering?: Record<string, number[]>;
-  /** Catalog credits of courses outside the curriculum. */
   catalog?: Record<string, number>;
 }
 
@@ -37,8 +38,7 @@ function check(terms: BoardTerm[], options: Options = {}) {
   const offering = options.offering ?? Object.fromEntries(ALL_CODES.map((c) => [c, [1, 2, 3]]));
   return checkPlan({
     planId: 'plan-1',
-    rules: options.rules ?? zzCurriculum(),
-    courseRules: { prerequisites: new Map(Object.entries(prerequisites)), offeringTerms: new Map(Object.entries(offering)) },
+    rules: { ...(options.rules ?? zzCurriculum()), prerequisites: new Map(Object.entries(prerequisites)), offeringTerms: new Map(Object.entries(offering)) as Map<string, Term['number'][]> },
     transcript: options.transcript ?? [],
     terms,
     catalogCredits: new Map(Object.entries(options.catalog ?? {})),
@@ -48,7 +48,6 @@ function check(terms: BoardTerm[], options: Options = {}) {
 const codes = (issues: PlanIssue[]) => issues.map((i) => i.code);
 const termIssues = (issues: PlanIssue[]) => issues.filter((i) => i.code !== 'requirement_not_covered');
 
-/** Every requirement of zzCurriculum, 10–22 credits a term: 12, 10 and 18. */
 const COMPLETE_PLAN = [
   at(term(2024, 1), course('ZZA1'), course('ZZA2'), course('ZZN1')),
   at(term(2024, 2), course('ZZPE1'), course('ZZAT1'), course('ZZB1')),
@@ -125,11 +124,9 @@ describe('checkPlan', () => {
       expect(termIssues(report.issues)).toContainEqual(expect.objectContaining({ code: 'prerequisite_not_met', term: term(2025, 2), courseCode: 'ZZA2', missingCourseCodes: ['ZZA1'] }));
       expect(report.issues).toContainEqual(expect.objectContaining({ code: 'requirement_not_covered', requirementGroupId: 'a-bb', missingCourseCodes: ['ZZA1'] }));
 
-      // A fail recorded in a later term than the placement wins too; the transcript's last completed attempt counts (Điều 14.1.a).
       const later = check([at(term(2025, 1), course('ZZA1')), at(term(2025, 3), course('ZZA2'))], { prerequisites: withA2, transcript: [graded('ZZA1', 4, 3, term(2025, 2))] });
       expect(termIssues(later.issues)).toContainEqual(expect.objectContaining({ code: 'prerequisite_not_met', courseCode: 'ZZA2', missingCourseCodes: ['ZZA1'] }));
 
-      // A pass, or an attempt still in progress, in the placement's term keeps the placement's assumption.
       for (const transcript of [[graded('ZZA1', 4, 6, term(2025, 1))], [ungraded('ZZA1', 4, 'in_progress', term(2025, 1))], [graded('ZZA1', 4, 3, term(2025, 1)), graded('ZZA1', 4, 7, term(2025, 2))]]) {
         const fine = check([at(term(2025, 1), course('ZZA1')), at(term(2025, 3), course('ZZA2'))], { prerequisites: withA2, transcript });
         expect(fine.issues.filter((i) => i.code === 'prerequisite_not_met')).toEqual([]);
@@ -205,7 +202,6 @@ describe('checkPlan', () => {
         expect(report.terms[0].credits).toBe(14);
         expect(termIssues(report.issues)).toMatchObject([{ code: 'load_below_minimum', credits: 12, limit: 14 }]);
       }
-      // A slot whose group the curriculum no longer has counts toward the minimum, as any course does.
       expect(termIssues(check([at(term(2025, 1), course('ZZA1'), course('ZZA2'), course('ZZB1'), slot('gone', 2))], options).issues)).toEqual([]);
     });
 
@@ -274,7 +270,6 @@ describe('checkPlan', () => {
     it('flags a course the transcript has passed before the term, as a grade improvement (Điều 14.2)', () => {
       const transcript = [graded('ZZA1', 4, 6, term(2024, 1)), graded('ZZA2', 4, 4, term(2024, 1)), graded('ZZN1', 4, 7, term(2025, 1))];
       const report = check([at(term(2025, 1), course('ZZA1'), course('ZZA2'), course('ZZN1'))], { transcript });
-      // ZZA2 failed: a retake, nothing to flag. ZZN1 passed in the same term: the plan shows that term as it was.
       expect(termIssues(report.issues)).toEqual([
         expect.objectContaining({ code: 'already_passed', kind: 'flag', term: term(2025, 1), position: 0, courseCode: 'ZZA1', citation: IMPROVEMENT_CITATION }),
       ]);
@@ -287,7 +282,6 @@ describe('checkPlan', () => {
       ]);
       expect(report.issues[0].message).toBe('ZZA1 is in progress before 2025–2026 term 2, and the plan assumes it passes. Taking it again is a grade improvement, or a retake if it fails.');
 
-      // Passed, then in progress again (an improvement under way): already passed, flagged once.
       const improving = check([at(term(2025, 2), course('ZZA1'), course('ZZC1'), course('ZZC2'))], {
         transcript: [graded('ZZA1', 4, 6, term(2024, 1)), ungraded('ZZA1', 4, 'in_progress', term(2025, 1))],
       });
@@ -321,18 +315,16 @@ describe('checkPlan', () => {
     it('projects one sitting for a course the plan places in a term the transcript already has it in', () => {
       const terms = [at(term(2025, 1), course('ZZA1'), course('ZZA2')), at(term(2025, 2), course('ZZB1'))];
       const transcript = [ungraded('ZZA1', 3, 'in_progress', term(2025, 1)), graded('ZZB1', 4, 3, term(2024, 3))];
-      const { entries } = projectedTranscript({ planId: 'plan-1', rules: zzCurriculum(), courseRules: { prerequisites: new Map(), offeringTerms: new Map() }, transcript, terms, catalogCredits: new Map() }, terms);
+      const { entries } = projectedTranscript({ planId: 'plan-1', rules: zzCurriculum(), transcript, terms, catalogCredits: new Map() }, placements(zzCurriculum()), terms);
       expect(entries).toEqual([
         { ...transcript[0], result: 'pass' },
         transcript[1],
         { courseCode: 'ZZA2', courseName: 'ZZA2', credits: 4, result: 'pass', grade: null, term: term(2025, 1) },
-        // A retake in a later term is its own sitting.
         { courseCode: 'ZZB1', courseName: 'ZZB1', credits: 4, result: 'pass', grade: null, term: term(2025, 2) },
       ]);
     });
 
     it('counts a course the plan places in a term the transcript already has it in once, as the transcript says', () => {
-      // The tile and the row are the same sitting (ADR 0013), whatever the row's name sorts against the plan's.
       const cases: [TranscriptEntry, number][] = [
         [ungraded('ZZA1', 3, 'in_progress', term(2025, 1)), 3 + 4],
         [ungraded('ZZA1', 5, 'in_progress', term(2025, 1)), 4 + 4],
@@ -346,7 +338,7 @@ describe('checkPlan', () => {
           const report = check([at(term(2025, 1), course('ZZA1'), course('ZZA2'), course('ZZC1'))], { transcript: [{ ...row, courseName }] });
           const group = report.coverage.groups.find((g) => g.id === 'a-bb');
           expect(group?.credits).toBe(counted);
-          expect(group?.met).toBe(counted > 4); // A compulsory group is met once every course of it passes.
+          expect(group?.met).toBe(counted > 4);
         }
       }
     });
@@ -398,7 +390,6 @@ describe('checkPlan', () => {
         { transcript },
       );
       expect(report.issues).toEqual([]);
-      // a-tc's 8 slot credits pass its minimum of 4; the other 4 overflow into C, so B + C = 4 + 4 + 4.
       expect(report.coverage.groups.find((g) => g.id === 'a-tc')).toMatchObject({ credits: 8, met: true });
       expect(report.coverage.groups.find((g) => g.id === 'c')).toMatchObject({ credits: 8, met: true });
       expect(report.coverage).toMatchObject({ totalCredits: 38, graduation: 'done' });
@@ -411,7 +402,6 @@ describe('checkPlan', () => {
       expect(total(course('ZZA1'))).toBe(4);
       expect(total(course('ZZA1'), course('ZZPE2'))).toBe(4);
       expect(total(course('ZZA1'), slot('pe', 2))).toBe(4);
-      // `non` mixes ZZN1 (counted) with ZZPE1 (not): the slot may hold either, so it is not counted.
       expect(total(course('ZZA1'), slot('non', 2))).toBe(4);
       expect(total(course('ZZA1'), slot('b', 4))).toBe(8);
     });

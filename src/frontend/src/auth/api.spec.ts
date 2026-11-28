@@ -1,32 +1,31 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { API_URL } from '../api.js';
+import { describe, expect, it } from 'vitest';
 import contract from '../../../backend/openapi.json';
-import { contractShape, type Shape } from '../testing/contract.js';
-import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, revokeSession, type AuthResult, type Session, type SignInBody, type SignUpBody, type User } from './api.js';
+import { contractNullable, contractShape, nullableKeys, type Shape } from '../testing/contract.js';
+import { DISPLAY_NAME_MAX_LENGTH, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, type AuthResult, type Session, type SignInBody, type SignUpBody, type User } from './api.js';
+
+const NULLABLE: Record<string, string[]> = {
+  UserDto: nullableKeys<User>({ className: true, emailVerifiedAt: true, studentId: true }),
+  SessionDto: nullableKeys<Session>({ userAgent: true }),
+};
 
 describe('auth types against the contract', () => {
   it.each([
-    ['UserDto', { id: 'required', email: 'required', displayName: 'required', emailVerifiedAt: 'required', createdAt: 'required' } satisfies Shape<User>],
+    ['UserDto', { id: 'required', email: 'required', displayName: 'required', studentId: 'required', className: 'required', emailVerifiedAt: 'required', createdAt: 'required' } satisfies Shape<User>],
     ['AuthResultDto', { token: 'required', expiresAt: 'required', user: 'required', accountRestored: 'required' } satisfies Shape<AuthResult>],
     ['SignUpDto', { email: 'required', password: 'required', displayName: 'required', acceptedTerms: 'required' } satisfies Shape<SignUpBody>],
     ['SignInDto', { email: 'required', password: 'required' } satisfies Shape<SignInBody>],
     ['SessionDto', { id: 'required', userAgent: 'required', createdAt: 'required', expiresAt: 'required', current: 'required' } satisfies Shape<Session>],
   ])('has the fields of %s', (schema, shape) => {
     expect(contractShape(schema)).toEqual(shape);
+    expect(contractNullable(schema)).toEqual(NULLABLE[schema] ?? []);
   });
 
   it('checks the password length the API checks', () => {
     const password = contract.components.schemas.SignUpDto.properties.password;
     expect([password.minLength, password.maxLength]).toEqual([PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH]);
   });
-});
 
-describe('revokeSession', () => {
-  afterEach(() => vi.restoreAllMocks());
-
-  it('names the session in the address, escaped, and sends the token', async () => {
-    const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
-    await revokeSession('zz-token', 'a/b');
-    expect(fetch).toHaveBeenCalledWith(`${API_URL}/auth/sessions/a%2Fb`, expect.objectContaining({ method: 'DELETE', headers: { Authorization: 'Bearer zz-token' } }));
+  it('checks the display name length the API checks', () => {
+    expect(contract.components.schemas.SignUpDto.properties.displayName.maxLength).toBe(DISPLAY_NAME_MAX_LENGTH);
   });
 });

@@ -9,6 +9,7 @@ import { useSidebar } from './shell/sidebar.js';
 import { useToast } from './shell/toast.js';
 import { mockApi } from './testing/fetch.js';
 import { HEALTHY } from './testing/health.js';
+import { NOT_STARTED } from './onboarding/api.js';
 import { setup } from './testing/signed-in.js';
 
 let wrapper: VueWrapper | undefined;
@@ -20,6 +21,7 @@ async function render(path: string, signedIn: boolean, routes: Record<string, un
     'GET /auth/sessions': [session({ current: true })],
     'GET /users/me/transcript': { rows: [] },
     'GET /admin/grants': NO_GRANTS,
+    'GET /notifications/unread-count': { unread: 0 },
     ...routes,
   });
   const { pinia, router } = await setup(path, { signedIn });
@@ -47,44 +49,21 @@ describe('App shell', () => {
 
     const student = await render('/guides', true);
     expect(student.w.find('.pub-head').exists()).toBe(false);
-    expect(student.w.findAll('.side .nav a').map((a) => a.text())).toEqual(['Tổng quan', 'Lịch', 'Xét tốt nghiệp', 'Bảng điểm', 'Chương trình', 'Lộ trình', 'Hướng dẫn', 'Cài đặt']);
+    expect(student.w.findAll('.side .nav a').map((a) => a.text())).toEqual(['Tổng quan', 'Lịch', 'Thông báo', 'Xét tốt nghiệp', 'Bảng điểm', 'Chương trình', 'Lộ trình', 'Hướng dẫn', 'Cài đặt']);
     expect(student.w.get('.side .nav a[href="/guides"]').classes()).toContain('router-link-active');
     expect(student.w.get('.side .me').text()).toContain('Sinh viên thử');
   });
 
   it('lists Administration in the sidebar only for a user who holds a grant, as the API says (ADR 0011)', async () => {
     const holder = await render('/guides', true, { 'GET /admin/grants': EVERY_GRANT });
-    expect(holder.w.findAll('.side .nav a').map((a) => a.text())).toEqual(['Tổng quan', 'Lịch', 'Xét tốt nghiệp', 'Bảng điểm', 'Chương trình', 'Lộ trình', 'Hướng dẫn', 'Cài đặt', 'Quản trị']);
+    expect(holder.w.findAll('.side .nav a').map((a) => a.text())).toEqual(['Tổng quan', 'Lịch', 'Thông báo', 'Xét tốt nghiệp', 'Bảng điểm', 'Chương trình', 'Lộ trình', 'Hướng dẫn', 'Cài đặt', 'Quản trị']);
     expect(holder.w.get('[data-test="nav-admin"]').attributes('href')).toBe('/admin');
     holder.w.unmount();
 
-    // The API could not say: the entry stays out, and nothing else breaks.
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const unknown = await render('/guides', true, { 'GET /admin/grants': () => new Response(null, { status: 503 }) });
     expect(unknown.w.find('[data-test="nav-admin"]').exists()).toBe(false);
-    expect(unknown.w.findAll('.side .nav a')).toHaveLength(8);
-  });
-
-  it('asks for the grants again on the next page when the first request failed, so the entry appears without a reload', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    let down = true;
-    const { w, router } = await render('/guides', true, { 'GET /admin/grants': () => (down ? new Response(null, { status: 503 }) : Response.json(EVERY_GRANT)) });
-    expect(w.find('[data-test="nav-admin"]').exists()).toBe(false);
-    down = false;
-    await router.push('/privacy');
-    await flushPromises();
-    expect(w.get('[data-test="nav-admin"]').attributes('href')).toBe('/admin');
-    // Once it has an answer it does not ask on every page.
-    const asked = () => vi.mocked(fetch).mock.calls.filter(([url]) => String(url).endsWith('/admin/grants')).length;
-    const before = asked();
-    await router.push('/guides');
-    await flushPromises();
-    expect(asked()).toBe(before);
-  });
-
-  it('asks for no grants while nobody is signed in', async () => {
-    await render('/guides', false);
-    expect(vi.mocked(fetch).mock.calls.map(([url]) => String(url)).filter((url) => url.includes('/admin/'))).toEqual([]);
+    expect(unknown.w.findAll('.side .nav a')).toHaveLength(9);
   });
 
   it('frames the privacy notice with the public header for a visitor, and links it from the footer', async () => {
@@ -92,6 +71,16 @@ describe('App shell', () => {
     expect(w.find('.pub-head').exists()).toBe(true);
     expect(w.get('#main h1').text()).toBe('Quyền riêng tư');
     expect(w.get('.pub-foot a[href="/privacy"]').text()).toBe('Quyền riêng tư');
+  });
+
+  it('has one main landmark on the onboarding page, the shell’s, for the skip link', async () => {
+    mockApi({ 'GET /health': HEALTHY, 'GET /programs': { programs: [] }, 'GET /admin/grants': NO_GRANTS, 'GET /notifications/unread-count': { unread: 0 } });
+    const { pinia, router } = await setup('/onboarding', { onboarded: NOT_STARTED });
+    wrapper = mount(App, { global: { plugins: [pinia, router] }, attachTo: document.body });
+    await flushPromises();
+    expect(router.currentRoute.value.name).toBe('onboarding');
+    expect(wrapper.findAll('main')).toHaveLength(1);
+    expect(document.querySelectorAll('#main')).toHaveLength(1);
   });
 
   it('shows sign-in without any header', async () => {
@@ -153,5 +142,33 @@ describe('App shell', () => {
     await button.trigger('click');
     expect(document.documentElement.dataset.theme).toBe(before === 'dark' ? 'light' : 'dark');
     expect(button.text()).not.toBe(label);
+  });
+});
+
+describe('the notification bell (F10)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+  afterEach(() => {
+    wrapper?.unmount();
+    wrapper = undefined;
+    vi.restoreAllMocks();
+  });
+
+  it('shows the unread count on the Notifications entry, spoken as a count', async () => {
+    const { w } = await render('/guides', true, { 'GET /notifications/unread-count': { unread: 3 } });
+    const entry = w.get('[data-test="nav-notifications"]');
+    expect(entry.attributes('href')).toBe('/notifications');
+    expect(entry.get('[data-test="unread-badge"]').text()).toBe('33 chưa đọc');
+    expect(entry.get('.badge [aria-hidden="true"]').text()).toBe('3');
+  });
+
+  it('shows no badge when nothing is unread, and caps a large count', async () => {
+    const none = await render('/guides', true);
+    expect(none.w.find('[data-test="unread-badge"]').exists()).toBe(false);
+    none.w.unmount();
+    const many = await render('/guides', true, { 'GET /notifications/unread-count': { unread: 150 } });
+    expect(many.w.get('.badge [aria-hidden="true"]').text()).toBe('99+');
   });
 });

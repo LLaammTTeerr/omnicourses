@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Program } from '../curriculum/api.js';
 import { NOT_STARTED } from './api.js';
-import { creditsProblem, errorsByField, goalAnswers, goalDraft, goalTermChoices, programChoices, resumeStep } from './answers.js';
+import { byField } from '../api.js';
+import { ANSWER_FIELDS, creditsProblem, goalAnswers, goalDraft, goalTermChoices, programChoices, resumeStep } from './answers.js';
 import { onboarding } from './testing/fixtures.js';
 
 const program = (code: string, cohortYears: number[]): Program => ({ code, nameVi: `Chương trình ${code}`, nameEn: null, faculty: null, trainingType: null, cohortYears });
@@ -71,10 +72,10 @@ describe('resumeStep (UC-01 A8)', () => {
   });
 });
 
-describe('errorsByField', () => {
+describe('byField with the answer fields', () => {
   it('files each API message under the answer it names', () => {
     expect(
-      errorsByField(['creditsPerTerm must be a whole number of 1 or more', 'targetGraduationTerm must be from 2026–2027 term 1 (the current term) to 2034–2035 term 3', 'something else']),
+      byField(['creditsPerTerm must be a whole number of 1 or more', 'targetGraduationTerm must be from 2026–2027 term 1 (the current term) to 2034–2035 term 3', 'something else'], ANSWER_FIELDS).fields,
     ).toEqual({
       creditsPerTerm: ['creditsPerTerm must be a whole number of 1 or more'],
       targetGraduationTerm: ['targetGraduationTerm must be from 2026–2027 term 1 (the current term) to 2034–2035 term 3'],

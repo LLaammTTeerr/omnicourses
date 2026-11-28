@@ -1,6 +1,6 @@
 # ADR 0006: How the plan generator builds a plan
 
-- Status: accepted (9 November 2026)
+- Status: accepted, not built yet. Accepted on 9 November 2026; F6 is formally rescoped beyond B3 ([design differences](../design-differences.md)).
 - Amended by: [ADR 0012](0012-credit-caps-by-training-type.md) (credit caps and terms by training type)
 - Date: 2026-10-28
 - Deciders: Lâm (owner of `plan-generator`)

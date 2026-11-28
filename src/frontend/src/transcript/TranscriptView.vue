@@ -1,38 +1,59 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, ref, shallowRef, watch } from 'vue';
 import { onBeforeRouteLeave, RouterLink } from 'vue-router';
 import { statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import SelectMenu from '../components/SelectMenu.vue';
-import { useMessages } from '../locale.js';
+import { fetchCurriculum, type CurriculumCourse } from '../curriculum/api.js';
+import { useLocale, useMessages } from '../locale.js';
+import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
 import { fetchTranscript, saveTranscript, TERM_NUMBERS, TRANSCRIPT_RESULTS } from './api.js';
 import { TRANSCRIPT_MESSAGES } from './messages.js';
-import { blankRow, fromRow, MAX_ROWS, normalizeCode, problems, toRow, yearChoices, type DraftRow, type Problem } from './rows.js';
+import { useTranscriptDraft } from './draft.js';
+import type { PastedRow } from './paste.js';
+import PasteTranscriptDialog from './PasteTranscriptDialog.vue';
+import { MAX_ROWS, normalizeCode, problems, toRow, yearChoices, type DraftRow, type Problem } from './rows.js';
 
-// F2 (UC-02): review every row, then save the whole set; a later save replaces it (ADR 0007). There is no PDF
-// reader yet, so the student enters rows by hand (UC-02 A4). An incomplete row blocks the save (A2).
 const auth = useAuth();
+const onboarding = useOnboarding();
+const locale = useLocale();
 const toast = useToast();
 const m = useMessages(TRANSCRIPT_MESSAGES);
 
-const rows = ref<DraftRow[]>([]);
-let nextKey = 0;
-const savedState = ref('[]');
-const snapshot = (list: readonly DraftRow[]) => JSON.stringify(list.map(({ key: _key, ...fields }) => fields));
+const curriculumCourses = shallowRef<ReadonlyMap<string, CurriculumCourse> | null>(null);
+const { rows, dirty, diff, adoptSaved, addBlankRow, remove, cancel, appendPasted, replaceWithPasted, syncAutoFill } = useTranscriptDraft(curriculumCourses);
+
+async function loadCurriculumInBackground(): Promise<void> {
+  try {
+    const answers = onboarding.answers ?? (auth.signedIn ? await onboarding.load() : null);
+    if (!answers?.finished || !answers.program || answers.cohort === null) {
+      curriculumCourses.value = null;
+      return;
+    }
+    const curriculum = await fetchCurriculum(answers.program, answers.cohort);
+    const byCode = new Map<string, CurriculumCourse>();
+    for (const group of curriculum.requirementGroups) {
+      for (const course of group.courses) byCode.set(normalizeCode(course.code), course);
+    }
+    curriculumCourses.value = byCode;
+  } catch {
+    curriculumCourses.value = null;
+  }
+}
+
+void loadCurriculumInBackground();
 
 const { status, reload } = useAsyncLoad('the transcript', async () => {
-  const { rows: saved } = await auth.authed(fetchTranscript);
-  rows.value = saved.map((row) => fromRow(row, nextKey++));
-  savedState.value = snapshot(rows.value);
+  const { rows: saved } = await fetchTranscript();
+  adoptSaved(saved);
 });
 
 const checked = computed(() => rows.value.map((row) => ({ row, problems: problems(row) })));
 const toFix = computed(() => checked.value.filter((entry) => entry.problems.length > 0).length);
-const dirty = computed(() => snapshot(rows.value) !== savedState.value);
 const years = computed(() => yearChoices(rows.value));
 const counts = computed(() => TRANSCRIPT_RESULTS.map((result) => ({ result, n: rows.value.filter((row) => row.result === result).length })));
 const termValue = (row: DraftRow) => `${row.year}-${row.number}`;
@@ -43,23 +64,50 @@ function setTerm(row: DraftRow, value: string): void {
   row.year = year!;
   row.number = number as DraftRow['number'];
 }
-/** The line under an invalid row that says what to fix, for the fields it names. */
 const describedBy = (row: DraftRow, rowProblems: Problem[], field: Problem) => (rowProblems.includes(field) ? `problems-${row.key}` : undefined);
 const label = (index: number) => m.value.rowLabel(index + 1, normalizeCode(rows.value[index]!.courseCode));
 
+function notInCurriculum(row: DraftRow, rowProblems: readonly Problem[]): boolean {
+  if (!curriculumCourses.value || rowProblems.includes('courseCode')) return false;
+  return !curriculumCourses.value.has(normalizeCode(row.courseCode));
+}
+
+function onCodeBlur(row: DraftRow): void {
+  row.courseCode = normalizeCode(row.courseCode);
+  syncAutoFill(row);
+}
+
+const pasteOpen = ref(false);
 const saving = ref(false);
 const saveError = ref<string | null>(null);
 watch(rows, () => (saveError.value = null), { deep: true });
 
 async function addRow(): Promise<void> {
-  rows.value.push(blankRow(nextKey++, rows.value));
+  const key = addBlankRow();
   await nextTick();
-  document.getElementById(`code-${rows.value.at(-1)!.key}`)?.focus();
+  document.getElementById(`code-${key}`)?.focus();
+}
+
+function appendPastedRows(pasted: readonly PastedRow[]): void {
+  if (!appendPasted(pasted)) return;
+  pasteOpen.value = false;
+  toast.show(m.value.pastedAdded(pasted.length));
+}
+
+function replaceWithPastedRows(pasted: readonly PastedRow[]): void {
+  if (!replaceWithPasted(pasted)) return;
+  pasteOpen.value = false;
+  toast.show(m.value.pastedReplaced(pasted.length));
+}
+
+function cancelEdits(): void {
+  cancel();
+  saveError.value = null;
 }
 
 async function removeRow(index: number): Promise<void> {
   const name = label(index);
-  rows.value.splice(index, 1);
+  remove(index);
   toast.show(m.value.removed(name));
   await nextTick();
   document.getElementById('add-row')?.focus();
@@ -69,13 +117,12 @@ async function save(): Promise<void> {
   if (toFix.value > 0 || saving.value) return;
   saving.value = true;
   try {
-    const { rows: saved } = await auth.authed((token) => saveTranscript(token, rows.value.map(toRow)));
-    rows.value = saved.map((row) => fromRow(row, nextKey++));
-    savedState.value = snapshot(rows.value);
+    const { rows: saved } = await saveTranscript(rows.value.map(toRow));
+    adoptSaved(saved);
     toast.show(m.value.saved(saved.length));
   } catch (e) {
     const code = statusOf(e);
-    if (code === 401) return; // App.vue takes the student to sign in.
+    if (code === 401 || !auth.signedIn) return;
     if (code === 400) saveError.value = m.value.saveRefused;
     else {
       console.error('Saving the transcript failed:', e);
@@ -86,7 +133,6 @@ async function save(): Promise<void> {
   }
 }
 
-// Leaving with unsaved rows asks first, unless the session ended (then nothing could be saved anyway).
 onBeforeRouteLeave(() => !dirty.value || !auth.signedIn || window.confirm(m.value.leave));
 
 usePageTitle(() => m.value.title);
@@ -119,13 +165,22 @@ usePageTitle(() => m.value.title);
           <div role="status" data-test="summary">
             <b>{{ m.rowsCount(rows.length) }} · {{ toFix ? m.toFix(toFix) : dirty ? m.ready : m.unchanged }}</b>
             <small>{{ toFix ? m.blockedNote : m.replaceNote }}</small>
+            <span v-if="diff" class="diff-summary" data-test="diff-summary">{{ m.diffSummary(diff.added, diff.changed, diff.removed) }}</span>
           </div>
         </div>
         <ul class="counts" :aria-label="m.resultKinds">
           <li v-for="{ result, n } in counts" :key="result"><b class="chip">{{ n }}</b>{{ m.results[result] }}</li>
         </ul>
         <div class="head-actions">
-          <button id="add-row" class="btn" type="button" :disabled="rows.length >= MAX_ROWS" @click="addRow"><Icon name="plus" size="sm" />{{ m.addRow }}</button>
+          <button class="btn" type="button" data-test="open-paste" :disabled="saving" @click="pasteOpen = true">
+            <Icon name="copy" size="sm" />{{ m.openPaste }}
+          </button>
+          <button id="add-row" class="btn" type="button" :disabled="rows.length >= MAX_ROWS || saving" @click="addRow">
+            <Icon name="plus" size="sm" />{{ m.addRow }}
+          </button>
+          <button v-if="dirty" class="btn" type="button" data-test="cancel-edits" :disabled="saving" @click="cancelEdits">
+            <Icon name="undo" size="sm" />{{ m.cancelChanges }}
+          </button>
           <button class="btn primary" type="button" :disabled="toFix > 0 || !dirty || saving" @click="save">
             <Icon name="check" size="sm" />{{ saving ? m.saving : m.save }}
           </button>
@@ -164,7 +219,7 @@ usePageTitle(() => m.value.title);
                       @update:model-value="setTerm(row, $event)"
                     />
                   </td>
-                  <td :data-label="m.columns.courseCode">
+                  <td class="code-cell" :data-label="m.columns.courseCode">
                     <input
                       :id="`code-${row.key}`"
                       v-model="row.courseCode"
@@ -174,20 +229,41 @@ usePageTitle(() => m.value.title);
                       :aria-label="m.fieldLabel(m.columns.courseCode, label(i))"
                       :aria-invalid="rowProblems.includes('courseCode') || undefined"
                       :aria-describedby="describedBy(row, rowProblems, 'courseCode')"
-                      @blur="row.courseCode = normalizeCode(row.courseCode)"
+                      @input="syncAutoFill(row)"
+                      @blur="onCodeBlur(row)"
                     />
+                    <span v-if="notInCurriculum(row, rowProblems)" class="chip warn outside-chip" data-test="not-in-curriculum">
+                      {{ m.notInCurriculum }}
+                    </span>
                   </td>
                   <td :data-label="m.columns.courseName">
-                    <input v-model="row.courseName" class="input" maxlength="255" :aria-label="m.fieldLabel(m.columns.courseName, label(i))" :aria-invalid="rowProblems.includes('courseName') || undefined"
-                      :aria-describedby="describedBy(row, rowProblems, 'courseName')" />
+                    <input
+                      v-model="row.courseName"
+                      class="input"
+                      :aria-label="m.fieldLabel(m.columns.courseName, label(i))"
+                      :aria-invalid="rowProblems.includes('courseName') || undefined"
+                      :aria-describedby="describedBy(row, rowProblems, 'courseName')"
+                    />
                   </td>
                   <td :data-label="m.columns.credits">
-                    <input v-model="row.credits" class="input num-input" inputmode="numeric" :aria-label="m.fieldLabel(m.columns.credits, label(i))" :aria-invalid="rowProblems.includes('credits') || undefined"
-                      :aria-describedby="describedBy(row, rowProblems, 'credits')" />
+                    <input
+                      v-model="row.credits"
+                      class="input num-input"
+                      inputmode="numeric"
+                      :aria-label="m.fieldLabel(m.columns.credits, label(i))"
+                      :aria-invalid="rowProblems.includes('credits') || undefined"
+                      :aria-describedby="describedBy(row, rowProblems, 'credits')"
+                    />
                   </td>
                   <td :data-label="m.columns.result">
-                    <SelectMenu v-model="row.result" :options="resultOptions" :placeholder="m.pickResult" :aria-label="m.fieldLabel(m.columns.result, label(i))" :aria-invalid="rowProblems.includes('result') || undefined"
-                      :aria-describedby="describedBy(row, rowProblems, 'result')" />
+                    <SelectMenu
+                      v-model="row.result"
+                      :options="resultOptions"
+                      :placeholder="m.pickResult"
+                      :aria-label="m.fieldLabel(m.columns.result, label(i))"
+                      :aria-invalid="rowProblems.includes('result') || undefined"
+                      :aria-describedby="describedBy(row, rowProblems, 'result')"
+                    />
                   </td>
                   <td :data-label="m.columns.grade">
                     <input
@@ -211,7 +287,6 @@ usePageTitle(() => m.value.title);
                     </button>
                   </td>
                 </tr>
-                <!-- What to fix, in words: colour is never the only cue. Each invalid field points here. -->
                 <tr v-if="rowProblems.length" class="problems">
                   <td :id="`problems-${row.key}`" colspan="8" :data-test="`problems-${i}`">
                     {{ m.needsFix }} {{ rowProblems.map((p) => m.problems[p]).join(', ') }}
@@ -223,18 +298,27 @@ usePageTitle(() => m.value.title);
         </div>
       </section>
       <p class="small t3">{{ m.engineNote }}</p>
+
+      <PasteTranscriptDialog
+        :open="pasteOpen"
+        :current-count="rows.length"
+        @close="pasteOpen = false"
+        @append="appendPastedRows"
+        @replace="replaceWithPastedRows"
+      />
     </template>
   </div>
 </template>
 
-<style>
+<style scoped>
 .transcript-page .notes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .status-strip { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px 20px; align-items: center; }
 .status-strip .est { display: flex; gap: 12px; align-items: center; }
 .status-strip .cap { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: color-mix(in oklab, var(--ok) 15%, var(--surface)); color: var(--ok); flex: none; }
 .status-strip.bad .cap { background: color-mix(in oklab, var(--bad) 14%, var(--surface)); color: var(--bad); }
 .status-strip .est b { display: block; }
-.status-strip .est small { color: var(--ink-3); font-size: 13px; }
+.status-strip .est small { display: block; color: var(--ink-3); font-size: 13px; }
+.diff-summary { display: inline-block; margin-top: 2px; font-family: var(--mono); font-size: 12.5px; font-weight: 650; color: var(--info); }
 .counts { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--ink-2); }
 .counts li { display: inline-flex; align-items: center; gap: 6px; }
 .review-card { container-type: inline-size; }
@@ -242,9 +326,11 @@ usePageTitle(() => m.value.title);
 .review th { padding: 10px 6px; }
 .review th:first-child, .review td:first-child { padding-left: 16px; }
 .review th:last-child, .review td:last-child { padding-right: 12px; }
-.review .select, .review .input { min-height: 36px; padding: 4px 8px; border-radius: 9px; }
-.review .term .select { width: auto; }
+.review :deep(.select), .review .input { min-height: 36px; padding: 4px 8px; border-radius: 9px; }
+.review .term :deep(.select) { width: auto; }
 .review .code-input { width: 104px; text-transform: uppercase; }
+.code-cell { vertical-align: middle; }
+.outside-chip { display: inline-flex; margin-top: 4px; min-height: 22px; padding: 0 8px; font-size: 11.5px; }
 .review .num-input { width: 64px; }
 .review td:nth-child(3) .input { min-width: 140px; }
 .review tr.err td, .review tr.problems td { background: color-mix(in oklab, var(--bad) 7%, var(--surface)); }
@@ -260,7 +346,6 @@ usePageTitle(() => m.value.title);
 @media (max-width: 900px) {
   .transcript-page .notes { grid-template-columns: 1fr; }
 }
-/* A narrow card turns each row into a small form, every field with its visible name. */
 @container (max-width: 860px) {
   .review thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .review, .review tbody { display: block; }
@@ -270,7 +355,8 @@ usePageTitle(() => m.value.title);
   .review td { display: grid; gap: 4px; padding: 0 !important; border: 0; min-width: 0; background: none !important; }
   .review td[data-label]::before { content: attr(data-label); font-size: 12px; font-weight: 650; color: var(--ink-3); }
   .review .term, .review td:nth-child(3) { grid-column: 1 / -1; }
-  .review .term .select, .review .code-input, .review .num-input, .review td:nth-child(3) .input { width: 100%; min-width: 0; }
+  .review .term :deep(.select), .review .code-input, .review .num-input, .review td:nth-child(3) .input { width: 100%; min-width: 0; }
+  .outside-chip { justify-self: start; }
   .review td.r { justify-self: end; align-self: end; }
 }
 </style>

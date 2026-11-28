@@ -1,0 +1,8 @@
+[2026-11-27T09:39:09.658Z] Chromium 156.0.8078.4 headless, Playwright 1.64.1, viewport 1280x800
+[2026-11-27T09:39:18.825Z] row 2 before hovering: {"classes":"trow checking","box":{"y":1277,"height":87}}
+[2026-11-27T09:39:20.434Z] pointer at (0.6, 0.5) of row 2: {"classes":"trow warn-drop","box":{"y":1373,"height":87}}; element under pointer li.tile-ph.g-core
+[2026-11-27T09:39:21.300Z] pointer at (0.5, 0.3) of row 2: {"classes":"trow warn-drop over","box":{"y":1277,"height":194}}; element under pointer section.trow.warn-drop.over
+[2026-11-27T09:39:22.405Z] pointer at (0.3, 0.7) of row 2: {"classes":"trow warn-drop over","box":{"y":1277,"height":194}}; element under pointer p.drop-reason
+[2026-11-27T09:39:26.601Z] pointer at (0.8, 0.5) of row 2: {"classes":"trow warn-drop over","box":{"y":1277,"height":194}}; element under pointer li.tile-ph.g-core
+[2026-11-27T09:39:29.653Z] pointer at (0.5, 0.9) of row 2: {"classes":"trow warn-drop","box":{"y":1261,"height":87}}; element under pointer main.
+[2026-11-27T09:39:29.819Z] after release: HK1 2026–2027: CS163 | HK2 2026–2027: -

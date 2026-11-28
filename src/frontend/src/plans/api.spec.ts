@@ -1,6 +1,9 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API_URL } from '../api.js';
-import { contractEnum, contractShape, type Shape } from '../testing/contract.js';
+import { contractEnum, contractMaxItems, contractMaxLength, contractNullable, contractShape, nullableKeys, type Shape } from '../testing/contract.js';
+import { signedInPinia } from '../testing/signed-in.js';
+import { PLAN_NAME_MAX_CODE_POINTS } from './actions.js';
+import { MAX_PLAN_TERMS } from './board.js';
 import {
   createPlan,
   deletePlan,
@@ -8,6 +11,7 @@ import {
   fetchPlan,
   fetchPlanIssues,
   fetchPlans,
+  previewPlanDrops,
   previewPlanIssues,
   PLACEMENT_KINDS,
   PLAN_ISSUE_CODES,
@@ -17,11 +21,16 @@ import {
   TERM_KINDS,
   type CreatePlanBody,
   type CreditCaps,
+  type DuplicatePlanBody,
   type Placement,
   type Plan,
+  type PlanBoardBody,
   type PlanCombinedMinimumCoverage,
   type PlanCoverage,
   type PlanCurriculum,
+  type PlanDropPreview,
+  type PlanDropReport,
+  type PlanDropReports,
   type PlanGroupCoverage,
   type PlanIssue,
   type PlanIssues,
@@ -30,16 +39,28 @@ import {
   type PlanPreview,
   type PlanTerm,
   type PlanTermLoad,
+  type RenamePlanBody,
 } from './api.js';
 import { PLANNER_MESSAGES } from './messages.js';
 import { course, PLAN_ID } from './testing/fixtures.js';
+import { restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 
 const summary = { id: 'required', name: 'required', curriculum: 'required', createdAt: 'required', updatedAt: 'required' } as const;
+
+const NULLABLE: Record<string, string[]> = {
+  PlanPreviewDto: nullableKeys<PlanPreview>({ firstTerm: true, lastTerm: true }),
+  PlanPlacementDto: nullableKeys<Placement>({ courseCode: true, credits: true, requirementGroupId: true }),
+  CreditCapsDto: nullableKeys<CreditCaps>({ min: true }),
+  PlanTermLoadDto: nullableKeys<PlanTermLoad>({ caps: true, kind: true }),
+  PlanIssueDto: nullableKeys<PlanIssue>({ combinedMinimumId: true, courseCode: true, credits: true, limit: true, position: true, requirementGroupId: true, term: true }),
+  PlanGroupCoverageDto: nullableKeys<PlanGroupCoverage>({ remainingCredits: true, requiredCredits: true }),
+  PlanCoverageDto: nullableKeys<PlanCoverage>({ totalRemaining: true, totalRequired: true }),
+  PlanIssuesDto: nullableKeys<PlanIssues>({ trainingType: true }),
+};
 
 describe('plan types against the contract (F5, ADR 0014)', () => {
   it.each([
     ['PlanCurriculumDto', { id: 'required', code: 'required', programCode: 'required', cohortYear: 'required' } satisfies Shape<PlanCurriculum>],
-    // PlanSummaryDto has no schema of its own: every route answers with a type that extends it.
     ['PlanListItemDto', { ...summary, preview: 'required' } satisfies Shape<PlanListItem>],
     ['PlanPreviewDto', { termCount: 'required', courseCount: 'required', slotCount: 'required', firstTerm: 'required', lastTerm: 'required' } satisfies Shape<PlanPreview>],
     ['PlanDto', { ...summary, terms: 'required' } satisfies Shape<Plan>],
@@ -47,6 +68,12 @@ describe('plan types against the contract (F5, ADR 0014)', () => {
     ['PlanTermDto', { term: 'required', placements: 'required' } satisfies Shape<PlanTerm>],
     ['PlanPlacementDto', { kind: 'required', courseCode: 'optional', requirementGroupId: 'optional', credits: 'optional' } satisfies Shape<Placement>],
     ['CreatePlanDto', { name: 'required', programCode: 'required', cohortYear: 'required', terms: 'optional' } satisfies Shape<CreatePlanBody>],
+    ['RenamePlanDto', { name: 'required' } satisfies Shape<RenamePlanBody>],
+    ['DuplicatePlanDto', { name: 'optional' } satisfies Shape<DuplicatePlanBody>],
+    ['PlanBoardDto', { terms: 'required' } satisfies Shape<PlanBoardBody>],
+    ['PlanDropPreviewDto', { terms: 'required', placement: 'required', targets: 'required' } satisfies Shape<PlanDropPreview>],
+    ['PlanDropReportDto', { term: 'required', issues: 'required' } satisfies Shape<PlanDropReport>],
+    ['PlanDropReportsDto', { reports: 'required' } satisfies Shape<PlanDropReports>],
     ['CreditCapsDto', { min: 'required', max: 'required' } satisfies Shape<CreditCaps>],
     ['PlanTermLoadDto', { term: 'required', kind: 'required', credits: 'required', caps: 'required' } satisfies Shape<PlanTermLoad>],
     [
@@ -82,14 +109,21 @@ describe('plan types against the contract (F5, ADR 0014)', () => {
     ['PlanIssuesDto', { planId: 'required', trainingType: 'required', terms: 'required', issues: 'required', coverage: 'required' } satisfies Shape<PlanIssues>],
   ])('has the fields of %s', (schema, shape) => {
     expect(contractShape(schema)).toEqual(shape);
+    expect(contractNullable(schema)).toEqual(NULLABLE[schema] ?? []);
   });
 
-  it('has the issue codes, kinds, placement kinds and term kinds of the contract', () => {
+  it('has the issue codes, kinds, placement kinds, term kinds and max term cap of the contract', () => {
     expect([...PLAN_ISSUE_CODES].sort()).toEqual(contractEnum('PlanIssueDto', 'code'));
     expect([...PLAN_ISSUE_KINDS].sort()).toEqual(contractEnum('PlanIssueDto', 'kind'));
     expect([...PLACEMENT_KINDS].sort()).toEqual(contractEnum('PlanPlacementDto', 'kind'));
     expect([...TERM_KINDS, null].sort()).toEqual(contractEnum('PlanTermLoadDto', 'kind'));
     expect(contractEnum('PlanCoverageDto', 'graduation')).toEqual(['done', 'not_yet']);
+    expect(MAX_PLAN_TERMS).toBe(contractMaxItems('PlanBoardDto', 'terms'));
+    expect(MAX_PLAN_TERMS).toBe(contractMaxItems('CreatePlanDto', 'terms'));
+  });
+
+  it.each(['CreatePlanDto', 'RenamePlanDto', 'DuplicatePlanDto'])('limits the plan name as %s does', (schema) => {
+    expect(PLAN_NAME_MAX_CODE_POINTS).toBe(contractMaxLength(schema, 'name'));
   });
 
   it('words the change a drag preview would make to the violations, in both languages', () => {
@@ -110,20 +144,23 @@ describe('plan types against the contract (F5, ADR 0014)', () => {
 });
 
 describe('plan requests', () => {
-  afterEach(() => vi.restoreAllMocks());
+  beforeEach(() => signedInPinia());
+  afterEach(() => restoreMocksAfterCheckingCalls());
 
   it('sends each call to its route with the token and the body', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => (init?.method === 'DELETE' ? new Response(null, { status: 204 }) : Response.json({})));
     const terms = [{ term: { year: 2026, number: 1 as const }, placements: [course('ZZ101')] }];
-    await fetchPlans('zz-token');
-    await createPlan('zz-token', { name: 'A', programCode: 'APCS', cohortYear: 2024 });
-    await fetchPlan('zz-token', PLAN_ID);
-    await renamePlan('zz-token', PLAN_ID, 'B');
-    await duplicatePlan('zz-token', PLAN_ID, 'C');
-    await expect(deletePlan('zz-token', PLAN_ID)).resolves.toBeUndefined();
-    await savePlacements('zz-token', PLAN_ID, terms);
-    await fetchPlanIssues('zz-token', PLAN_ID);
-    await previewPlanIssues('zz-token', PLAN_ID, terms);
+    await fetchPlans();
+    await createPlan({ name: 'A', programCode: 'APCS', cohortYear: 2024 });
+    await fetchPlan(PLAN_ID);
+    await renamePlan(PLAN_ID, 'B');
+    await duplicatePlan(PLAN_ID, 'C');
+    await expect(deletePlan(PLAN_ID)).resolves.toBeUndefined();
+    await savePlacements(PLAN_ID, terms);
+    await fetchPlanIssues(PLAN_ID);
+    await previewPlanIssues(PLAN_ID, terms);
+    const drops: PlanDropPreview = { terms: [], placement: course('ZZ101'), targets: [{ year: 2026, number: 1 }] };
+    await previewPlanDrops(PLAN_ID, drops);
     const calls = fetch.mock.calls.map(([url, init]) => [init?.method, String(url).slice(API_URL.length), init?.body === undefined ? undefined : JSON.parse(String(init.body))]);
     expect(calls).toEqual([
       ['GET', '/plans', undefined],
@@ -135,6 +172,7 @@ describe('plan requests', () => {
       ['PUT', `/plans/${PLAN_ID}/placements`, { terms }],
       ['GET', `/plans/${PLAN_ID}/issues`, undefined],
       ['POST', `/plans/${PLAN_ID}/issues`, { terms }],
+      ['POST', `/plans/${PLAN_ID}/issues/drops`, drops],
     ]);
     for (const [, init] of fetch.mock.calls) expect(init).toMatchObject({ headers: { Authorization: 'Bearer zz-token' } });
   });
@@ -142,7 +180,7 @@ describe('plan requests', () => {
   it('lets a drag preview be cancelled with its signal', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({}));
     const controller = new AbortController();
-    await previewPlanIssues('zz-token', PLAN_ID, [], controller.signal);
+    await previewPlanIssues(PLAN_ID, [], controller.signal);
     const signal = fetch.mock.calls[0]![1]!.signal!;
     expect(signal.aborted).toBe(false);
     controller.abort();
@@ -151,7 +189,7 @@ describe('plan requests', () => {
 
   it('escapes the id in the path', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({}));
-    await fetchPlan('zz-token', 'a/b');
+    await fetchPlan('a/b');
     expect(String(fetch.mock.calls[0]![0])).toBe(`${API_URL}/plans/a%2Fb`);
   });
 });

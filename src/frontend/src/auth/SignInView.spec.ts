@@ -1,10 +1,11 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mockApi, sentBody, status } from '../testing/fetch.js';
+import { mockApi, sentBody, status, restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import SignInView from './SignInView.vue';
 import { useAuth } from './store.js';
 import { authResult } from './testing/fixtures.js';
+import { AUTH_MESSAGES } from './messages.js';
 
 let wrapper: VueWrapper | undefined;
 
@@ -29,7 +30,7 @@ describe('SignInView (F1, issue #13)', () => {
   afterEach(() => {
     wrapper?.unmount();
     wrapper = undefined;
-    vi.restoreAllMocks();
+    restoreMocksAfterCheckingCalls();
   });
 
   it('checks the fields before calling the API, and says what is wrong next to each', async () => {
@@ -38,8 +39,8 @@ describe('SignInView (F1, issue #13)', () => {
     await fill(w, 'not-an-email', '');
     expect(fetch).not.toHaveBeenCalled();
     expect(w.get('#sign-in-email').attributes('aria-invalid')).toBe('true');
-    expect(w.get('#sign-in-email-error').text()).toBe('Email chưa đúng định dạng.');
-    expect(w.get('#sign-in-password-error').text()).toBe('Nhập mật khẩu.');
+    expect(w.get('#sign-in-email-error').text()).toBe(AUTH_MESSAGES.vi.emailInvalid);
+    expect(w.get('#sign-in-password-error').text()).toBe(AUTH_MESSAGES.vi.passwordRequired);
     expect(w.get('#sign-in-email').attributes('aria-describedby')).toBe('sign-in-email-error');
     expect(document.activeElement?.id).toBe('sign-in-email');
   });

@@ -1,12 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { TRAINING_TYPES, type TrainingType } from './program.entity.js';
-import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from './requirement-group.entity.js';
+import { COURSE_CODE_PATTERN } from '../common/course-code.js';
+import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind, TRAINING_TYPES, type TrainingType } from './curriculum-rules.js';
 
-// Read shapes of the curriculum (F4, ADR 0005). They carry only what the database stores:
-// prerequisites and offering terms are null until F12 records them for a course of a
-// curriculum (ADR 0011, amended 9 November 2026), so no field claims a course has none.
-
-/** A program without its cohorts. */
 export class ProgramSummaryDto {
   @ApiProperty({ example: 'APCS' })
   code!: string;
@@ -39,9 +34,8 @@ export class ProgramListDto {
   programs!: ProgramDto[];
 }
 
-/** A course of the shared catalog. */
 export class CourseDto {
-  @ApiProperty({ example: 'CSC10001', pattern: '^[A-Z0-9]{2,20}$' })
+  @ApiProperty({ example: 'CSC10001', pattern: COURSE_CODE_PATTERN.source })
   code!: string;
 
   @ApiProperty({ example: 'Nhập môn lập trình' })
@@ -66,7 +60,6 @@ export class CourseDto {
   projectPeriods!: number | null;
 }
 
-/** A course as one curriculum uses it: the catalog fields plus that curriculum's rules. */
 export class CurriculumCourseDto extends CourseDto {
   @ApiProperty({
     type: [String],
@@ -113,7 +106,6 @@ export class RequirementGroupDto {
   courses!: CurriculumCourseDto[];
 }
 
-/** The curriculum one cohort of one program follows. */
 export class CurriculumDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
@@ -146,8 +138,7 @@ export class CurriculumDto {
   requirementGroups!: RequirementGroupDto[];
 }
 
-/** One requirement group a course belongs to, in some curriculum. */
-export class CourseMembershipDto {
+class CourseMembershipDto {
   @ApiProperty({ example: 'APCS' })
   programCode!: string;
 
@@ -167,7 +158,6 @@ export class CourseMembershipDto {
   kind!: RequirementGroupKind;
 }
 
-/** A catalog course and every requirement group that links to it (the course drawer). */
 export class CourseDetailDto extends CourseDto {
   @ApiProperty({ type: [CourseMembershipDto], description: 'By program code, cohort year, then group name' })
   memberships!: CourseMembershipDto[];

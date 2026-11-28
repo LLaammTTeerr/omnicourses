@@ -2,10 +2,6 @@
 import { computed, nextTick, onBeforeUnmount, ref, useAttrs, useId, watch } from 'vue';
 import Icon from '../shell/Icon.vue';
 
-// The app's own select (WAI-ARIA "select-only combobox"): a button that shows the choice and opens a styled list.
-// Focus stays on the button; the arrows, Home, End and a first letter move through the options, Enter or Space
-// picks, Escape closes. The list is fixed to the viewport, so a table or a scrolling card never clips it. Attributes
-// such as aria-label, aria-invalid, aria-describedby, id and data-test go on the button; class goes on the wrapper.
 defineOptions({ inheritAttrs: false });
 
 interface SelectOption<V> {
@@ -14,7 +10,14 @@ interface SelectOption<V> {
   disabled?: boolean;
 }
 
-const props = defineProps<{ modelValue: T | null | undefined; options: readonly SelectOption<T>[]; placeholder?: string }>();
+const props = defineProps<{
+  modelValue: T | null | undefined;
+  options: readonly SelectOption<T>[];
+  placeholder?: string;
+  id?: string;
+  ariaDescribedby?: string;
+  disabled?: boolean;
+}>();
 const emit = defineEmits<{ 'update:modelValue': [value: T] }>();
 const attrs = useAttrs();
 const rootAttrs = computed(() => ({ class: attrs.class, style: attrs.style }));
@@ -51,10 +54,12 @@ function measure(): void {
   const r = el.getBoundingClientRect();
   const room = window.innerHeight - r.bottom;
   const up = room < 220 && r.top > room;
-  place.value = { top: up ? r.top - 6 : r.bottom + 6, left: r.left, width: r.width, up };
+  const left = Math.max(8, Math.min(r.left, window.innerWidth - Math.max(r.width, 180) - 8));
+  place.value = { top: up ? r.top - 6 : r.bottom + 6, left, width: r.width, up };
 }
 
 function show(at = enabled(chosen.value) ? chosen.value : first()): void {
+  if (props.disabled) return;
   measure();
   open.value = true;
   active.value = at;
@@ -92,6 +97,7 @@ function typeAhead(key: string): void {
 }
 
 function onKey(event: KeyboardEvent): void {
+  if (props.disabled) return;
   const key = event.key;
   if (!open.value) {
     if (key === 'ArrowDown' || key === 'ArrowUp' || key === 'Enter' || key === ' ') show();
@@ -138,6 +144,7 @@ onBeforeUnmount(() => {
 <template>
   <div ref="root" class="ui-select" :class="[rootAttrs.class, { open }]" :style="rootAttrs.style as never">
     <button
+      :id="id"
       ref="trigger"
       class="select ui-select-trigger"
       type="button"
@@ -145,7 +152,9 @@ onBeforeUnmount(() => {
       aria-haspopup="listbox"
       :aria-expanded="open"
       :aria-controls="listId"
+      :aria-describedby="ariaDescribedby"
       :aria-activedescendant="open && active >= 0 ? optionId(active) : undefined"
+      :disabled="disabled"
       v-bind="buttonAttrs"
       @click="open ? hide() : show()"
       @keydown="onKey"
@@ -183,18 +192,19 @@ onBeforeUnmount(() => {
   </div>
 </template>
 
-<style>
+<style scoped>
 .ui-select { position: relative; min-width: 0; }
 .ui-select-trigger {
   display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left; cursor: pointer;
   transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
-.ui-select-trigger:hover { border-color: var(--ink-3); }
+.ui-select-trigger:hover:not(:disabled) { border-color: var(--ink-3); }
+.ui-select-trigger:disabled { opacity: 0.55; cursor: not-allowed; background: var(--surface-2); }
 .ui-select-trigger:focus-visible { outline: none; border-color: var(--info); box-shadow: 0 0 0 3px color-mix(in oklab, var(--info) 22%, transparent); }
 .ui-select-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ui-select-trigger .icon { color: var(--ink-3); transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.ui-select-trigger :deep(.icon) { color: var(--ink-3); transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .ui-select.open .ui-select-trigger { border-color: var(--info); box-shadow: 0 0 0 3px color-mix(in oklab, var(--info) 22%, transparent); }
-.ui-select.open .ui-select-trigger .icon { transform: rotate(180deg); }
+.ui-select.open .ui-select-trigger :deep(.icon) { transform: rotate(180deg); }
 .ui-select-list {
   position: fixed; z-index: 120; margin: 0; padding: 5px; list-style: none; max-height: min(300px, 50vh); overflow-y: auto;
   max-width: min(420px, calc(100vw - 24px)); background: var(--surface); border: 1px solid var(--edge); border-radius: 12px;
@@ -207,11 +217,10 @@ onBeforeUnmount(() => {
 }
 .ui-select-list li.active { background: var(--surface-2); }
 .ui-select-list li[aria-selected='true'] { font-weight: 650; color: color-mix(in oklab, var(--info) 80%, var(--ink)); }
-.ui-select-list li[aria-selected='true'] .icon { color: var(--info); }
+.ui-select-list li[aria-selected='true'] :deep(.icon) { color: var(--info); }
 .ui-select-list li[aria-disabled='true'] { color: var(--ink-3); cursor: not-allowed; }
 :root[data-theme='dark'] .ui-select-list { background: var(--surface-2); border-color: var(--edge-strong); }
 :root[data-theme='dark'] .ui-select-list li.active { background: var(--surface-3); }
-/* It drops down: the list unrolls from its top edge (from its bottom edge when it opens upward). */
 @keyframes ui-select-in { from { opacity: 0.4; clip-path: inset(0 0 100% 0 round 12px); transform: translateY(-6px); } to { opacity: 1; clip-path: inset(0 0 0 0 round 12px); } }
 @keyframes ui-select-in-up { from { opacity: 0.4; clip-path: inset(100% 0 0 0 round 12px); transform: translateY(calc(-100% + 6px)); } to { opacity: 1; clip-path: inset(0 0 0 0 round 12px); transform: translateY(-100%); } }
 .ui-select-list li { animation: ui-select-item 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both; }

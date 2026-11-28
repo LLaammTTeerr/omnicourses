@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API_URL, HttpError } from '../api.js';
 import { contractEnum, contractShape, type Shape } from '../testing/contract.js';
+import { signedInPinia } from '../testing/signed-in.js';
 import { mockApi, status } from '../testing/fetch.js';
 import {
   AUDIT_UNAVAILABLE_CODES,
@@ -23,6 +24,7 @@ import {
   type GraduationCondition,
   type GraduationStatus,
   type GroupCoverage,
+  type TermAttempt,
   type TermSummary,
   type UnmatchedCourse,
 } from './api.js';
@@ -72,12 +74,19 @@ describe('degree audit types against the contract (F3, ADR 0013)', () => {
         'average',
         'accumulatedAverage',
         'cumulativeAccumulatedAverage',
+        'cumulativeAccumulatedAverageChange',
+        'cumulativeAccumulatedCredits',
+        'cumulativeTowardTotal',
+        'cumulativeYearLevel',
+        'cumulativeClassification',
         'failedCourseCodes',
         'inProgressCourseCodes',
         'caps',
         'capViolations',
+        'attempts',
       ]) satisfies Shape<TermSummary>,
     ],
+    ['TermAttemptDto', all(['code', 'name', 'credits', 'result', 'grade', 'passed', 'inProgress', 'requirementGroupId']) satisfies Shape<TermAttempt>],
     ['GraduationConditionDto', all(['id', 'description', 'citation', 'status']) satisfies Shape<GraduationCondition>],
     ['GraduationStatusDto', all(['status', 'met', 'unmet', 'notChecked']) satisfies Shape<GraduationStatus>],
     ['AuditWarningDto', all(['code', 'courseCode', 'message', 'transcriptCredits', 'curriculumCredits']) satisfies Shape<AuditWarning>],
@@ -88,6 +97,7 @@ describe('degree audit types against the contract (F3, ADR 0013)', () => {
         'trainingType',
         'cohortYear',
         'curriculumCode',
+        'asOfTerm',
         'credits',
         'gpa',
         'terms',
@@ -108,6 +118,8 @@ describe('degree audit types against the contract (F3, ADR 0013)', () => {
     ['GraduationConditionDto', 'status', CONDITION_STATUSES],
     ['GpaSummaryDto', 'classification', [...CLASSIFICATIONS, null]],
     ['TermSummaryDto', 'kind', [...TERM_KINDS, null]],
+    ['TermSummaryDto', 'cumulativeClassification', [...CLASSIFICATIONS, null]],
+    ['TermSummaryDto', 'cumulativeYearLevel', [1, 2, 3, 4]],
     ['CapViolationDto', 'rule', CAP_RULES],
     ['AuditWarningDto', 'code', AUDIT_WARNING_CODES],
     ['AuditUnavailableDto', 'code', AUDIT_UNAVAILABLE_CODES],
@@ -119,28 +131,30 @@ describe('degree audit types against the contract (F3, ADR 0013)', () => {
 });
 
 describe('fetchAudit', () => {
+  beforeEach(() => signedInPinia());
   afterEach(() => vi.restoreAllMocks());
 
   it('reads the signed-in student’s audit with their token', async () => {
     const audit = degreeAudit();
     const fetch = mockApi({ 'GET /users/me/audit': audit });
-    await expect(fetchAudit('zz-token')).resolves.toEqual({ status: 'ready', audit });
+    await expect(fetchAudit()).resolves.toEqual({ status: 'ready', audit });
     expect(fetch).toHaveBeenCalledWith(`${API_URL}/users/me/audit`, expect.objectContaining({ method: 'GET', headers: { Authorization: 'Bearer zz-token' } }));
   });
 
   it.each(AUDIT_UNAVAILABLE_CODES)('answers a 409 %s as a state of the account, not a failure', async (code) => {
     mockApi({ 'GET /users/me/audit': status(409, { statusCode: 409, code, message: 'Synthetic reason' }) });
-    await expect(fetchAudit('zz-token')).resolves.toEqual({ status: code });
+    await expect(fetchAudit()).resolves.toEqual({ status: code });
   });
 
   it('fails on a 409 it does not know, and on any other error', async () => {
     mockApi({ 'GET /users/me/audit': status(409, { statusCode: 409, code: 'something_else', message: 'x' }) });
-    await expect(fetchAudit('zz-token')).rejects.toBeInstanceOf(HttpError);
+    await expect(fetchAudit()).rejects.toBeInstanceOf(HttpError);
     vi.restoreAllMocks();
     mockApi({ 'GET /users/me/audit': status(401) });
-    await expect(fetchAudit('zz-token')).rejects.toMatchObject({ status: 401 });
+    await expect(fetchAudit()).rejects.toMatchObject({ status: 401 });
     vi.restoreAllMocks();
+    signedInPinia();
     mockApi({ 'GET /users/me/audit': status(500) });
-    await expect(fetchAudit('zz-token')).rejects.toMatchObject({ status: 500 });
+    await expect(fetchAudit()).rejects.toMatchObject({ status: 500 });
   });
 });
