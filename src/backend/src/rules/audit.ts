@@ -3,7 +3,19 @@ import type { CurriculumRules } from '../curriculum/curriculum-rules.js';
 import { compareTerms, copyTerm, type Term } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
 import { attemptPasses, courseRecords, isCompleted, recordAsOf, resolve, type CourseRecord } from './attempts.js';
-import type { AuditWarning, CreditSummary, DegreeAudit, GpaSummary, TermAttempt, TermSummary, UnmatchedCourse } from './types.js';
+import type {
+  AuditWarning,
+  CombinedMinimumCoverage,
+  CreditSummary,
+  DegreeAudit,
+  GpaSummary,
+  GroupCoverage,
+  TermAttempt,
+  TermCombinedMinimumCoverage,
+  TermGroupCoverage,
+  TermSummary,
+  UnmatchedCourse,
+} from './types.js';
 import { checkTermLoad } from './credit-caps.js';
 import { combinedMinimumCoverage, type CountedLink, creditsOf, groupCoverage, placements, recordCredits } from './coverage.js';
 import { fourPointAverage, weightedAverage, type WeightedGrade } from './gpa.js';
@@ -145,6 +157,21 @@ function deduplicateTermRows(rows: readonly TranscriptEntry[]): TranscriptEntry[
   });
 }
 
+function termGroupCoverage(group: GroupCoverage): TermGroupCoverage {
+  return {
+    id: group.id,
+    passedCredits: group.passedCredits,
+    inProgressCredits: group.inProgressCredits,
+    overflowInCredits: group.overflowInCredits,
+    remainingCredits: group.remainingCredits,
+    courses: group.courses.map(({ code, credits, status, grade }) => ({ code, credits, status, grade })),
+  };
+}
+
+function termCombinedMinimumCoverage({ id, credits, inProgressCredits, remainingCredits }: CombinedMinimumCoverage): TermCombinedMinimumCoverage {
+  return { id, credits, inProgressCredits, remainingCredits };
+}
+
 function termSummary(
   rules: CurriculumRules,
   term: Term,
@@ -160,7 +187,9 @@ function termSummary(
     return [{ grade: e.grade, credits: creditsOf(place.course, e.credits), passes: attemptPasses(e) }];
   });
   const asOf = [...records.values()].map((r) => recordAsOf(r, term)).filter((r): r is CourseRecord => r !== null);
-  const toDate = creditSummary(rules, new Map(asOf.map((r) => [r.code, r])), placed);
+  const recordsToDate = new Map(asOf.map((r) => [r.code, r]));
+  const toDate = creditSummary(rules, recordsToDate, placed);
+  const groupsToDate = groupCoverage(rules, recordsToDate, placed);
   const cumulative = weightedAverage(gpaCourses(asOf, placed, true));
   const cumulativeAccumulatedAverage = cumulative?.value ?? null;
   const load = checkTermLoad(
@@ -181,6 +210,9 @@ function termSummary(
     cumulativeTowardTotal: toDate.towardTotal,
     cumulativeYearLevel: toDate.yearLevel,
     cumulativeClassification: cumulative ? classify(cumulative.numerator, cumulative.denominator, rules.cohortYear) : null,
+    cumulativeRemaining: toDate.remaining,
+    cumulativeGroups: groupsToDate.map(termGroupCoverage),
+    cumulativeCombinedMinimums: combinedMinimumCoverage(rules, groupsToDate).map(termCombinedMinimumCoverage),
     failedCourseCodes: unique(entries.filter((e) => isCompleted(e) && !attemptPasses(e)).map((e) => e.courseCode)),
     inProgressCourseCodes: unique(entries.filter((e) => e.result === 'in_progress').map((e) => e.courseCode)),
     caps: load.caps,

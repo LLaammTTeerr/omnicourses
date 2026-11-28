@@ -344,6 +344,28 @@ describe('Degree audit API (e2e)', () => {
       expect(today.terms.map((t: Record<string, any>) => t.cumulativeYearLevel)).toEqual([1, 1, 2, 2, 2]);
     });
 
+    it('gives the groups, combined minimums and remaining credits at the end of each term, as the audit of that term does', async () => {
+      for (const t of today.terms as Record<string, any>[]) {
+        const { body } = await http().get('/api/users/me/audit').query({ asOfYear: t.term.year, asOfNumber: t.term.number }).set(auth).expect(200);
+        expect(t.cumulativeRemaining).toBe(body.credits.remaining);
+        expect(t.cumulativeGroups).toEqual(
+          (body.groups as Record<string, any>[]).map((g) => ({
+            id: g.id,
+            passedCredits: g.passedCredits,
+            inProgressCredits: g.inProgressCredits,
+            overflowInCredits: g.overflowInCredits,
+            remainingCredits: g.remainingCredits,
+            courses: (g.courses as Record<string, any>[]).map((c) => ({ code: c.code, credits: c.credits, status: c.status, grade: c.grade })),
+          })),
+        );
+        expect(t.cumulativeCombinedMinimums).toEqual(
+          (body.combinedMinimums as Record<string, any>[]).map((c) => ({ id: c.id, credits: c.credits, inProgressCredits: c.inProgressCredits, remainingCredits: c.remainingCredits })),
+        );
+      }
+      const math = (today.terms[0].cumulativeGroups as Record<string, any>[]).find((g) => g.courses.some((c: { code: string }) => c.code === 'MTH251'))!;
+      expect(math.courses.find((c: { code: string }) => c.code === 'MTH251')).toMatchObject({ status: 'failed', grade: 3 });
+    });
+
     it('answers the whole audit for the last term, and with no term', async () => {
       const last = (await http().get('/api/users/me/audit').query({ asOfYear: 2025, asOfNumber: 2 }).set(auth).expect(200)).body;
       expect({ ...last, asOfTerm: null }).toEqual(today);

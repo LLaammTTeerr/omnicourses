@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { CalendarEvent } from '../calendar/api.js';
-import type { DegreeAudit, TermSummary } from '../audit/api.js';
+import type { TermSummary } from '../audit/api.js';
 import { calendarEnd, Dashboard, segments, termShort } from './dashboard.js';
-import { course, degreeAudit, group, GROUP_A, GROUP_MATH } from '../audit/testing/fixtures.js';
+import { course, coverageToDate, degreeAudit, group, GROUP_A, GROUP_MATH } from '../audit/testing/fixtures.js';
 
 const t = (year: number, number: 1 | 2 | 3) => ({ year, number });
 
@@ -11,17 +11,15 @@ const failedZZ202 = { code: 'ZZ202', name: 'Học phần thử ZZ202', credits: 
 function terms(): TermSummary[] {
   const first = degreeAudit().terms[0]!;
   return [
-    { ...first, failedCourseCodes: ['ZZ202'], attempts: [...first.attempts, failedZZ202] },
+    { ...first, failedCourseCodes: ['ZZ202'], cumulativeTowardTotal: 4, ...coverageToDate(pastAudit()), attempts: [...first.attempts, failedZZ202] },
     { ...first, term: t(2024, 2), average: null, cumulativeAccumulatedAverageChange: 0, attempts: [] },
     { ...first, term: t(2024, 3), average: 9, cumulativeAccumulatedAverageChange: 0.12, attempts: [] },
   ];
 }
 
-function pastAudit(): DegreeAudit {
+function pastAudit() {
   const base = degreeAudit();
   return degreeAudit({
-    asOfTerm: t(2024, 1),
-    credits: { ...base.credits, towardTotal: 4 },
     groups: [
       base.groups[0]!,
       group(GROUP_A, base.groups[1]!.name, {
@@ -34,8 +32,8 @@ function pastAudit(): DegreeAudit {
   });
 }
 
-function dashboard(past: ReadonlyMap<string, DegreeAudit> = new Map([['2024-1', pastAudit()]])) {
-  return new Dashboard({ audit: degreeAudit({ terms: terms() }), past, plan: null, today: t(2025, 1) });
+function dashboard() {
+  return new Dashboard({ audit: degreeAudit({ terms: terms() }), plan: null, today: t(2025, 1) });
 }
 
 describe('dashboard model', () => {
@@ -69,12 +67,12 @@ describe('dashboard model', () => {
     expect(past.courses.map((c) => [c.code, c.failed])).toEqual([['ZZ090', false], ['ZZ101', false], ['ZZ201', false], ['ZZ202', true]]);
   });
 
-  it('has no snapshot for a past term whose audit has not loaded, and the live audit for now', () => {
-    const d = dashboard(new Map());
-    expect(d.snapshot(0, 'vi')).toBeNull();
-    expect(d.auditAt(0)).toBeNull();
-    expect(d.auditAt(d.nowIndex)!.credits.towardTotal).toBe(8);
-    expect(d.snapshot(d.nowIndex, 'vi')!.passed).toBe(8);
+  it('has a snapshot for every past term from the one audit, and the live audit for now', () => {
+    const d = dashboard();
+    expect(d.history.map((_, i) => d.standingAt(i).towardTotal)).toEqual([4, 8, 8]);
+    expect(d.standingAt(0).remaining).toBe(12);
+    expect(d.standingAt(d.nowIndex).towardTotal).toBe(8);
+    expect(d.snapshot(d.nowIndex, 'vi').passed).toBe(8);
   });
 
   it('reads the GPA change in points from the last term with grades', () => {

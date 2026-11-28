@@ -50,6 +50,12 @@ export interface GroupCoverage {
   courses: CourseCoverage[];
 }
 
+export type TermCourseCoverage = Pick<CourseCoverage, 'code' | 'credits' | 'status' | 'grade'>;
+
+export type TermGroupCoverage = Pick<GroupCoverage, 'id' | 'passedCredits' | 'inProgressCredits' | 'overflowInCredits' | 'remainingCredits'> & {
+  courses: TermCourseCoverage[];
+};
+
 export interface CombinedMinimumCoverage {
   id: string;
   name: string;
@@ -61,6 +67,8 @@ export interface CombinedMinimumCoverage {
   remainingCredits: number;
   met: boolean;
 }
+
+export type TermCombinedMinimumCoverage = Pick<CombinedMinimumCoverage, 'id' | 'credits' | 'inProgressCredits' | 'remainingCredits'>;
 
 export interface UnmatchedCourse {
   code: string;
@@ -126,6 +134,9 @@ export interface TermSummary {
   cumulativeTowardTotal: number;
   cumulativeYearLevel: 1 | 2 | 3 | 4;
   cumulativeClassification: Classification | null;
+  cumulativeRemaining: number | null;
+  cumulativeGroups: TermGroupCoverage[];
+  cumulativeCombinedMinimums: TermCombinedMinimumCoverage[];
   failedCourseCodes: string[];
   inProgressCourseCodes: string[];
   caps: CreditCaps | null;
@@ -193,6 +204,3 @@ export async function fetchAudit(): Promise<AuditOutcome> {
     throw e;
   }
 }
-
-export const fetchAuditAsOf = (term: Term) =>
-  requestAsUser<DegreeAudit>('GET', `/users/me/audit?${new URLSearchParams({ asOfYear: String(term.year), asOfNumber: String(term.number) })}`);

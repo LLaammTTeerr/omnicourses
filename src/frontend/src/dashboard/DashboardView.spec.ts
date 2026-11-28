@@ -18,6 +18,7 @@ const INTRO_KEY = 'oc-dashboard-intro';
 let wrapper: VueWrapper | undefined;
 
 const PAST_TOWARD_TOTAL = 4;
+const PAST_REMAINING = 16;
 
 const attempt = (code: string, overrides: Partial<TermAttempt>): TermAttempt => ({
   code,
@@ -36,7 +37,7 @@ function dashboardAudit(): DegreeAudit {
   const first = base.terms[0]!;
   return degreeAudit({
     terms: [
-      { ...first, failedCourseCodes: ['ZZ202'], cumulativeTowardTotal: PAST_TOWARD_TOTAL, attempts: [...first.attempts, attempt('ZZ202', { grade: 4.5, passed: false })] },
+      { ...first, failedCourseCodes: ['ZZ202'], cumulativeTowardTotal: PAST_TOWARD_TOTAL, cumulativeRemaining: PAST_REMAINING, attempts: [...first.attempts, attempt('ZZ202', { grade: 4.5, passed: false })] },
       {
         ...first,
         term: { year: 2026, number: 1 },
@@ -53,15 +54,7 @@ function dashboardAudit(): DegreeAudit {
   });
 }
 
-function auditAsOf2024(): DegreeAudit {
-  const base = degreeAudit();
-  return degreeAudit({ asOfTerm: { year: 2024, number: 1 }, credits: { ...base.credits, towardTotal: PAST_TOWARD_TOTAL, inProgressTowardTotal: 0, remaining: 16 } });
-}
-
-const answerAudit = (live: unknown) => (init: RequestInit | undefined, url: string) => {
-  if (url.includes('asOfYear')) return Response.json(auditAsOf2024());
-  return typeof live === 'function' ? live(init, url) : Response.json(live);
-};
+const answerAudit = (live: unknown) => (init: RequestInit | undefined, url: string) => (typeof live === 'function' ? live(init, url) : Response.json(live));
 
 const plan: Plan = {
   id: PLAN_ID,
@@ -226,13 +219,27 @@ describe('DashboardView (F3, UC-03)', () => {
     expect(text(w, 'term-cumulative')).toBe('8,00 · Giỏi');
     expect(text(w, 'term-year-level')).toBe('Năm thứ 1');
     expect(text(w, 'credits-toward-total')).toBe(String(PAST_TOWARD_TOTAL));
-    expect(text(w, 'credits-remaining')).toBe('16');
-    expect(fetch.mock.calls.map(([url]) => String(url))).toContainEqual(expect.stringContaining('/users/me/audit?asOfYear=2024&asOfNumber=1'));
+    expect(text(w, 'credits-remaining')).toBe(String(PAST_REMAINING));
+    expect(fetch.mock.calls.map(([url]) => String(url)).filter((url) => url.includes('asOfYear'))).toEqual([]);
     await w.get('[data-test="terms"] a').trigger('keydown', { key: 'ArrowRight' });
     expect(w.get('.dashboard-page').classes()).toContain('db-past');
     await w.get('[data-test="term-label"]').trigger('keydown', { key: 'ArrowRight' });
     expect(w.get('.dashboard-page').classes()).not.toContain('db-past');
     expect(text(w, 'term-label')).toBe('HK1 26–27 · nay');
+  });
+
+  it('loads one audit for a record of several terms and asks for no other while stepping back through them', async () => {
+    const audit = dashboardAudit();
+    const [first, live] = audit.terms;
+    const past = [1, 2, 3].map((number) => ({ ...first!, term: { year: 2025, number: number as 1 | 2 | 3 }, attempts: [] }));
+    const { w, fetch } = await render({ ...audit, terms: [first!, ...past, live!] });
+    const auditCalls = () => fetch.mock.calls.map(([url]) => String(url)).filter((url) => url.includes('/users/me/audit'));
+    expect(auditCalls()).toHaveLength(1);
+    for (let step = 0; step < past.length + 1; step++) await w.get('[data-test="previous-term"]').trigger('click');
+    await flushPromises();
+    expect(text(w, 'term-label')).toBe('HK1 24–25');
+    expect(text(w, 'credits-toward-total')).toBe(String(PAST_TOWARD_TOTAL));
+    expect(auditCalls()).toEqual([expect.not.stringContaining('asOfYear')]);
   });
 
   it('lets the term picker preview with the arrow keys and close with Escape', async () => {

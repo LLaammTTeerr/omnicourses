@@ -1,4 +1,4 @@
-import type { CourseCoverage, DegreeAudit, GraduationCondition, GroupCoverage } from '../api.js';
+import type { CourseCoverage, DegreeAudit, GraduationCondition, GroupCoverage, TermSummary } from '../api.js';
 
 export const GROUP_A = '00000000-0000-4000-8000-000000000a01';
 export const GROUP_C = '00000000-0000-4000-8000-000000000a02';
@@ -53,7 +53,59 @@ const NOT_CHECKED: GraduationCondition[] = [
   condition('study_time_limit', 'Finishing within the maximum study time', 'not_checked', 'QĐ 1175/QĐ-KHTN Điều 2.7'),
 ];
 
+export function coverageToDate({ groups, combinedMinimums }: Pick<DegreeAudit, 'groups' | 'combinedMinimums'>): Pick<TermSummary, 'cumulativeGroups' | 'cumulativeCombinedMinimums'> {
+  return {
+    cumulativeGroups: groups.map(({ id, passedCredits, inProgressCredits, overflowInCredits, remainingCredits, courses }) => ({
+      id,
+      passedCredits,
+      inProgressCredits,
+      overflowInCredits,
+      remainingCredits,
+      courses: courses.map(({ code, credits, status, grade }) => ({ code, credits, status, grade })),
+    })),
+    cumulativeCombinedMinimums: combinedMinimums.map(({ id, credits, inProgressCredits, remainingCredits }) => ({ id, credits, inProgressCredits, remainingCredits })),
+  };
+}
+
 export function degreeAudit(overrides: Partial<DegreeAudit> = {}): DegreeAudit {
+  const groups = [
+    group(GROUP_C, 'Tự chọn Computer Science (C)', {
+      kind: 'elective',
+      requiredCredits: null,
+      remainingCredits: null,
+      inProgressCredits: 4,
+      met: true,
+      courses: [course('ZZ414', { status: 'in_progress', result: 'in_progress', nameEn: 'Test elective ZZ414' })],
+    }),
+    group(GROUP_A, 'Kiến thức Computer Science (A): bắt buộc', {
+      passedCredits: 4,
+      remainingCredits: 4,
+      courses: [course('ZZ201', { status: 'passed', result: 'graded', grade: 8 }), course('ZZ202', { status: 'failed', result: 'graded', grade: 4.5 })],
+    }),
+    group(GROUP_MATH, 'Kiến thức Math', {
+      requiredCredits: 4,
+      passedCredits: 4,
+      remainingCredits: 0,
+      met: true,
+      courses: [
+        course('ZZ101', { status: 'passed', result: 'exempt' }),
+        course('ZZ090', { credits: 1, countsTowardTotal: false, countsTowardGpa: false, status: 'passed', result: 'pass' }),
+      ],
+    }),
+  ];
+  const combinedMinimums = [
+    {
+      id: COMBINED,
+      name: 'Kiến thức tự chọn',
+      creditsMin: 12,
+      officialNotes: 'Ghi chú thử của khối tự chọn.',
+      groupIds: [GROUP_C],
+      credits: 0,
+      inProgressCredits: 4,
+      remainingCredits: 8,
+      met: false,
+    },
+  ];
   return {
     programCode: 'APCS',
     trainingType: 'advanced',
@@ -76,6 +128,8 @@ export function degreeAudit(overrides: Partial<DegreeAudit> = {}): DegreeAudit {
         cumulativeTowardTotal: 8,
         cumulativeYearLevel: 1,
         cumulativeClassification: 'very_good',
+        cumulativeRemaining: 12,
+        ...coverageToDate({ groups, combinedMinimums }),
         failedCourseCodes: [],
         inProgressCourseCodes: [],
         caps: { min: 10, max: 22 },
@@ -95,44 +149,8 @@ export function degreeAudit(overrides: Partial<DegreeAudit> = {}): DegreeAudit {
         ],
       },
     ],
-    groups: [
-      group(GROUP_C, 'Tự chọn Computer Science (C)', {
-        kind: 'elective',
-        requiredCredits: null,
-        remainingCredits: null,
-        inProgressCredits: 4,
-        met: true,
-        courses: [course('ZZ414', { status: 'in_progress', result: 'in_progress', nameEn: 'Test elective ZZ414' })],
-      }),
-      group(GROUP_A, 'Kiến thức Computer Science (A): bắt buộc', {
-        passedCredits: 4,
-        remainingCredits: 4,
-        courses: [course('ZZ201', { status: 'passed', result: 'graded', grade: 8 }), course('ZZ202', { status: 'failed', result: 'graded', grade: 4.5 })],
-      }),
-      group(GROUP_MATH, 'Kiến thức Math', {
-        requiredCredits: 4,
-        passedCredits: 4,
-        remainingCredits: 0,
-        met: true,
-        courses: [
-          course('ZZ101', { status: 'passed', result: 'exempt' }),
-          course('ZZ090', { credits: 1, countsTowardTotal: false, countsTowardGpa: false, status: 'passed', result: 'pass' }),
-        ],
-      }),
-    ],
-    combinedMinimums: [
-      {
-        id: COMBINED,
-        name: 'Kiến thức tự chọn',
-        creditsMin: 12,
-        officialNotes: 'Ghi chú thử của khối tự chọn.',
-        groupIds: [GROUP_C],
-        credits: 0,
-        inProgressCredits: 4,
-        remainingCredits: 8,
-        met: false,
-      },
-    ],
+    groups,
+    combinedMinimums,
     unmatchedCourses: [{ code: 'ZZ999', name: 'Môn ngoài chương trình thử', credits: 3, result: 'graded', grade: 9, passed: true, inProgress: false }],
     graduation: {
       status: 'not_yet',
