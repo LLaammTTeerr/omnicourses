@@ -189,7 +189,7 @@ classDiagram
     CourseOfferingTerm "0..*" --> "1" Course : course_code RESTRICT
 ```
 
-- `TrainingType` is `advanced`, `joint`, `high_quality` or `standard` (`TRAINING_TYPES`, `program.entity.ts`); `RequirementGroupKind` is `compulsory` or `elective` (`REQUIREMENT_GROUP_KINDS`, `requirement-group.entity.ts`). Both are held by check constraints, not PostgreSQL enums.
+- `TrainingType` is `advanced`, `joint`, `high_quality` or `standard` (`TRAINING_TYPES`, `curriculum-rules.ts`); `RequirementGroupKind` is `compulsory` or `elective` (`REQUIREMENT_GROUP_KINDS`, `curriculum-rules.ts`). Both are held by check constraints, not PostgreSQL enums.
 - Uniqueness: one curriculum per program and cohort (`uq_curriculums_program_cohort`); a requirement group's name and a combined minimum's name are unique in their curriculum.
 - The course catalog is shared: a `Course` belongs to no curriculum, and `RequirementGroupCourse` links it into each one ([ADR 0005](adr/0005-curriculum-cohort-and-course-catalog.md)). The catalog side of every link is `RESTRICT`, so a course in use cannot be deleted.
 - A `CoursePrerequisiteList` row with no `CoursePrerequisite` rows means "recorded as having no prerequisite"; no list row means "not recorded". The rule engine keeps the two apart ([ADR 0011](adr/0011-curriculum-administration.md)). A check forbids a course being its own prerequisite.
@@ -452,7 +452,7 @@ The rule engine is the set of pure functions in `src/backend/src/rules/` plus `R
 
 ### 2.1 Inputs
 
-Sources: `curriculum/curriculum-rules.reader.ts`, `transcript/transcript-entry.ts`, `terms/term.ts`, `rules/types.ts`, `rules/plan-issues.ts`.
+Sources: `curriculum/curriculum-rules.ts`, `transcript/transcript-entry.ts`, `terms/term.ts`, `rules/types.ts`, `rules/plan-issues.ts`.
 
 ```mermaid
 classDiagram

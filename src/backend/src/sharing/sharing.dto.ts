@@ -1,9 +1,9 @@
 import { ApiProperty, OmitType } from '@nestjs/swagger';
 import { IsBoolean } from 'class-validator';
-import { CreditCapsDto } from '../audit/audit.dto.js';
 import { GRADUATION_STATUSES, type GraduationVerdict, PLACEMENT_KINDS, PLAN_ISSUE_CODES, PLAN_ISSUE_KINDS, type PlacementKind, type PlanIssueCode, type PlanIssueKind } from '../rules/types.js';
-import { ifPresent, TermDto } from '../common/field-validators.js';
-import { PlanCombinedMinimumCoverageDto, PlanGroupCoverageDto, PlanTermLoadDto } from '../plans/plan-issues.dto.js';
+import { ifPresent } from '../common/field-validators.js';
+import { TermDto } from '../terms/term.dto.js';
+import { CreditCapsDto, PlanCombinedMinimumCoverageDto, PlanGroupCoverageDto, PlanTermLoadDto } from '../plans/plan-issues.dto.js';
 
 export class SharePlanDto {
   @ApiProperty({ required: false, description: "Whether a reader sees the owner's display name. Left out: unchanged on a live link, hidden on a new one." })

@@ -1,4 +1,4 @@
-import type { CurriculumRuleGroup, CurriculumRules } from '../curriculum/curriculum-rules.reader.js';
+import type { CurriculumRuleGroup, CurriculumRules } from '../curriculum/curriculum-rules.js';
 import { groupBy } from '../common/collections.js';
 import { compareTerms, copyTerm, type Term, termKey, termLabel } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';

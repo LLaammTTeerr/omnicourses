@@ -1,9 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { CreditCapsDto } from '../audit/audit.dto.js';
-import { TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.js';
-import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
-import { TERM_KINDS, type TermKind } from '../rules/credit-caps.js';
-import { TermDto } from '../common/field-validators.js';
+import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind, TRAINING_TYPES, type TrainingType } from '../curriculum/curriculum-rules.js';
+import { type CreditCaps, TERM_KINDS, type TermKind } from '../rules/credit-caps.js';
+import { TermDto } from '../terms/term.dto.js';
 import {
   PLAN_ISSUE_CODES,
   PLAN_ISSUE_KINDS,
@@ -62,6 +60,14 @@ class PlanIssueDto implements PlanIssue {
 
   @ApiProperty({ description: 'An English sentence, for a screen that does not word the code itself.' })
   message!: string;
+}
+
+export class CreditCapsDto implements CreditCaps {
+  @ApiProperty({ type: Number, nullable: true })
+  min!: number | null;
+
+  @ApiProperty()
+  max!: number;
 }
 
 export class PlanTermLoadDto implements PlanTermLoad {

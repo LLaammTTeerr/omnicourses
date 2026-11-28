@@ -15,9 +15,7 @@ import {
 import { Course } from './course.entity.js';
 import { Curriculum } from './curriculum.entity.js';
 import { NAME_MAX_LENGTH } from '../common/column-limits.js';
-
-export const REQUIREMENT_GROUP_KINDS = ['compulsory', 'elective'] as const;
-export type RequirementGroupKind = (typeof REQUIREMENT_GROUP_KINDS)[number];
+import type { RequirementGroupKind } from './curriculum-rules.js';
 
 @Entity({ name: 'requirement_groups' })
 @Unique('uq_requirement_groups_curriculum_name', ['curriculumId', 'name'])

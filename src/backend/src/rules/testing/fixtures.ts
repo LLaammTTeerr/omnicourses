@@ -1,4 +1,4 @@
-import type { CurriculumRuleCourse, CurriculumRuleGroup, CurriculumRules } from '../../curriculum/curriculum-rules.reader.js';
+import type { CurriculumRuleCourse, CurriculumRuleGroup, CurriculumRules } from '../../curriculum/curriculum-rules.js';
 import type { Term } from '../../terms/term.js';
 import type { TranscriptEntry, TranscriptResult } from '../../transcript/transcript-entry.js';
 

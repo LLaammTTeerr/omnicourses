@@ -1,8 +1,7 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, TransformFnParams } from 'class-transformer';
-import { buildMessage, IsIn, IsInt, IsNotEmpty, IsString, Max, Min, registerDecorator, ValidateBy, ValidateIf, ValidationOptions } from 'class-validator';
-import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR, type Term, TERM_NUMBERS } from '../terms/term.js';
+import { buildMessage, IsNotEmpty, IsString, registerDecorator, ValidateBy, ValidateIf, ValidationOptions } from 'class-validator';
 
 export const MaxCodePoints = (max: number) =>
   ValidateBy({
@@ -94,15 +93,3 @@ export function IsCalendarDate(options?: ValidationOptions): PropertyDecorator {
 }
 
 export const yearOf = (date: string): number => Number(date.slice(0, 4));
-
-export class TermDto implements Term {
-  @ApiProperty({ example: 2026, description: 'First calendar year of the academic year: 2026 means 2026–2027.' })
-  @IsInt()
-  @Min(MIN_ACADEMIC_YEAR)
-  @Max(MAX_ACADEMIC_YEAR)
-  year!: number;
-
-  @ApiProperty({ enum: TERM_NUMBERS, description: 'Term of the academic year: 1, 2 or 3. Whether 3 is a main or a summer term depends on the program (APCS: main, QĐ 1175/QĐ-KHTN Điều 6.4b).' })
-  @IsIn(TERM_NUMBERS)
-  number!: Term['number'];
-}

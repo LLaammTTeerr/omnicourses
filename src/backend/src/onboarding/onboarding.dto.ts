@@ -3,7 +3,7 @@ import { Type } from 'class-transformer';
 import { IsBoolean, IsIn, IsObject, ValidateBy, ValidateIf, ValidateNested, ValidationOptions } from 'class-validator';
 import { vietnamDate } from '../config/time.js';
 import { Term, TERM_NUMBERS, termLabel } from '../terms/term.js';
-import { TermDto } from '../common/field-validators.js';
+import { TermDto } from '../terms/term.dto.js';
 import { goalTermWindow, isInGoalTermWindow, isOfferedCohort, OFFERED_COHORTS, OFFERED_PROGRAMS, YEARS_AHEAD } from './onboarding-options.js';
 
 export const NO_INTERNSHIP = 'none';

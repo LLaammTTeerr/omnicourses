@@ -1,8 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, Max, Min, ValidateIf } from 'class-validator';
-import { TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.js';
-import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
+import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind, TRAINING_TYPES, type TrainingType } from '../curriculum/curriculum-rules.js';
 import {
   AUDIT_UNAVAILABLE_CODES,
   AUDIT_WARNING_CODES,
@@ -26,9 +25,10 @@ import {
   type TermSummary,
   type UnmatchedCourse,
 } from '../rules/types.js';
-import { CAP_RULES, TERM_KINDS, type CapRule, type CapViolation, type CreditCaps, type TermKind } from '../rules/credit-caps.js';
+import { CAP_RULES, TERM_KINDS, type CapRule, type CapViolation, type TermKind } from '../rules/credit-caps.js';
 import { CLASSIFICATIONS, type Classification, YEAR_LEVELS } from '../rules/grades.js';
-import { TermDto } from '../common/field-validators.js';
+import { TermDto } from '../terms/term.dto.js';
+import { CreditCapsDto } from '../plans/plan-issues.dto.js';
 import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR, TERM_NUMBERS, type TermNumber } from '../terms/term.js';
 import { TRANSCRIPT_RESULTS, type TranscriptResult } from '../transcript/transcript-entry.js';
 
@@ -216,14 +216,6 @@ class GpaSummaryDto implements GpaSummary {
 
   @ApiProperty()
   gradedCredits!: number;
-}
-
-export class CreditCapsDto implements CreditCaps {
-  @ApiProperty({ type: Number, nullable: true })
-  min!: number | null;
-
-  @ApiProperty()
-  max!: number;
 }
 
 class CapViolationDto implements CapViolation {

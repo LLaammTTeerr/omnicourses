@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CurriculumRules } from '../curriculum/curriculum-rules.reader.js';
+import type { CurriculumRules } from '../curriculum/curriculum-rules.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
 import { curriculumStanding } from './standing.js';
 

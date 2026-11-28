@@ -2,54 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { type FindOptionsWhere, In, Repository } from 'typeorm';
 import { byText, groupBy } from '../common/collections.js';
-import { asTermNumber, type Term } from '../terms/term.js';
+import { asTermNumber } from '../terms/term.js';
 import { CombinedMinimum } from './combined-minimum.entity.js';
 import { CourseOfferingTerm, CoursePrerequisiteList } from './course-rules.entities.js';
 import { Curriculum } from './curriculum.entity.js';
-import type { TrainingType } from './program.entity.js';
-import { type RequirementGroup, type RequirementGroupCourse, RequirementGroupOverflow, type RequirementGroupKind } from './requirement-group.entity.js';
-
-export interface CurriculumRuleCourse {
-  code: string;
-  nameVi: string;
-  nameEn: string | null;
-  credits: number;
-  countsTowardTotal: boolean;
-  countsTowardGpa: boolean;
-}
-
-export interface CurriculumRuleGroup {
-  id: string;
-  name: string;
-  kind: RequirementGroupKind;
-  creditsTotal: number | null;
-  creditsTotalMin: number | null;
-  overflowToGroupId: string | null;
-  courses: CurriculumRuleCourse[];
-}
-
-interface CurriculumRuleCombinedMinimum {
-  id: string;
-  name: string;
-  creditsMin: number;
-  officialNotes: string | null;
-  groupIds: string[];
-}
-
-export interface CourseRules {
-  prerequisites: Map<string, string[]>;
-  offeringTerms: Map<string, Term['number'][]>;
-}
-
-export interface CurriculumRules extends CourseRules {
-  programCode: string;
-  trainingType: TrainingType | null;
-  cohortYear: number;
-  curriculumCode: string;
-  totalCreditsMin: number | null;
-  groups: CurriculumRuleGroup[];
-  combinedMinimums: CurriculumRuleCombinedMinimum[];
-}
+import type { CourseRules, CurriculumRuleCombinedMinimum, CurriculumRuleCourse, CurriculumRuleGroup, CurriculumRules } from './curriculum-rules.js';
+import { type RequirementGroup, type RequirementGroupCourse, RequirementGroupOverflow } from './requirement-group.entity.js';
 
 const byNameThenId = (a: { name: string; id: string }, b: { name: string; id: string }): number => byText(a.name, b.name) || byText(a.id, b.id);
 
