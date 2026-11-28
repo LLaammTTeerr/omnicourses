@@ -6,6 +6,7 @@ export const USER_AGENT_MAX_LENGTH = 512;
 @Entity({ name: 'sessions' })
 @Unique('uq_sessions_token_hash', ['tokenHash'])
 @Index('ix_sessions_user_id', ['userId'])
+@Index('ix_sessions_previous_token_hash', ['previousTokenHash'])
 export class Session {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -19,6 +20,9 @@ export class Session {
 
   @Column({ name: 'token_hash', type: 'char', length: 64 })
   tokenHash!: string;
+
+  @Column({ name: 'previous_token_hash', type: 'char', length: 64, nullable: true })
+  previousTokenHash!: string | null;
 
   @Column({ name: 'user_agent', type: 'varchar', length: USER_AGENT_MAX_LENGTH, nullable: true })
   userAgent!: string | null;

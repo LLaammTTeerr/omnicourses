@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { REFRESH_GRACE_MS } from '../src/auth/auth.service.js';
+import { Clock } from '../src/config/clock.js';
 import { bootApp } from './support/app.js';
 import { PASSWORD as password } from './support/users.js';
 
@@ -111,5 +113,90 @@ describe('Auth against PostgreSQL (e2e)', () => {
       await firstApp.close();
       await secondApp.close();
     }
+  });
+});
+
+describe('Refreshing with the token of a refresh whose answer was lost (e2e)', () => {
+  let app: INestApplication;
+  const clock = { at: new Date(), now: () => clock.at };
+  const http = () => request(app.getHttpServer());
+  const bearer = (token: string) => `Bearer ${token}`;
+  const refresh = (token: string) => http().post('/api/auth/refresh').set('Authorization', bearer(token));
+  const me = (token: string) => http().get('/api/users/me').set('Authorization', bearer(token));
+  const later = (ms: number) => void (clock.at = new Date(clock.at.getTime() + ms));
+
+  async function signUp(): Promise<string> {
+    const body = { email: `student-${randomUUID()}@example.com`, password, displayName: 'Test Student', acceptedTerms: true };
+    return (await http().post('/api/auth/sign-up').send(body).expect(201)).body.token;
+  }
+
+  async function rotatedPair(): Promise<{ previous: string; lost: string }> {
+    const previous = await signUp();
+    const lost = (await refresh(previous).expect(200)).body.token as string;
+    return { previous, lost };
+  }
+
+  beforeAll(async () => {
+    app = await bootApp((builder) => builder.overrideProvider(Clock).useValue(clock));
+  });
+
+  beforeEach(() => {
+    clock.at = new Date();
+  });
+
+  afterAll(async () => {
+    await app?.close();
+  });
+
+  it('keeps the student signed in when a reload repeats the refresh, and leaves one live token', async () => {
+    const { previous, lost } = await rotatedPair();
+
+    const again = await refresh(previous).expect(200);
+    const current = again.body.token as string;
+
+    await me(current).expect(200);
+    await me(lost).expect(401);
+    await me(previous).expect(401);
+    await refresh(current).expect(200);
+  });
+
+  it('accepts the previous token on refresh only', async () => {
+    const { previous, lost } = await rotatedPair();
+    await me(previous).expect(401);
+    await http().get('/api/auth/sessions').set('Authorization', bearer(previous)).expect(401);
+    await me(lost).expect(200);
+  });
+
+  it('ends the grace REFRESH_GRACE_MS after the first rotation, however often the previous token is used', async () => {
+    const { previous } = await rotatedPair();
+    later(REFRESH_GRACE_MS - 1);
+    await refresh(previous).expect(200);
+    later(1);
+    await refresh(previous).expect(401);
+  });
+
+  it('refuses the previous token inside the grace once the student signs out', async () => {
+    const { previous, lost } = await rotatedPair();
+    await http().post('/api/auth/sign-out').set('Authorization', bearer(lost)).expect(204);
+    await refresh(previous).expect(401);
+    await refresh(lost).expect(401);
+  });
+
+  it('refuses both tokens inside the grace once the session is revoked from another device', async () => {
+    const { previous, lost } = await rotatedPair();
+    const sessions = (await http().get('/api/auth/sessions').set('Authorization', bearer(lost)).expect(200)).body as { id: string; current: boolean }[];
+    const { email } = (await me(lost).expect(200)).body as { email: string };
+    const other = (await http().post('/api/auth/sign-in').send({ email, password }).expect(200)).body.token as string;
+    const lostSession = sessions.find((session) => session.current)!;
+    await http().delete(`/api/auth/sessions/${lostSession.id}`).set('Authorization', bearer(other)).expect(204);
+    await refresh(previous).expect(401);
+    await refresh(lost).expect(401);
+  });
+
+  it('refuses both tokens inside the grace once the student asks to delete the account', async () => {
+    const { previous, lost } = await rotatedPair();
+    await http().delete('/api/users/me').set('Authorization', bearer(lost)).send({ password }).expect(202);
+    await refresh(previous).expect(401);
+    await refresh(lost).expect(401);
   });
 });

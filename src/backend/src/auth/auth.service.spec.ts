@@ -1,12 +1,12 @@
 import { ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { Algorithm, hash, parseOptions, verify } from '@node-rs/argon2';
-import { IsNull, LessThanOrEqual, QueryFailedError } from 'typeorm';
+import { IsNull, LessThanOrEqual, MoreThan, QueryFailedError } from 'typeorm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Clock } from '../config/clock.js';
 import { DAY_MS } from '../config/time.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
-import { ARGON2_OPTIONS, AuthService, hashToken } from './auth.service.js';
+import { ARGON2_OPTIONS, AuthService, hashToken, REFRESH_GRACE_MS } from './auth.service.js';
 import { Session } from './session.entity.js';
 
 const THIRTY_DAYS_MS = 30 * DAY_MS;
@@ -267,7 +267,7 @@ describe('AuthService', () => {
       sessions.findOne.mockImplementation(async ({ where }: { where: { tokenHash: string } }) => (where.tokenHash === session.tokenHash ? session : null));
       sessions.update.mockImplementation(async (_id: string, changes: Partial<Session>) => Object.assign(session, changes));
 
-      const result = await service.refresh(session);
+      const result = await service.refresh(session, 'Bearer token');
       await expect(service.authenticate('token')).resolves.toBeNull();
       await expect(service.authenticate(result.token)).resolves.toMatchObject({ session: { id: session.id } });
       expect(session.expiresAt.getTime()).toBeGreaterThan(currentNow.getTime() + 6 * DAY_MS);
@@ -280,7 +280,7 @@ describe('AuthService', () => {
         expiresAt: new Date(currentNow.getTime() + DAY_MS),
       });
 
-      const capped = await service.refresh(session);
+      const capped = await service.refresh(session, 'Bearer token');
       expect(capped.expiresAt.getTime()).toBe(createdAt.getTime() + THIRTY_DAYS_MS);
       expect(sessions.update).toHaveBeenCalledWith(
         session.id,
@@ -289,8 +289,44 @@ describe('AuthService', () => {
 
       sessions.update.mockClear();
       currentNow = new Date(createdAt.getTime() + THIRTY_DAYS_MS);
-      await expect(service.refresh(session)).rejects.toThrow(new UnauthorizedException('Session expired'));
+      await expect(service.refresh(session, 'Bearer token')).rejects.toThrow(new UnauthorizedException('Session expired'));
       expect(sessions.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('refresh grace', () => {
+    it('keeps the replaced token as the previous one and starts the grace at the rotation', async () => {
+      const session = makeSession({ createdAt: new Date(currentNow.getTime() - DAY_MS) });
+      await service.refresh(session, 'Bearer token');
+      expect(sessions.update).toHaveBeenCalledWith(session.id, expect.objectContaining({ previousTokenHash: hashToken('token'), rotatedAt: currentNow }));
+    });
+
+    it('replaces the lost successor without moving the previous token or the start of the grace', async () => {
+      const rotatedAt = new Date(currentNow.getTime() - 1000);
+      const session = makeSession({ createdAt: new Date(currentNow.getTime() - DAY_MS), tokenHash: hashToken('lost'), previousTokenHash: hashToken('token'), rotatedAt });
+      const result = await service.refresh(session, 'Bearer token');
+      const changes = sessions.update.mock.calls[0][1] as Partial<Session>;
+      expect(changes.tokenHash).toBe(hashToken(result.token));
+      expect(changes).not.toHaveProperty('previousTokenHash');
+      expect(changes).not.toHaveProperty('rotatedAt');
+    });
+
+    it('looks the previous token up only when the route accepts it, and only inside the grace', async () => {
+      const session = makeSession({ createdAt: new Date(currentNow.getTime() - DAY_MS), expiresAt: new Date(currentNow.getTime() + DAY_MS) });
+      sessions.findOne.mockImplementation(async ({ where }: { where: { previousTokenHash?: string } }) => (where.previousTokenHash ? session : null));
+
+      await expect(service.authenticate('token')).resolves.toBeNull();
+      await expect(service.authenticate('token', true)).resolves.toEqual({ user: session.user, session });
+      expect(sessions.findOne).toHaveBeenLastCalledWith({
+        where: { previousTokenHash: hashToken('token'), rotatedAt: MoreThan(new Date(currentNow.getTime() - REFRESH_GRACE_MS)) },
+        relations: { user: true },
+      });
+    });
+
+    it('refuses a revoked session found by its previous token', async () => {
+      const session = makeSession({ createdAt: new Date(currentNow.getTime() - DAY_MS), revokedAt: new Date(currentNow) });
+      sessions.findOne.mockImplementation(async ({ where }: { where: { previousTokenHash?: string } }) => (where.previousTokenHash ? session : null));
+      await expect(service.authenticate('token', true)).resolves.toBeNull();
     });
   });
 

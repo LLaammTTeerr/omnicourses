@@ -11,10 +11,11 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { SECOND_MS } from '../config/time.js';
 import { User } from '../users/user.entity.js';
-import { CurrentSession, CurrentUser, Public } from './auth.decorators.js';
+import { AcceptsPreviousToken, CurrentSession, CurrentUser, Public } from './auth.decorators.js';
 import { AuthResultDto, SessionDto, SignInDto, SignUpDto } from './auth.dto.js';
-import { AuthService } from './auth.service.js';
+import { AuthService, REFRESH_GRACE_MS } from './auth.service.js';
 import { PASSWORD_LIMIT } from './rate-limits.js';
 import { Session } from './session.entity.js';
 
@@ -43,12 +44,17 @@ export class AuthController {
     return this.auth.signIn(dto, userAgent, req.ip);
   }
 
+  @AcceptsPreviousToken()
   @Post('refresh')
   @HttpCode(200)
   @ApiBearerAuth()
-  @ApiOkResponse({ type: AuthResultDto, description: 'New token; the one used for this request stops working.' })
-  refresh(@CurrentSession() session: Session): Promise<AuthResultDto> {
-    return this.auth.refresh(session);
+  @ApiOkResponse({
+    type: AuthResultDto,
+    description:
+      `New token. The token sent with this request stops working at once on every other route; this route still accepts it for ${REFRESH_GRACE_MS / SECOND_MS} seconds, so a reload during a refresh keeps the session.`,
+  })
+  refresh(@Req() req: Request, @CurrentSession() session: Session): Promise<AuthResultDto> {
+    return this.auth.refresh(session, req.headers.authorization);
   }
 
   @Post('sign-out')

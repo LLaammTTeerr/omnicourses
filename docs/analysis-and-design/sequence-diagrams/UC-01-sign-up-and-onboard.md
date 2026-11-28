@@ -128,9 +128,9 @@ sequenceDiagram
     Guard->>Auth: authenticate(token)
     Auth-->>Guard: { user, session }
     Guard->>Auth: refresh(session)
-    Auth->>DB: UPDATE sessions SET token_hash = sha256(new), rotated_at = now, expires_at = now + 7 days
+    Auth->>DB: UPDATE sessions SET previous_token_hash = token_hash, token_hash = sha256(new), rotated_at = now, expires_at = now + 7 days
     Auth-->>SPA: 200 { new token, expiresAt, user, accountRestored: false }
-    Note over SPA,DB: the old token's hash is gone, so it returns 401 from now on
+    Note over SPA,DB: the old token returns 401 from now on, except on refresh within REFRESH_GRACE_MS of rotated_at (ADR 0002, 2026-11-28), so a reload during a refresh keeps the session
 ```
 
 ## Signing out

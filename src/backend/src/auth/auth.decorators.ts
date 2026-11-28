@@ -7,6 +7,10 @@ export const IS_PUBLIC = 'isPublic';
 
 export const Public = () => SetMetadata(IS_PUBLIC, true);
 
+export const ACCEPTS_PREVIOUS_TOKEN = 'acceptsPreviousToken';
+
+export const AcceptsPreviousToken = () => SetMetadata(ACCEPTS_PREVIOUS_TOKEN, true);
+
 export const Authenticated = () =>
   applyDecorators(ApiBearerAuth(), ApiUnauthorizedResponse({ description: 'Missing, expired or revoked token' }));
 

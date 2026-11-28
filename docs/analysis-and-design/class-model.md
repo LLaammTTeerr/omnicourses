@@ -36,6 +36,7 @@ classDiagram
         id : uuid PK
         userId : uuid FK
         tokenHash : char 64, unique, credential
+        previousTokenHash : char 64?, credential
         userAgent : varchar 512?
         rotatedAt : timestamptz?
         expiresAt : timestamptz
