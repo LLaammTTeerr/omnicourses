@@ -21,7 +21,7 @@ export class ProgramAdminService {
     return this.writes.run(callerId, { permission: 'access_manager' }, async (em) => {
       const programs = em.getRepository(Program);
       if (await programs.existsBy({ code: dto.code })) throw conflict('duplicate_code', `A program already has the code ${dto.code}`);
-      const { identifiers } = await programs.insert({ code: dto.code, nameVi: dto.nameVi, nameEn: trimmedOrNull(dto.nameEn), faculty: trimmedOrNull(dto.faculty) });
+      const { identifiers } = await programs.insert({ code: dto.code, nameVi: dto.nameVi, nameEn: trimmedOrNull(dto.nameEn), faculty: trimmedOrNull(dto.faculty), trainingType: dto.trainingType ?? null });
       return programDto(await programs.findOneByOrFail({ id: identifiers[0].id as string }));
     });
   }
@@ -62,6 +62,7 @@ export class ProgramAdminService {
         nameVi: dto.nameVi,
         nameEn: trimmedOrNull(dto.nameEn),
         language: trimmedOrNull(dto.language),
+        totalCreditsMin: dto.totalCreditsMin ?? null,
       });
       return cohortDto(await curriculums.findOneByOrFail({ id: identifiers[0].id as string }));
     });

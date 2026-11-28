@@ -19,9 +19,15 @@ describe('detailsPatch', () => {
     expect(detailsPatch(COHORT_FIELDS, cohort, { nameEn: '' })).toEqual({});
   });
 
-  it('never carries an identifier or a gated column, whatever the body object holds', () => {
+  it('never carries an identifier or the training type, whatever the body object holds', () => {
     const body = { nameVi: 'Tên mới', code: 'ZZ-OTHER', trainingType: 'advanced', cohortYear: 2030, programId: 'q', totalCreditsMin: 1 };
     expect(detailsPatch(PROGRAM_FIELDS, program, body)).toEqual({ nameVi: 'Tên mới' });
-    expect(detailsPatch(COHORT_FIELDS, cohort, body)).toEqual({ nameVi: 'Tên mới' });
+    expect(detailsPatch(COHORT_FIELDS, cohort, body)).toEqual({ nameVi: 'Tên mới', totalCreditsMin: 1 });
+  });
+
+  it("carries a cohort's credit total only when it changes, null included", () => {
+    expect(detailsPatch(COHORT_FIELDS, cohort, { totalCreditsMin: 120 })).toEqual({});
+    expect(detailsPatch(COHORT_FIELDS, cohort, { totalCreditsMin: null })).toEqual({ totalCreditsMin: null });
+    expect(detailsPatch(COHORT_FIELDS, cohort, { totalCreditsMin: 0 })).toEqual({ totalCreditsMin: 0 });
   });
 });
