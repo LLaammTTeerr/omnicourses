@@ -2,6 +2,7 @@ import { byText, groupBy } from '../common/collections.js';
 import { compareTerms, type Term } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
 import { isPassingGrade, toTenths } from './grades.js';
+import type { TranscriptCourseStatus } from './types.js';
 
 export function isCompleted(entry: TranscriptEntry): boolean {
   return entry.result !== 'in_progress';
@@ -72,7 +73,21 @@ export function resolve(code: string, attempts: TranscriptEntry[]): CourseRecord
   };
 }
 
-export function recordAsOf(record: CourseRecord, term: Term): CourseRecord | null {
-  const attempts = record.attempts.filter((a) => compareTerms(a.term, term) <= 0);
+export function courseStatus(record: CourseRecord): TranscriptCourseStatus {
+  if (record.passed) return 'passed';
+  if (record.inProgress) return 'in_progress';
+  return 'failed';
+}
+
+function recordWithin(record: CourseRecord, keeps: (attempt: TranscriptEntry) => boolean): CourseRecord | null {
+  const attempts = record.attempts.filter(keeps);
   return attempts.length ? resolve(record.code, attempts) : null;
+}
+
+export function recordAsOf(record: CourseRecord, term: Term): CourseRecord | null {
+  return recordWithin(record, (a) => compareTerms(a.term, term) <= 0);
+}
+
+export function recordBefore(record: CourseRecord, term: Term): CourseRecord | null {
+  return recordWithin(record, (a) => compareTerms(a.term, term) < 0);
 }

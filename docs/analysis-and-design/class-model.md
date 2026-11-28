@@ -786,7 +786,7 @@ Every function below is pure (no database, no clock, no model) and is exported f
 | File in `rules/` | Function | Input → output | Rule it decides |
 | --- | --- | --- | --- |
 | `audit.ts` | `degreeAudit(rules, transcript, asOf?)` | `CurriculumRules`, `TranscriptEntry[]`, `Term` or null → `DegreeAudit` | The whole degree audit, of the rows up to `asOf` when given; composes the functions below |
-| `attempts.ts` | `courseRecords(entries)`, `resolve(code, attempts)`, `recordAsOf(record, term)` | `TranscriptEntry[]` → `Map<string, CourseRecord>` | The official attempt of each course: the last completed one (QĐ 1175 Điều 14) |
+| `attempts.ts` | `courseRecords(entries)`, `resolve(code, attempts)`, `courseStatus(record)`, `recordAsOf(record, term)`, `recordBefore(record, term)` | `TranscriptEntry[]` → `Map<string, CourseRecord>` | The official attempt of each course: the last completed one (QĐ 1175 Điều 14) |
 | `attempts.ts` | `isCompleted(entry)`, `attemptPasses(entry)` | `TranscriptEntry` → `boolean` | Whether one attempt is finished, and whether it passes |
 | `coverage.ts` | `placements(rules)` | `CurriculumRules` → course code → group it counts in | A course linked to several groups counts in exactly one |
 | `coverage.ts` | `groupCoverage(rules, records, placed)` | → `GroupCoverage[]` | Credits passed, in progress, overflow and remaining per requirement group |
@@ -795,7 +795,7 @@ Every function below is pure (no database, no clock, no model) and is exported f
 | `gpa.ts` | `weightedAverage(items)`, `fourPointAverage(items)` | `WeightedGrade[]` → `ExactAverage` or null | Điều 15 averages, kept as exact fractions |
 | `grades.ts` | `isPassingGrade(grade)`, `fourPointTenths(grade)`, `classify(numerator, denominator, cohortYear)`, `yearLevel(accumulatedCredits)` | numbers → `boolean`, `Classification`, 1–4 | Pass mark, 4-point scale, classification, year level |
 | `credit-caps.ts` | `termKind(trainingType, number)`, `creditCaps(trainingType, kind)`, `checkTermLoad(trainingType, number, courses)` | → `TermKind`, `CreditCaps`, `TermLoadCheck` | Main or summer term; the credit caps by training type; a term's load against them |
-| `prerequisites.ts` | `checkPrerequisites(prerequisites, passedCodes)` | → `PrerequisiteCheck`: `not_recorded`, `none`, `met`, or `not_met` with the missing codes | Prerequisites (Điều 3.1.c) |
+| `prerequisites.ts` | `checkPrerequisites(prerequisites, passedCodes)`; `passedOnly(records)` (the explorer) and `passedOrAssumedBefore(records, plannedEarlier, term)` (the planner) build `passedCodes` | → `PrerequisiteCheck`: `not_recorded`, `none`, `met`, or `not_met` with the missing codes | Prerequisites (Điều 3.1.c) |
 | `prerequisites.ts` | `checkOfferingTerm(offeredTermNumbers, term)` | → `OfferingTermCheck`: `not_recorded`, `offered`, or `not_offered` with the offered term numbers | Offering terms |
 | `plan-issues.ts` | `checkPlan(input)` | `PlanCheckInput` → `PlanIssuesReport` | Every issue of a plan board, each term's load, and the coverage the plan would reach; composes the functions above |
 

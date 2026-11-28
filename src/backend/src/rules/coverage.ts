@@ -1,7 +1,7 @@
 import { byText } from '../common/collections.js';
 import type { CurriculumRuleCourse, CurriculumRuleGroup, CurriculumRules } from '../curriculum/curriculum-rules.js';
-import type { CourseRecord } from './attempts.js';
-import type { CombinedMinimumCoverage, CourseCoverage, CourseStatus, GroupCoverage } from './types.js';
+import { courseStatus, type CourseRecord } from './attempts.js';
+import type { CombinedMinimumCoverage, CourseCoverage, GroupCoverage, TranscriptCourseStatus } from './types.js';
 
 export interface CountedLink {
   group: CurriculumRuleGroup;
@@ -27,13 +27,6 @@ export function recordCredits(record: CourseRecord): number {
   return (record.official ?? record.attempts.at(-1)!).credits;
 }
 
-function statusOf(record: CourseRecord | undefined): Exclude<CourseStatus, 'counted_in_other_group'> {
-  if (!record) return 'not_taken';
-  if (record.passed) return 'passed';
-  if (record.inProgress) return 'in_progress';
-  return record.official ? 'failed' : 'not_taken';
-}
-
 interface Tally {
   group: CurriculumRuleGroup;
   required: number | null;
@@ -48,7 +41,7 @@ function tally(group: CurriculumRuleGroup, records: ReadonlyMap<string, CourseRe
   let inProgress = 0;
   const courses = group.courses.map((course): CourseCoverage => {
     const record = records.get(course.code);
-    const own = statusOf(record);
+    const own: TranscriptCourseStatus | 'not_taken' = record ? courseStatus(record) : 'not_taken';
     const countedIn = placed.get(course.code)!.group.id;
     const here = countedIn === group.id;
     if (here && course.countsTowardTotal && record) {
