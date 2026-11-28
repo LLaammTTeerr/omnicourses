@@ -1,13 +1,15 @@
 import { ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { Algorithm, hash, parseOptions, verify } from '@node-rs/argon2';
-import { QueryFailedError } from 'typeorm';
+import { IsNull, LessThanOrEqual, QueryFailedError } from 'typeorm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Clock } from '../config/clock.js';
 import { DAY_MS } from '../config/time.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
-import { ARGON2_OPTIONS, AuthService, hashToken, MAX_SESSION_LIFETIME_DAYS } from './auth.service.js';
+import { ARGON2_OPTIONS, AuthService, hashToken } from './auth.service.js';
 import { Session } from './session.entity.js';
+
+const THIRTY_DAYS_MS = 30 * DAY_MS;
 
 function makeUser(overrides: Partial<User> = {}): User {
   return {
@@ -110,7 +112,7 @@ describe('AuthService', () => {
       const saved = sessions.save.mock.calls[0]![0] as Session;
       expect(saved.tokenHash).toBe(hashToken(result.token));
       expect(saved.createdAt).toEqual(currentNow);
-      expect(sessions.delete).toHaveBeenCalledOnce();
+      expect(sessions.delete).toHaveBeenCalledExactlyOnceWith({ userId: result.user.id, expiresAt: LessThanOrEqual(currentNow) });
     });
 
     it('rejects an email that is already registered', async () => {
@@ -246,7 +248,7 @@ describe('AuthService', () => {
         'beyond 30-day max lifetime',
         (now: Date) =>
           makeSession({
-            createdAt: new Date(now.getTime() - MAX_SESSION_LIFETIME_DAYS * DAY_MS),
+            createdAt: new Date(now.getTime() - THIRTY_DAYS_MS),
             expiresAt: new Date(now.getTime() + DAY_MS),
           }),
       ],
@@ -279,14 +281,14 @@ describe('AuthService', () => {
       });
 
       const capped = await service.refresh(session);
-      expect(capped.expiresAt.getTime()).toBe(createdAt.getTime() + MAX_SESSION_LIFETIME_DAYS * DAY_MS);
+      expect(capped.expiresAt.getTime()).toBe(createdAt.getTime() + THIRTY_DAYS_MS);
       expect(sessions.update).toHaveBeenCalledWith(
         session.id,
-        expect.objectContaining({ expiresAt: new Date(createdAt.getTime() + MAX_SESSION_LIFETIME_DAYS * DAY_MS) }),
+        expect.objectContaining({ expiresAt: new Date(createdAt.getTime() + THIRTY_DAYS_MS) }),
       );
 
       sessions.update.mockClear();
-      currentNow = new Date(createdAt.getTime() + MAX_SESSION_LIFETIME_DAYS * DAY_MS);
+      currentNow = new Date(createdAt.getTime() + THIRTY_DAYS_MS);
       await expect(service.refresh(session)).rejects.toThrow(new UnauthorizedException('Session expired'));
       expect(sessions.update).not.toHaveBeenCalled();
     });
@@ -295,7 +297,7 @@ describe('AuthService', () => {
   describe('revoke', () => {
     it('only touches sessions owned by the caller', async () => {
       await service.revoke('user-1', 'session-1');
-      expect(sessions.update.mock.calls[0]![0]).toMatchObject({ id: 'session-1', userId: 'user-1' });
+      expect(sessions.update).toHaveBeenCalledExactlyOnceWith({ id: 'session-1', userId: 'user-1', revokedAt: IsNull() }, { revokedAt: currentNow });
     });
 
     it('404s when nothing matched', async () => {

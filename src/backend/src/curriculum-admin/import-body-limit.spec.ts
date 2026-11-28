@@ -5,9 +5,10 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { configureApp } from '../bootstrap.js';
 import type { Need } from '../admin-access/grants.js';
-import { CATALOG_IMPORTS, COHORT_IMPORTS, IMPORT_JSON_LIMIT_BYTES, ImportBodyGate } from './import-body-limit.js';
+import { CATALOG_IMPORTS, COHORT_IMPORTS, ImportBodyGate } from './import-body-limit.js';
 
 const KIB = 1024;
+const SEVEN_MIB = 7 * KIB * KIB;
 const DEFAULT_LIMIT = 100 * KIB;
 const LONG_LOOP_TIMEOUT_MS = 60_000;
 const PROGRAM = '11111111-1111-4111-8111-111111111111';
@@ -78,7 +79,7 @@ describe('JSON body limits', () => {
   it('takes a body over 100 KiB, and up to exactly 7 MiB, from the holder of the grant of each import route', async () => {
     for (const [path, caller] of GRANTED) {
       expect((await post(path, bodyOf(DEFAULT_LIMIT + 1), caller).expect(200)).body).toEqual({ characters: DEFAULT_LIMIT + 1 - 10 });
-      expect((await post(path, bodyOf(IMPORT_JSON_LIMIT_BYTES), caller).expect(200)).body).toEqual({ characters: IMPORT_JSON_LIMIT_BYTES - 10 });
+      expect((await post(path, bodyOf(SEVEN_MIB), caller).expect(200)).body).toEqual({ characters: SEVEN_MIB - 10 });
     }
     expect(asked.filter((_, i) => i % 2 === 0)).toEqual([
       [MAINTAINER, { permission: 'catalog_maintainer' }],
@@ -90,7 +91,7 @@ describe('JSON body limits', () => {
 
   it('refuses one byte over 7 MiB from them with 413 payload_too_large', async () => {
     for (const [path, caller] of GRANTED) {
-      const refused = await post(path, bodyOf(IMPORT_JSON_LIMIT_BYTES + 1), caller).expect(413);
+      const refused = await post(path, bodyOf(SEVEN_MIB + 1), caller).expect(413);
       expect(refused.body).toEqual({ statusCode: 413, code: 'payload_too_large', message: 'The request body is larger than 7 MiB' });
       expect(refused.headers).toHaveProperty('access-control-allow-origin');
     }
@@ -116,7 +117,7 @@ describe('JSON body limits', () => {
     ];
     for (const [path, caller] of callers) {
       expect((await post(path, bodyOf(DEFAULT_LIMIT), caller).expect(200)).body).toEqual({ characters: DEFAULT_LIMIT - 10 });
-      for (const bytes of [DEFAULT_LIMIT + 1, IMPORT_JSON_LIMIT_BYTES]) expect([path, caller, (await post(path, bodyOf(bytes), caller).expect(413)).body]).toEqual([path, caller, DEFAULT_REFUSAL]);
+      for (const bytes of [DEFAULT_LIMIT + 1, SEVEN_MIB]) expect([path, caller, (await post(path, bodyOf(bytes), caller).expect(413)).body]).toEqual([path, caller, DEFAULT_REFUSAL]);
     }
   }, LONG_LOOP_TIMEOUT_MS);
 
@@ -130,7 +131,7 @@ describe('JSON body limits', () => {
 
   it('never inflates a body on an import route: 415 for every caller, before the gate is asked', async () => {
     const small = gzipSync(bodyOf(200));
-    const bomb = gzipSync(bodyOf(IMPORT_JSON_LIMIT_BYTES));
+    const bomb = gzipSync(bodyOf(SEVEN_MIB));
     expect(bomb.length).toBeLessThan(10 * KIB);
     for (const [path, granted] of GRANTED) {
       for (const caller of [undefined, STRANGER, granted]) {

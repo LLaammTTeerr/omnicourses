@@ -316,8 +316,8 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
     expect(wrapper.get('dialog[open]').text()).toContain(ADMIN_MESSAGES.vi.access.revokeOwn);
     await click(wrapper.get('dialog[open]'), 'confirm-no');
     await click(wrapper, 'access-grant-catalog_maintainer');
+    expect(calls(fetch, 'PUT').map(pathOf)).toEqual([`/admin/access/users/${capitals}/global/catalog_maintainer`]);
     expect(wrapper.findAll('.admin-tabs a').map((a) => a.text())).toEqual(['Danh mục học phần', 'Nhập CSV', 'Phân quyền']);
-    expect(fetch).toHaveBeenCalled();
   });
 
   it('stays on the page while a grant is out', async () => {

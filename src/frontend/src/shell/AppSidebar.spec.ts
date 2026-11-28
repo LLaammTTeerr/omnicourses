@@ -5,7 +5,9 @@ import { setup } from '../testing/signed-in.js';
 import AppSidebar from './AppSidebar.vue';
 import PublicHeader from './PublicHeader.vue';
 import PublicHeaderRaw from './PublicHeader.vue?raw';
+import { SHELL_MESSAGES } from './messages.js';
 import { useSidebar } from './sidebar.js';
+import { useTheme } from './theme.js';
 
 let wrapper: VueWrapper | undefined;
 
@@ -21,6 +23,7 @@ describe('AppSidebar accessibility', () => {
 
   it('keeps collapse aria-label and title consistent, and adds titles to theme and language buttons when mini', async () => {
     const { pinia, router } = await setup('/dashboard');
+    useTheme(pinia).set('light');
     wrapper = mount(AppSidebar, { global: { plugins: [pinia, router] }, attachTo: document.body });
     await flushPromises();
 
@@ -40,7 +43,7 @@ describe('AppSidebar accessibility', () => {
     expect(useSidebar().mini).toBe(true);
     expect(collapse().attributes('aria-label')).toBe('Thu gọn');
     expect(collapse().attributes('title')).toBe('Mở rộng');
-    expect(themeBtn().attributes('title')).toBeTruthy();
+    expect(themeBtn().attributes('title')).toBe(SHELL_MESSAGES.vi.toDark);
     expect(langBtn().attributes('title')).toBe('English');
   });
 });

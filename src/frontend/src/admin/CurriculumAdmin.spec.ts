@@ -1063,7 +1063,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     await get(wrapper, 'curriculum-failed').get('button').trigger('click');
     await flushPromises();
     expect(wrapper.findAll('[data-test="group-row"]')).toHaveLength(2);
-    expect(fetch).toHaveBeenCalled();
   });
 
   it('says when the cohort has no curriculum (404), which is not a failure', async () => {

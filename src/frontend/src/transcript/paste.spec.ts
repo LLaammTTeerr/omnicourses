@@ -166,7 +166,7 @@ describe('parseTranscriptPaste (F2 deterministic paste parser, ADR 0007)', () =>
       rows: [{ year: 2024, number: 1, courseCode: 'ZZ501', courseName: 'Compilers', credits: '4', result: 'graded', grade: '8.0' }],
       errors: [
         { line: 1, text: 'Grade report', reason: 'columns' },
-        { line: 2, text: 'Term\tCourse Code\tCourse Name\tCredits\tResult', reason: expect.any(String) },
+        { line: 2, text: 'Term\tCourse Code\tCourse Name\tCredits\tResult', reason: 'term' },
       ],
     });
 

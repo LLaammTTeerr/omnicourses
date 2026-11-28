@@ -545,17 +545,18 @@ describe('Plan sharing API (e2e)', () => {
       const token = await share(owner.auth, plan.id);
       const rowsFor = vi.spyOn(app.get(TranscriptService, { strict: false }), 'rowsFor');
       try {
-        await read(token).expect(200);
-        await read(token).expect(200);
+        const codes = async () => (await read(token).expect(200)).body.issues.map((i: { code: string }) => i.code);
+        expect(await codes()).not.toContain('already_passed');
+        expect(await codes()).not.toContain('already_passed');
         expect(rowsFor).not.toHaveBeenCalled();
 
         await putShare(owner.auth, plan.id, { showTranscriptChecks: true });
-        await read(token).expect(200);
+        expect(await codes()).toContain('already_passed');
         expect(rowsFor.mock.calls).toEqual([[owner.userId]]);
 
         rowsFor.mockClear();
         await putShare(owner.auth, plan.id, { showTranscriptChecks: false });
-        await read(token).expect(200);
+        expect(await codes()).not.toContain('already_passed');
         expect(rowsFor).not.toHaveBeenCalled();
       } finally {
         rowsFor.mockRestore();

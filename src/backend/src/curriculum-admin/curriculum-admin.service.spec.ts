@@ -44,7 +44,10 @@ describe('CurriculumAdminService.deleteGroup', () => {
   it('locks the group row before it counts the plans that use it', async () => {
     const { service, sql } = serviceWith({});
     await deleteGroup(service);
-    expect(sql.findIndex((s) => s.includes('FOR UPDATE'))).toBeLessThan(sql.findIndex((s) => s.includes('plan_placements')));
+    const lockAt = sql.findIndex((s) => s.includes('FOR UPDATE'));
+    const countAt = sql.findIndex((s) => s.includes('plan_placements'));
+    expect(lockAt).toBeGreaterThanOrEqual(0);
+    expect(lockAt).toBeLessThan(countAt);
   });
 
   it('refuses a group that saved plans use with 409 referenced_item and a count only (#171)', async () => {

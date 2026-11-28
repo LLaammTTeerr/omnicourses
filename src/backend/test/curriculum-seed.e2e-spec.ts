@@ -254,6 +254,7 @@ describe('db:seed', () => {
     await dataSource.query(`UPDATE requirement_groups SET official_notes = 'edited by an admin' WHERE name = 'Kiến thức Math'`);
     await seedCurricula(dataSource, CURRICULUM_SEEDS, CATALOG_DECISIONS);
     const notes = await dataSource.query(`SELECT official_notes FROM requirement_groups WHERE name = 'Kiến thức Math'`);
+    expect(notes.length).toBeGreaterThan(0);
     expect(notes.every((n: { official_notes: string }) => n.official_notes === 'edited by an admin')).toBe(true);
 
     await dataSource.query(`UPDATE courses SET name_vi = 'Renamed' WHERE code = 'CS160'`);

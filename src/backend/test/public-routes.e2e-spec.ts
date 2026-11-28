@@ -79,7 +79,11 @@ describe('Public routes (e2e)', () => {
     }
   });
 
-  it('lets a signed-out caller write only to sign-up and sign-in', () => {
-    expect(PUBLIC_ROUTES.filter((key) => !key.startsWith('GET ') && !PUBLIC_WRITES.includes(key))).toEqual([]);
+  it('lets a signed-out caller write only to sign-up and sign-in', async () => {
+    const open: string[] = [];
+    for (const { method, path, key } of routes.filter((r) => r.method !== 'get')) {
+      if ((await call(method, path)).status !== 401) open.push(key);
+    }
+    expect(open.sort()).toEqual([...PUBLIC_WRITES].sort());
   });
 });

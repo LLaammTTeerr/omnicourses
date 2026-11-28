@@ -1,18 +1,18 @@
 import type { Type } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 import { flattenErrors, validateStrict } from '../common/api-requests.js';
-import { ImportConfirmRequestDto, REVIEW_VERSION_MAX_LENGTH } from './csv-import.dto.js';
+import { ImportConfirmRequestDto } from './csv-import.dto.js';
 import {
-  CONFIRM_IMPACT_MAX_LENGTH,
   CreateCourseDto,
   CreateRequirementGroupDto,
-  MAX_INTEGER,
-  OFFICIAL_NOTES_MAX_LENGTH,
   UpdateCourseDto,
   UpdateRequirementGroupDto,
 } from './curriculum-admin.dto.js';
 
 const messages = async (dto: Type<object>, body: object) => flattenErrors((await validateStrict<object>(dto, body)).errors ?? []);
+const INT4_MAX = 2_147_483_647;
+const OFFICIAL_NOTES_LIMIT = 2000;
+const TOKEN_LIMIT = 128;
 const course = { code: 'ZZ101', nameVi: 'Học phần thử', credits: 3 };
 
 describe('credit and period counts', () => {
@@ -32,12 +32,12 @@ describe('credit and period counts', () => {
   });
 
   it('refuses a whole number above what the database stores, and only that', async () => {
-    expect(await messages(CreateCourseDto, { ...course, credits: MAX_INTEGER + 1, projectPeriods: 1e30 })).toEqual([
-      `credits must not be greater than ${MAX_INTEGER}`,
-      `projectPeriods must not be greater than ${MAX_INTEGER}`,
+    expect(await messages(CreateCourseDto, { ...course, credits: INT4_MAX + 1, projectPeriods: 1e30 })).toEqual([
+      `credits must not be greater than ${INT4_MAX}`,
+      `projectPeriods must not be greater than ${INT4_MAX}`,
     ]);
-    expect(await messages(UpdateCourseDto, { exercisePeriods: MAX_INTEGER + 1 })).toEqual([`exercisePeriods must not be greater than ${MAX_INTEGER}`]);
-    expect(await messages(CreateCourseDto, { ...course, credits: MAX_INTEGER, theoryPeriods: MAX_INTEGER })).toEqual([]);
+    expect(await messages(UpdateCourseDto, { exercisePeriods: INT4_MAX + 1 })).toEqual([`exercisePeriods must not be greater than ${INT4_MAX}`]);
+    expect(await messages(CreateCourseDto, { ...course, credits: INT4_MAX, theoryPeriods: INT4_MAX })).toEqual([]);
     expect(await messages(CreateCourseDto, { ...course, credits: 0, labPeriods: -1 })).toEqual(['credits must not be less than 1', 'labPeriods must not be less than 0']);
   });
 });
@@ -46,7 +46,7 @@ describe('requirement-group credit totals', () => {
   const group = { name: 'Nhóm thử', kind: 'elective' };
 
   it('accepts a whole number from 0, or null, on create and update', async () => {
-    for (const value of [0, 16, MAX_INTEGER, null]) {
+    for (const value of [0, 16, INT4_MAX, null]) {
       expect(await messages(CreateRequirementGroupDto, { ...group, creditsTotal: value, creditsTotalMin: value })).toEqual([]);
       expect(await messages(UpdateRequirementGroupDto, { creditsTotal: value, creditsTotalMin: value })).toEqual([]);
     }
@@ -58,7 +58,7 @@ describe('requirement-group credit totals', () => {
         expect(await messages(dto, { ...base, [field]: -1 })).toEqual([`${field} must not be less than 0`]);
         expect(await messages(dto, { ...base, [field]: 2.5 })).toEqual([`${field} must be an integer number`]);
         expect(await messages(dto, { ...base, [field]: '16' })).toEqual(expect.arrayContaining([`${field} must be an integer number`]));
-        expect(await messages(dto, { ...base, [field]: MAX_INTEGER + 1 })).toEqual([`${field} must not be greater than ${MAX_INTEGER}`]);
+        expect(await messages(dto, { ...base, [field]: INT4_MAX + 1 })).toEqual([`${field} must not be greater than ${INT4_MAX}`]);
       }
     }
   });
@@ -66,10 +66,10 @@ describe('requirement-group credit totals', () => {
 
 describe('code-point length bounds on notes and review tokens', () => {
   const FIELDS: [Type<object>, object, string, number][] = [
-    [CreateRequirementGroupDto, { name: 'Nhóm thử', kind: 'elective' }, 'officialNotes', OFFICIAL_NOTES_MAX_LENGTH],
-    [UpdateRequirementGroupDto, {}, 'officialNotes', OFFICIAL_NOTES_MAX_LENGTH],
-    [UpdateCourseDto, {}, 'confirmImpact', CONFIRM_IMPACT_MAX_LENGTH],
-    [ImportConfirmRequestDto, { csv: 'code\nZZ101\n' }, 'reviewVersion', REVIEW_VERSION_MAX_LENGTH],
+    [CreateRequirementGroupDto, { name: 'Nhóm thử', kind: 'elective' }, 'officialNotes', OFFICIAL_NOTES_LIMIT],
+    [UpdateRequirementGroupDto, {}, 'officialNotes', OFFICIAL_NOTES_LIMIT],
+    [UpdateCourseDto, {}, 'confirmImpact', TOKEN_LIMIT],
+    [ImportConfirmRequestDto, { csv: 'code\nZZ101\n' }, 'reviewVersion', TOKEN_LIMIT],
   ];
 
   it('bounds officialNotes to 2000 code points and confirmImpact / reviewVersion to 128 code points', async () => {

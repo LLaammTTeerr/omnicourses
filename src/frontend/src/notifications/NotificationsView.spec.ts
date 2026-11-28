@@ -158,9 +158,11 @@ describe('NotificationsView (F10, UC-12)', () => {
     await items(w)[2]!.get('[data-test="link-audit"]').trigger('click');
     await flushPromises();
     expect(push).not.toHaveBeenCalled();
+    expect(router.currentRoute.value.name).toBe('notifications');
     answer();
     await flushPromises();
     expect(push).toHaveBeenCalledTimes(1);
+    expect(router.currentRoute.value.name).toBe('audit');
   });
 
   it('tells the student when marking one read fails, and keeps it unread', async () => {

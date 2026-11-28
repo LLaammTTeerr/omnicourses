@@ -14,10 +14,19 @@ describe('requirement groups', () => {
     expect(new Set(GROUPS.map((g) => g.glyph)).size).toBe(GROUPS.length);
   });
 
-  it.each(GROUPS)('looks up the glyph and the short name of $id', (group) => {
-    expect(groupGlyph(group.id)).toBe(group.glyph);
-    expect(groupShort(group.id, 'vi')).toBe(group.short.vi);
-    expect(groupShort(group.id, 'en')).toBe(group.short.en);
+  it.each([
+    ['core', '</>', 'Cốt lõi', 'Core'],
+    ['math', '∑', 'Toán', 'Maths'],
+    ['phys', 'ℏ', 'Vật lý', 'Physics'],
+    ['eng', 'Aa', 'Anh văn', 'English'],
+    ['pol', '§', 'Chính trị', 'Politics'],
+    ['gen', '&', 'Kỹ năng', 'Skills'],
+    ['elec', '★', 'Tự chọn', 'Electives'],
+    ['thesis', '∎', 'Khóa luận', 'Thesis'],
+  ] as const)('looks up the glyph and the short name of %s', (id, glyph, vi, en) => {
+    expect(groupGlyph(id)).toBe(glyph);
+    expect(groupShort(id, 'vi')).toBe(vi);
+    expect(groupShort(id, 'en')).toBe(en);
   });
 
   it.each(GROUP_IDS)('has colour tokens for %s in the stylesheet', (id) => {

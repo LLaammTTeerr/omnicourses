@@ -59,7 +59,10 @@ describe('PlansService', () => {
     const { svc, tx } = service();
     const plan = await create(svc, board(course('ZZ001'), slot('g1')));
     expect(tx.insert).toHaveBeenNthCalledWith(1, expect.anything(), { userId: 'u1', curriculumId: 'c1', name: 'Main plan' });
-    expect(tx.insert.mock.calls[1][1]).toHaveLength(2);
+    expect(tx.insert).toHaveBeenNthCalledWith(2, expect.anything(), [
+      { planId: 'p1', userId: 'u1', termYear: 2030, termNumber: 1, position: 0, courseCode: 'ZZ001', requirementGroupId: null, slotCredits: null },
+      { planId: 'p1', userId: 'u1', termYear: 2030, termNumber: 1, position: 1, courseCode: null, requirementGroupId: 'g1', slotCredits: 3 },
+    ]);
     expect(plan).toEqual({
       id: 'p1',
       name: 'Main plan',
@@ -81,7 +84,7 @@ describe('PlansService', () => {
       [service({ curriculumId: null }), undefined, /No curriculum/],
       [service(), board(course('ZZ001'), course('ZZ009')), /ZZ009/],
       [service(), board(slot('g9')), /g9 is not in the plan's curriculum/],
-      [service(), [...board(course('ZZ001')), { term: { year: 2030, number: 2 }, placements: [course('ZZ001')] }], /./],
+      [service(), [...board(course('ZZ001')), { term: { year: 2030, number: 2 }, placements: [course('ZZ001')] }], /course ZZ001 is placed twice/],
     ];
     for (const [{ svc, tx }, terms, message] of cases) {
       const error = await create(svc, terms).catch((e: unknown) => e);

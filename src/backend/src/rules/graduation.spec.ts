@@ -61,6 +61,13 @@ describe('graduationStatus (ADR 0011, ADR 0013)', () => {
       'combined:00000000-0000-4000-8000-0000000000c1',
       'total_credits',
     ]);
+    expect(verdict.notChecked.map((c) => c.id)).toEqual([
+      'no_prosecution_or_suspension',
+      'defence_education_certificate',
+      'foreign_language_standard',
+      'it_standard',
+      'study_time_limit',
+    ]);
     expect(verdict.notChecked).toEqual(NOT_CHECKED_CONDITIONS);
   });
 
