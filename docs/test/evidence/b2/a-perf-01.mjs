@@ -79,7 +79,7 @@ if (part === 'prep') {
 }
 
 async function session({ profile }) {
-  const browser = await chromium.launch({ channel: 'chrome', headless: process.env.HEADLESS === '1' });
+  const browser = await chromium.launch({ channel: 'chrome', headless: process.env.HEADLESS === '1', args: ['--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding', '--disable-background-timer-throttling'] });
   log(`Chrome ${browser.version()} (${process.env.HEADLESS === '1' ? 'headless' : 'headed'}, playwright-core ${PW_VERSION}), profile ${profile ? JSON.stringify(PROFILE) : 'off'}`);
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: 'light' });
   await context.addInitScript(() => { try { if (!localStorage.getItem('omnicourse.lang')) localStorage.setItem('omnicourse.lang', 'en'); } catch {} });

@@ -1,0 +1,12 @@
+Chrome 144.0.7559.110, base https://stag-omnicourses.lamter.cc, profile {"offline":false,"latency":50,"downloadThroughput":1250000,"uploadThroughput":250000}
+PERF-01b health ms: 144.3, 123.6, 141.7, 124.5, 169.8, 109, 110.6, 139.7, 108.1, 109.4 (all >= 50: true)
+PERF-01b largest JS /assets/locale-pn9dbZBI.js: 31860 bytes on the wire, 157.1 ms (profile predicts about 75 ms)
+PERF-01c /dashboard cold cache: 5 runs, median 795 ms, p95 897 ms, max 897 ms, 0 at or over 2 s -> PASS
+PERF-01d /dashboard warm cache: 30 runs, median n/a, p95 n/a, max n/a, 30 at or over 2 s -> FAIL
+PERF-01d errors (added 27 Nov): page.waitForFunction: Timeout 30000ms exceeded.
+PERF-01e /dashboard in-app from Guides (Tổng quan): 30 runs, median 147 ms, p95 167 ms, max 169 ms, 0 at or over 2 s -> PASS
+PERF-01f /audit cold cache: 5 runs, median 1343 ms, p95 2636 ms, max 2636 ms, 2 at or over 2 s -> FAIL
+PERF-01g /audit warm cache: 30 runs, median n/a, p95 n/a, max n/a, 30 at or over 2 s -> FAIL
+PERF-01g errors (added 27 Nov): page.waitForFunction: Timeout 30000ms exceeded.
+PERF-01h /audit in-app from Guides (Xét tốt nghiệp): 30 runs, median 144 ms, p95 152 ms, max 152 ms, 0 at or over 2 s -> PASS
+Raw results: E:\Project\omnicourses\docs\test\evidence\b2\b1-regression\r28\perf-01-2026-11-28T10-16-51-993Z.json

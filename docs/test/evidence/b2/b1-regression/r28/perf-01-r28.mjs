@@ -225,7 +225,7 @@ async function inAppSeries(browser, id, exp) {
   await s.context.close();
 }
 
-const browser = await chromium.launch({ channel: 'chrome', headless: false });
+const browser = await chromium.launch({ channel: 'chrome', headless: false, args: ['--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding', '--disable-background-timer-throttling'] });
 results.chrome = browser.version();
 console.log(`Chrome ${results.chrome}, base ${BASE}, profile ${JSON.stringify(PROFILE)}`);
 try {
