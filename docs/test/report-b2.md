@@ -13,7 +13,7 @@
 | Result | Cases |
 | --- | --- |
 | Passed | 107. TRN-01a–g, TRN-02a–h, PLAN-01a, c, d, e, f, PLAN-02a–e, ADM-01a–e, ADM-02a–l, ADM-03a–f, ADM-04a–f, ADM-05a–g, ADM-06a–g, ADM-07a–i, SHARE-01a–l, NOTIF-01a–j, PERF-01a, b, A11Y-01a, b, c, d, g, h |
-| Failed | 7, all on staging `778d120` (28 Nov). PLAN-01b: during a keyboard lift the arrow keys never announce the target term (new defect, to file). PERF-01c–f: a planner edit takes about 300 ms (medians 295–307 ms; 15, 28, 16 and 19 of 30 runs at or over 300 ms; new defect, to file). A11Y-01e and f: contrast, [#119](https://github.com/LLaammTTeerr/omnicourses/issues/119) (a light hover at 4.47:1, a light field border on a tinted panel at 2.79:1, card separators at 1.18 / 1.20:1) |
+| Failed | 7, all on staging `778d120` (28 Nov). PLAN-01b: during a keyboard lift the arrow keys never announce the target term ([#247](https://github.com/LLaammTTeerr/omnicourses/issues/247)). PERF-01c–f: a planner edit takes about 300 ms (medians 298–307 ms; 15, 28, 16 and 19 of 30 runs at or over 300 ms; [#248](https://github.com/LLaammTTeerr/omnicourses/issues/248)). A11Y-01e and f: contrast, [#119](https://github.com/LLaammTTeerr/omnicourses/issues/119) (a light hover at 4.47:1, a light field border on a tinted panel at 2.79:1, card separators at 1.18 / 1.20:1) |
 | Blocked | 2. Staging's proxy: ADM-07j (nginx answered 413 in HTML on 25 Nov; Lâm runs `deploy/server/setup.sh` for `client_max_body_size 8m`). Streamed advisor updates (B3): A11Y-01i (dragging and Print/PDF layout are built; streamed updates wait for F8) |
 | Not applicable | 2. ADM-04g, ADM-07k (Lâm, 28 Nov: no total check; [ADR 0011, amendment of 28 November 2026](../analysis-and-design/adr/0011-curriculum-administration.md#amendment-28-november-2026-credit-totals-entered-through-f12)) |
 | Not run yet | 4. ADM-03g (rewritten on 28 November 2026 for the credit-total routes of #245; ADM-03c (5) and ADM-03d (3) changed with it and need a rerun; staging `778d120` does not have #245 yet). OPS-01a–c, on the host after `deploy/server/setup.sh` (Lâm) |
@@ -22,13 +22,13 @@
 What matters so far:
 
 - **28 November, staging `778d120`: the newly built screens pass, and the earlier B2 defects are fixed.** NOTIF-01d(2), NOTIF-01j, SHARE-01l (signed-out read-only page, A4 PDF), TRN-01f–g (paste with tabs, `|` or `;`, the change summary, **Cancel changes**) and PLAN-01a, c–f passed. The retests of #137 (PLAN-02a), #138 (PLAN-02c), #170 (A11Y-01d), #174 (export dates) and #163 (null characters and lengths counted in characters) passed.
-- **Two new defects, and #119 still open.** The planner misses the 300 ms limit by a little in every edit type (PERF-01c–f): an edit sends the save and then the check in sequence, and their server times alone add up to 255–275 ms at the median. A screen-reader user does not hear which term a keyboard lift points at (PLAN-01b). #119 still has three colour pairs under their ratios (A11Y-01e, f).
+- **New defects, and #119 still open.** The planner misses the 300 ms limit by a little in every edit type (PERF-01c–f, [#248](https://github.com/LLaammTTeerr/omnicourses/issues/248)): an edit sends the save and then the check one after the other, two network round trips in a row; their request times, network included, add up to 255–275 ms at the median, and `/api/health` alone takes about 115 ms under the same profile. A screen-reader user does not hear which term a keyboard lift points at (PLAN-01b, [#247](https://github.com/LLaammTTeerr/omnicourses/issues/247)). The transcript's summary buttons cover the result counts at 1280 px ([#249](https://github.com/LLaammTTeerr/omnicourses/issues/249), seen in the TRN-01 screenshots; TRN-01 still passes). #119 still has three colour pairs under their ratios (A11Y-01e, f).
 - **No ADM, TRN-02 or SHARE-01 API case failed.** Every permission boundary, impact review, cohort, removal, CSV import and grant case that could run passed, through the API and on the administration screens. No case found one student's data reaching another, or a write that a refused request left half done.
 By parent check. A parent passes only when all its required detailed outcomes pass ([test plan §5](test-plan.md#5-required-checks)).
 
 | Parent check | Result so far | Why |
 | --- | --- | --- |
-| TC-B2-PLAN-01 | **failed** | `a, c–f` passed on `778d120`. `b` failed on one point: the keyboard lift does not announce the target term (new defect). |
+| TC-B2-PLAN-01 | **failed** | `a, c–f` passed on `778d120`. `b` failed on one point: the keyboard lift does not announce the target term ([#247](https://github.com/LLaammTTeerr/omnicourses/issues/247)). |
 | TC-B2-PLAN-02 | passed | `b, d, e` passed on `086d49c`; the retests of `a` (#137) and `c` (#138) passed on `778d120`. |
 | TC-B2-TRN-01 | passed | `f, g` passed and `a–e` passed again on `778d120`. |
 | TC-B2-TRN-02 | passed | `a–h` passed. |
@@ -41,7 +41,7 @@ By parent check. A parent passes only when all its required detailed outcomes pa
 | TC-B2-ADM-07 | not passed yet | `a–i` passed. `j` blocked on running `setup.sh` on staging's nginx, `k` not applicable (Lâm, 28 Nov: no total check). |
 | TC-B2-SHARE-01 | passed | `a–k` passed through the API (`e7bd617`); `l` passed on `778d120`. |
 | TC-B2-NOTIF-01 | passed | `a–c, e–i` and `d(1)` passed (`e7bd617`); `d(2)` and `j` passed on `778d120`. |
-| TC-B2-PERF-01 | **failed** | `a, b` passed; `c–f` failed on `778d120`: every edit type has runs at or over 300 ms. |
+| TC-B2-PERF-01 | **failed** | `a, b` passed; `c–f` failed on `778d120`: every edit type has runs at or over 300 ms ([#248](https://github.com/LLaammTTeerr/omnicourses/issues/248)). |
 | TC-B2-A11Y-01 | **failed** | Administration screens: `a, b, c, g, h` passed (`5a5b9d5`); `d` passed on retest (`778d120`, #170 fixed); `e, f` failed again on `778d120` (#119, three colour pairs). `i` blocked on F8 streamed updates. The planner, transcript, sharing and notification screens are not yet in §10's table, nor are `/admin/calendar` and `/admin/import`. |
 | TC-B2-OPS-01 | not run on host yet | `OPS-01a–c` written; `omnicourse-backup.timer`, isolated `pg_dump` rehearsal procedure and HTTP 503 `/api/health` deploy rollback shipped on this branch, awaiting host execution after `setup.sh`. |
 
@@ -82,7 +82,7 @@ One line per group of cases from the same run with the same result. The results 
 | IDs | Result | What happened |
 | --- | --- | --- |
 | PLAN-01a, c–f | passed (28 Nov) | Mouse drag with one batched drop preview and no save until the drop; the 24-credit flag; the drop bin; the prerequisite and not-offered previews and violations, cleared when moved back; the elective slot's coverage; a late answer for an older edit or drag ignored; the 30-term cap, and 31 terms or targets refused with 400; saving blocks leaving the page; a 401 never shows **Saved**; a lost answer re-reads the plan. |
-| PLAN-01b | **failed** (28 Nov) | Keyboard add, lift, move, drop, cancel, Ctrl+Z, Delete and the What-if copy all worked, but the arrow keys never announce the target term: the live region gets the target row's drop reason in the same tick, and today every row has one (no APCS course has offering terms recorded). New defect, to file. |
+| PLAN-01b | **failed** (28 Nov) | Keyboard add, lift, move, drop, cancel, Ctrl+Z, Delete and the What-if copy all worked, but the arrow keys never announce the target term: the live region gets the target row's drop reason in the same tick, and today every row has one (no APCS course has offering terms recorded). [#247](https://github.com/LLaammTTeerr/omnicourses/issues/247). |
 | PLAN-02a | passed on retest (28 Nov) | Failed on `086d49c` (#137). On `778d120` the 401 signs the student out at once with the toast "Your session has ended — your last change was not saved. Please sign in again."; **Saved** never shows; after signing in, the plan and the API hold CS160 only. |
 | PLAN-02b | passed | A blocked save and a 500 each showed **Not saved** and put the board back to the saved plan. |
 | PLAN-02c | passed on retest (28 Nov) | Failed on `086d49c` (#138). On `778d120` the chip says **Saving…** until the 30 s timeout, `GET /api/plans/{id}` follows the failed `PUT`, and the chip then says **Saved** with CS160 and CS163, as the server holds. |
@@ -137,7 +137,7 @@ One line per group of cases from the same run with the same result. The results 
 | IDs | Result | What happened |
 | --- | --- | --- |
 | PERF-01a, b | passed (28 Nov) | The fixture's checksum, Q's empty transcript and 46 placements, CS420 `null`; V, P and C each draw their expected result and undo; the network profile (health requests 109–123 ms). |
-| PERF-01c–f | **failed** (28 Nov) | 30 measured runs each, under the profile, every run with its expected result: V median 294.7 ms (15 at or over 300 ms), P 307.0 ms (28), C 302.8 ms (16), O 304.4 ms (19, max 720.7 ms). The save and the check run in sequence and take 255–275 ms on the server together. New defect, to file (Hoà, Triết). |
+| PERF-01c–f | **failed** (28 Nov) | 30 measured runs each, under the profile, every run with its expected result: V median 297.8 ms (15 at or over 300 ms), P 307.5 ms (28), C 303.0 ms (16), O 305.1 ms (19, max 720.7 ms). The save and the check are two requests in a row; their request times, network included (the profile adds 50 ms), add up to 255–275 ms, while `/api/health` alone takes about 115 ms. [#248](https://github.com/LLaammTTeerr/omnicourses/issues/248) (Hoà, Triết). |
 
 ### TC-B2-A11Y-01: usability of the B2 screens (administration run on 25 Nov)
 
@@ -167,8 +167,9 @@ One line per group of cases from the same run with the same result. The results 
 | [#171](https://github.com/LLaammTTeerr/omnicourses/issues/171) Deleting a group a saved plan names answers 500 | ADM-04d probe | fixed by #172 before ADM-04 ran (verified **409** in ADM-04d) |
 | [#174](https://github.com/LLaammTTeerr/omnicourses/issues/174) The export writes date columns as the day before | seen in NOTIF-01i | fixed by #175; retest passed on `778d120` (RETEST-175) |
 | [#163](https://github.com/LLaammTTeerr/omnicourses/issues/163) Text fields with a null character or a variation selector answer 500 | review | fixed by #179; retest passed on `778d120` (RETEST-179a, b) |
-| not filed yet | PLAN-01b(2): the keyboard lift does not announce the target term when the row has a drop reason | PLAN-01b | new on `778d120`; Dũng files |
-| not filed yet | PERF-01: a planner edit takes about 300 ms (the save, then the check, in sequence) | PERF-01c–f | new on `778d120`; Dũng files (Hoà, Triết) |
+| [#247](https://github.com/LLaammTTeerr/omnicourses/issues/247) The keyboard lift never announces the target term | PLAN-01b | new on `778d120`, open |
+| [#248](https://github.com/LLaammTTeerr/omnicourses/issues/248) An edit takes about 300 ms because the save and the check run one after the other | PERF-01c–f | new on `778d120`, open (Hoà, Triết) |
+| [#249](https://github.com/LLaammTTeerr/omnicourses/issues/249) Transcript summary buttons overlap the result counts at 1280 px | TRN-01 screenshots | new on `778d120`, open; outside TRN-01's expected results, so TRN-01 stays passed |
 
 ## 6. Open items
 
@@ -182,7 +183,7 @@ Each item updates this report when it runs on the B2 candidate.
 | 4 | `ADM-03g`, with `ADM-03c` (5) and `ADM-03d` (3) | Dũng | #245 merged on 28 November; run them once it is on staging (Lâm says when), and ask Lâm before step (14), which leaves a program. `ADM-04g` and `ADM-07k` are not applicable (Lâm, 28 Nov: no total check). |
 | 5 | B1 regression on B2 (cases §12) | Dũng | Rerun on the current staging build; the B1 cases were updated in #209 (B1 cases 0.10). |
 | 6 | Retests of B1 defects (cases §13) | Dũng | For each of #101, #114, #115, #117 and #119 once its fix is merged. #119 still fails (A11Y-01e, f on `778d120`). |
-| 7 | New defects of 28 November | Dũng files; Hoà, Triết | PLAN-01b(2) (keyboard lift announcement) and PERF-01c–f (edit validation about 300 ms). Retest after the fixes. |
+| 7 | New defects of 28 November | Hoà, Triết; Dũng retests | [#247](https://github.com/LLaammTTeerr/omnicourses/issues/247) (PLAN-01b, keyboard lift announcement), [#248](https://github.com/LLaammTTeerr/omnicourses/issues/248) (PERF-01c–f, edit validation about 300 ms) and [#249](https://github.com/LLaammTTeerr/omnicourses/issues/249) (transcript buttons over the result counts). Retest after the fixes. |
 | 8 | Planner, transcript, sharing and notification screens in A11Y-01 | Dũng | Add them, and `/admin/calendar` and `/admin/import`, to §10's table of screens (A11Y-01a), then run A11Y-01 on them. |
 | 9 | Case wording | Dũng | Update TRN-01a, b, f, SHARE-01l, PLAN-01a, b, d, f and PLAN-02a to the screens as built (each listed in [`results-2026-11-28.md`](evidence/b2/results-2026-11-28.md)). |
 | 10 | §3 Automated checks | Dũng | Record the green CI run and `src/rules/**` coverage on the tagged B2 commit. |
