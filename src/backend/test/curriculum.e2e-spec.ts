@@ -29,6 +29,8 @@ interface Group {
   courses: { code: string; credits: number }[];
 }
 
+const FIRST_MATH_COURSE = { code: 'MTH251', credits: 4 };
+
 describe('Curriculum API (e2e)', () => {
   let app: INestApplication;
   let token: string;
@@ -163,8 +165,9 @@ describe('Curriculum API (e2e)', () => {
 
   it('returns a course with the groups that link to it, across cohorts', async () => {
     const code = apcs2024.groups.find((g) => g.name === 'Kiến thức Math')!.rows[0].code;
+    expect(code).toBe(FIRST_MATH_COURSE.code);
     const { body } = await get(`/api/courses/${code}`).expect(200);
-    expect(body).toMatchObject({ code, credits: expect.any(Number) });
+    expect(body).toMatchObject(FIRST_MATH_COURSE);
     const apcs = (body.memberships as { programCode: string; cohortYear: number; requirementGroupName: string }[]).filter((m) => m.programCode === 'APCS');
     expect(apcs).toContainEqual(expect.objectContaining({ cohortYear: 2024, curriculumCode: 'APCS2024', requirementGroupName: 'Kiến thức Math', kind: 'compulsory' }));
   });

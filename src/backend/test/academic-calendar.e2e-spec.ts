@@ -253,7 +253,7 @@ describe('Academic calendar API (e2e)', () => {
 
       const moved = (await as(adminA.token).patch(path, { endsOn: '2026-08-02', notes: 'Gia hạn' }).expect(200)).body as Event;
       expect(moved).toMatchObject({ startsOn: '2026-07-20', endsOn: '2026-08-02', notes: 'Gia hạn', title: registration.title, sourceUrl: registration.sourceUrl });
-      expect(moved.updatedAt >= registration.updatedAt).toBe(true);
+      expect(Date.parse(moved.updatedAt)).toBeGreaterThan(Date.parse(registration.updatedAt));
 
       const cleared = (await as(adminA.token).patch(path, { sourceUrl: null, titleEn: '', term: null }).expect(200)).body as Event;
       expect(cleared).toMatchObject({ sourceUrl: null, titleEn: null, term: null });
