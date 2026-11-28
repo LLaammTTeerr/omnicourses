@@ -1,0 +1,64 @@
+2026-11-28T05:56:03.310Z --- RETEST-175: export date columns (N2)
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-05T05:55:55.372Z","user":{"id":"69162420-060a-4a1e-b32e-a760641076b3","email":"b2-s10@example.com","displayName":"Test Student","studentId":null,"className":null,"emailVerifiedAt":null,"createdAt":"2026-11-25T13:17:39.764Z"},"accountRestored":false}
+  GET /api/notifications → 200 {7 notifications}
+  GET /api/users/me/export → 200
+  export 200? 200; 7 notification rows; 7 in the API, 7 with a date
+  registration_open: API ["2026-11-28","2026-11-30"] · export ["2026-11-28","2026-11-30"]
+  term_start: API ["2026-11-25","2026-11-25"] · export ["2026-11-25","2026-11-25"]
+  registration_soon: API ["2026-12-02","2026-12-08"] · export ["2026-12-02","2026-12-08"]
+  registration_open: API ["2026-11-25","2026-11-25"] · export ["2026-11-25","2026-11-25"]
+  registration_soon: API ["2026-12-02","2026-12-08"] · export ["2026-12-02","2026-12-08"]
+  term_start: API ["2026-11-25","2026-11-25"] · export ["2026-11-25","2026-11-25"]
+  registration_open: API ["2026-11-25","2026-12-01"] · export ["2026-11-25","2026-12-01"]
+ok   RETEST-175: export 200; every dated notification has export starts_on/ends_on equal to the API's startsOn/endsOn, as YYYY-MM-DD | observed: {"rows":7,"pairs":7,"dateShaped":true}
+2026-11-28T05:56:03.978Z --- RETEST-179a: null character
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-05T05:56:02.406Z","user":{"id":"4c0578d2-8cf1-4c89-8ba5-79e1d8748ae9","email":"b2-s14@example.com","displayName":"Test Student","studentId":null,"className":null,"emailVerifiedAt":null,"createdAt":"2026-11-25T13:22:14.742Z"},"accountRestored":false}
+  GET /api/users/me → 200
+  GET /api/users/me/transcript → 200
+  GET /api/plans → 200
+  C before: className null, 3 transcript rows, 0 plans
+  POST /api/plans → 400 {"message":["name must not contain a null character (U+0000)"],"error":"Bad Request","statusCode":400}
+  GET /api/plans → 200
+ok   RETEST-179a: plan name with U+0000 (POST /plans): 400 naming the null character, no plan created | observed: {"status":400,"plans":0}
+  POST /api/plans → 201 {"id":"e7ac7964-800f-48ed-b2d6-ec07bc06ac87","name":"RETEST-179 plan","curriculum":{"id":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","code":"APCS2024","programCode":"APCS","cohortYear":2024},"createdAt":"2026-11-28T05:56:03.369Z","updatedAt":"2026-11-28T05:56:03.369Z","terms":[]}
+  PATCH /api/plans/e7ac7964-800f-48ed-b2d6-ec07bc06ac87 → 400 {"message":["name must not contain a null character (U+0000)"],"error":"Bad Request","statusCode":400}
+  GET /api/plans/e7ac7964-800f-48ed-b2d6-ec07bc06ac87 → 200
+ok   RETEST-179a: rename with U+0000 (PATCH /plans/{id}): 400, name unchanged | observed: {"status":400,"name":"RETEST-179 plan"}
+  PUT /api/users/me/transcript → 400 {"message":["rows.0.courseName must not contain a null character (U+0000)"],"error":"Bad Request","statusCode":400}
+  GET /api/users/me/transcript → 200
+ok   RETEST-179a: transcript courseName with U+0000 (PUT /users/me/transcript): 400, transcript unchanged | observed: {"status":400,"rows":3}
+  PATCH /api/users/me → 400 {"statusCode":400,"code":"validation_failed","message":["className must not contain a null character (U+0000)","className must not contain a control character"]}
+  GET /api/users/me → 200
+ok   RETEST-179a: className with U+0000 (PATCH /users/me): 400, className unchanged | observed: {"status":400,"className":null}
+  POST /api/auth/sign-up (no token) → 400 {"message":["displayName must not contain a null character (U+0000)"],"error":"Bad Request","statusCode":400}
+ok   RETEST-179a: sign-up displayName with U+0000: 400 naming the null character (no account: see the sign-in at the end) | observed: {"status":400}
+2026-11-28T05:56:12.401Z --- RETEST-179b: length in code points
+  plan name at the limit: 100 code points, 106 UTF-16 units, 148 UTF-8 bytes; one more: 101 code points, 107 UTF-16 units, 149 UTF-8 bytes
+  POST /api/plans → 201
+  GET /api/plans/a2b46532-493b-4e34-986a-7aba0bc507f5 → 200
+ok   RETEST-179b: plan name of exactly 100 code points (more UTF-16 units and bytes): 201, stored unchanged | observed: {"status":201,"storedSame":true,"stored":"100 code points, 106 UTF-16 units, 148 UTF-8 bytes"}
+  POST /api/plans → 400 {"message":["name must be shorter than or equal to 100 characters"],"error":"Bad Request","statusCode":400}
+ok   RETEST-179b: plan name of 101 code points: 400 "name must be shorter than or equal to 100 characters" | observed: {"status":400}
+  PATCH /api/plans/a2b46532-493b-4e34-986a-7aba0bc507f5 → 400 {"message":["name must be shorter than or equal to 100 characters"],"error":"Bad Request","statusCode":400}
+ok   RETEST-179b: rename to 101 code points: 400 | observed: {"status":400}
+  course name at the limit: 255 code points, 273 UTF-16 units, 399 UTF-8 bytes; one more: 256 code points, 274 UTF-16 units, 400 UTF-8 bytes
+  PUT /api/users/me/transcript → 400
+  GET /api/users/me/transcript → 200
+ok   RETEST-179b: courseName of 256 code points: 400, transcript unchanged | observed: {"status":400,"body":{"message":["rows.0.courseName must be shorter than or equal to 255 characters"],"error":"Bad Request","statusCode":400}}
+  PUT /api/users/me/transcript → 200
+  GET /api/users/me/transcript → 200
+ok   RETEST-179b: courseName of exactly 255 code points: 200, stored unchanged | observed: {"status":200,"storedSame":true}
+  display name one over: 101 code points, 107 UTF-16 units, 149 UTF-8 bytes
+  POST /api/auth/sign-up (no token) → 400
+ok   RETEST-179b: sign-up displayName of 101 code points: 400 | observed: {"status":400,"body":{"message":["displayName must be shorter than or equal to 100 characters"],"error":"Bad Request","statusCode":400}}
+2026-11-28T05:56:13.437Z --- clean-up
+  DELETE /api/plans/e7ac7964-800f-48ed-b2d6-ec07bc06ac87 → 204
+  DELETE /api/plans/a2b46532-493b-4e34-986a-7aba0bc507f5 → 204
+  PUT /api/users/me/transcript → 200
+  GET /api/users/me/transcript → 200
+  GET /api/plans → 200
+  GET /api/users/me → 200
+ok   clean-up: test plans deleted (204 each); C has its plans, transcript and className as before | observed: {"del":[204,204],"transcript":200,"rows":3,"plans":0}
+  POST /api/auth/sign-in (no token) → 401 {"message":"Invalid email or password","error":"Unauthorized","statusCode":401}
+ok   clean-up: b2-lim1@example.com was never created: sign-in 401 | observed: {"status":401}
+2026-11-28T05:56:14.283Z All checks ok

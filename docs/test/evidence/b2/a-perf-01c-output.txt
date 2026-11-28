@@ -1,0 +1,47 @@
+2026-11-28T06:19:26.103Z Chrome 144.0.7559.110 (headed, playwright-core 1.64.1), profile {"offline":false,"latency":50,"downloadThroughput":1250000,"uploadThroughput":250000}
+  UI sign-in b2-s7@example.com → 200
+  GET /api/plans → 200
+  GET /api/plans/22345876-2a6d-48d5-9cf5-f39af795d2da → 200
+ok   PERF-01: V: before the series: GET /api/plans/{id} holds the fixture's terms and placements in order | observed: {"terms":11,"placements":46}
+2026-11-28T06:19:31.526Z board as saved: {"counts":"0 violations0 worth a look46 not recorded yet","violations":0,"flags":0}
+  V warm-up 1: 301.8 ms; server PUT 145.8, GET 121.5; undo back to saved: true
+  V warm-up 2: 275.7 ms; server PUT 132.2, GET 104.4; undo back to saved: true
+  V warm-up 3: 274.2 ms; server PUT 134.9, GET 106.1; undo back to saved: true
+  V warm-up 4: 282.1 ms; server PUT 136.7, GET 122; undo back to saved: true
+  V warm-up 5: 283.4 ms; server PUT 135.2, GET 120.8; undo back to saved: true
+  V run 1: 281.6 ms; server PUT 137.3, GET 104; undo back to saved: true
+  V run 2: 268.9 ms; server PUT 122.6, GET 120.1; undo back to saved: true
+  V run 3: 275.3 ms; server PUT 131.4, GET 106.7; undo back to saved: true
+  V run 4: 284.9 ms; server PUT 135.8, GET 120.4; undo back to saved: true
+  V run 5: 283.7 ms; server PUT 143, GET 106.4; undo back to saved: true
+  V run 6: 311 ms; server PUT 157.1, GET 121.5; undo back to saved: true
+  V run 7: 290.1 ms; server PUT 130.8, GET 105.5; undo back to saved: true
+  V run 8: 285 ms; server PUT 137.2, GET 108.2; undo back to saved: true
+  V run 9: 276.1 ms; server PUT 134.3, GET 104.9; undo back to saved: true
+  V run 10: 278.5 ms; server PUT 133.8, GET 120.6; undo back to saved: true
+  V run 11: 313.6 ms; server PUT 138.4, GET 137.9; undo back to saved: true
+  V run 12: 317.1 ms; server PUT 148.1, GET 121; undo back to saved: true
+  V run 13: 304.1 ms; server PUT 138.7, GET 121.4; undo back to saved: true
+  V run 14: 302.2 ms; server PUT 139.7, GET 122.6; undo back to saved: true
+  V run 15: 284.7 ms; server PUT 125.4, GET 123.1; undo back to saved: true
+  V run 16: 304.8 ms; server PUT 134.9, GET 128.1; undo back to saved: true
+  V run 17: 318.3 ms; server PUT 153.1, GET 121.2; undo back to saved: true
+  V run 18: 317.8 ms; server PUT 155, GET 121.8; undo back to saved: true
+  V run 19: 311.6 ms; server PUT 152.8, GET 120; undo back to saved: true
+  V run 20: 322.9 ms; server PUT 151.4, GET 137; undo back to saved: true
+  V run 21: 300.9 ms; server PUT 136, GET 120.5; undo back to saved: true
+  V run 22: 314 ms; server PUT 138.2, GET 138.7; undo back to saved: true
+  V run 23: 311.6 ms; server PUT 137.5, GET 136.8; undo back to saved: true
+  V run 24: 302.3 ms; server PUT 136.1, GET 120.6; undo back to saved: true
+  V run 25: 294.5 ms; server PUT 129.3, GET 123; undo back to saved: true
+  V run 26: 281.1 ms; server PUT 139.1, GET 105.5; undo back to saved: true
+  V run 27: 294.7 ms; server PUT 154.1, GET 106.7; undo back to saved: true
+  V run 28: 304.9 ms; server PUT 156.5, GET 121.8; undo back to saved: true
+  V run 29: 294 ms; server PUT 152.1, GET 107; undo back to saved: true
+  V run 30: 290 ms; server PUT 151.8, GET 106; undo back to saved: true
+  GET /api/plans/22345876-2a6d-48d5-9cf5-f39af795d2da → 200
+ok   PERF-01: V: after the series: GET /api/plans/{id} holds the fixture's terms and placements in order | observed: {"terms":11,"placements":46}
+V: 30 measured runs, median 294.7 ms, p95 318.3 ms, max 322.9 ms, 15 at or over 300 ms
+FAIL PERF-01 V: 30 measured runs, each under 300 ms with the expected result | observed: {"n":30,"median":294.7,"p95":318.3,"max":322.9,"atOrOver":15}
+2026-11-28T06:21:52.363Z saved a-perf-01-v-2026-11-28T06-21-52-363Z.json
+2026-11-28T06:21:52.363Z 1 FAIL(S)
