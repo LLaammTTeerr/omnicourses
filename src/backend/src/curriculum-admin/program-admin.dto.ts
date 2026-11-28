@@ -1,12 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsInt, IsString, Matches, Max, Min } from 'class-validator';
-import { ifPresent, MaxCodePoints, NullableTextField, RequiredTextField } from '../common/field-validators.js';
+import { IsIn, IsInt, IsString, Matches, Max, Min } from 'class-validator';
+import { ifPresent, ifSet, MaxCodePoints, NullableTextField, RequiredTextField } from '../common/field-validators.js';
 import { LANGUAGE_MAX_LENGTH } from '../curriculum/curriculum.entity.js';
 import { TRAINING_TYPES, type TrainingType } from '../curriculum/curriculum-rules.js';
 import { FACULTY_MAX_LENGTH } from '../curriculum/program.entity.js';
 import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR } from '../terms/term.js';
 import { CODE_MAX_LENGTH, NAME_MAX_LENGTH } from '../common/column-limits.js';
+import { CreditTotalField } from './curriculum-admin.dto.js';
 
 export const ADMIN_CODE_PATTERN = /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
 const ADMIN_CODE_MESSAGE = 'code must be letters A-Z and digits, in parts joined by single hyphens (for example ZZ-PROG-2024)';
@@ -37,6 +38,16 @@ export class CreateProgramDto {
 
   @NullableTextField({ maxLength: FACULTY_MAX_LENGTH, description: 'The faculty that owns the program, as text. It is not a permission boundary (ADR 0011). Blank is stored as null.' })
   faculty?: string | null;
+
+  @ApiProperty({
+    enum: TRAINING_TYPES,
+    nullable: true,
+    required: false,
+    description: 'Sets the credit caps and the kind of term 3 (ADR 0012). Set once, on creation (Lâm, 28 November 2026); no route changes it later. Left out or null: not recorded, so the rule engine checks no credit cap.',
+  })
+  @ifSet
+  @IsIn(TRAINING_TYPES)
+  trainingType?: TrainingType | null;
 }
 
 export const PROGRAM_FIELDS = ['nameVi', 'nameEn', 'faculty'] as const;
@@ -69,7 +80,7 @@ export class ProgramDetailsDto {
   @ApiProperty({ type: String, nullable: true })
   faculty!: string | null;
 
-  @ApiProperty({ enum: TRAINING_TYPES, nullable: true, description: 'Read-only here: no F12 route sets it. null: not recorded, so the rule engine checks no credit cap (ADR 0013).' })
+  @ApiProperty({ enum: TRAINING_TYPES, nullable: true, description: 'Set only when the program is created. null: not recorded, so the rule engine checks no credit cap (ADR 0013).' })
   trainingType!: TrainingType | null;
 
   @ApiProperty({ type: String, format: 'date-time' })
@@ -103,9 +114,12 @@ export class CreateCohortDto {
 
   @NullableTextField({ maxLength: LANGUAGE_MAX_LENGTH, example: 'en', description: 'Language of instruction, as text. Blank is stored as null.' })
   language?: string | null;
+
+  @CreditTotalField('The minimum credits the cohort needs to graduate. null: not recorded, so the audit checks no cohort total (ADR 0013).')
+  totalCreditsMin?: number | null;
 }
 
-export const COHORT_FIELDS = ['nameVi', 'nameEn', 'language'] as const;
+export const COHORT_FIELDS = ['nameVi', 'nameEn', 'language', 'totalCreditsMin'] as const;
 
 export class UpdateCohortDto {
   @ifPresent
@@ -117,6 +131,9 @@ export class UpdateCohortDto {
 
   @NullableTextField({ maxLength: LANGUAGE_MAX_LENGTH })
   language?: string | null;
+
+  @CreditTotalField('The minimum credits the cohort needs to graduate. null: not recorded, so the audit checks no cohort total (ADR 0013).')
+  totalCreditsMin?: number | null;
 }
 
 export class CohortDetailsDto {
@@ -141,7 +158,7 @@ export class CohortDetailsDto {
   @ApiProperty({ type: String, nullable: true })
   language!: string | null;
 
-  @ApiProperty({ type: Number, nullable: true, description: 'Read-only here until the rule-engine handoff (ADR 0011). null for a cohort created through F12.' })
+  @ApiProperty({ type: Number, nullable: true, description: 'null: not recorded' })
   totalCreditsMin!: number | null;
 
   @ApiProperty({ type: String, format: 'date-time' })

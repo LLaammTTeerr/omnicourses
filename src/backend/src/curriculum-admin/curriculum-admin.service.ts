@@ -23,7 +23,20 @@ import { findPrerequisiteCycle } from './prerequisite-cycle.js';
 
 const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 
-const GROUP_FIELDS = ['name', 'kind', 'officialNotes'] as const;
+const GROUP_FIELDS = ['name', 'kind', 'officialNotes', 'creditsTotal', 'creditsTotalMin'] as const;
+
+type GroupTotals = Pick<RequirementGroup, 'kind' | 'creditsTotal' | 'creditsTotalMin'>;
+
+export function creditTotalMismatch(group: GroupTotals): string | null {
+  if (group.kind === 'compulsory' && group.creditsTotalMin !== null) return 'creditsTotalMin: a compulsory group stores creditsTotal, not a minimum (ADR 0005)';
+  if (group.kind === 'elective' && group.creditsTotal !== null) return 'creditsTotal: an elective group stores creditsTotalMin, not a fixed total (ADR 0005)';
+  return null;
+}
+
+function assertTotalsFitKind(group: GroupTotals): void {
+  const mismatch = creditTotalMismatch(group);
+  if (mismatch) throw validationFailed(mismatch);
+}
 
 @Injectable()
 export class CurriculumAdminService {
@@ -60,7 +73,9 @@ export class CurriculumAdminService {
     return this.writes.run(callerId, { program: programId }, async (em) => {
       await cohortIn(em, programId, curriculumId);
       await assertGroupNameFree(em, curriculumId, dto.name);
-      const saved = await em.getRepository(RequirementGroup).save({ curriculumId, name: dto.name, kind: dto.kind, officialNotes: trimmedOrNull(dto.officialNotes) });
+      const totals = { kind: dto.kind, creditsTotal: dto.creditsTotal ?? null, creditsTotalMin: dto.creditsTotalMin ?? null };
+      assertTotalsFitKind(totals);
+      const saved = await em.getRepository(RequirementGroup).save({ curriculumId, name: dto.name, officialNotes: trimmedOrNull(dto.officialNotes), ...totals });
       return groupDto(await em.getRepository(RequirementGroup).findOneByOrFail({ id: saved.id }));
     });
   }
@@ -69,10 +84,8 @@ export class CurriculumAdminService {
     return this.writes.run(callerId, { program: programId }, async (em) => {
       const group = await groupIn(em, programId, curriculumId, groupId);
       if (dto.name !== undefined && dto.name !== group.name) await assertGroupNameFree(em, curriculumId, dto.name);
-      if (dto.kind !== undefined && dto.kind !== group.kind && (group.creditsTotal !== null || group.creditsTotalMin !== null)) {
-        throw validationFailed('kind: cannot change while the group stores a credit total (ADR 0011: totals wait for the rule-engine handoff)');
-      }
       const patch = sentFields(GROUP_FIELDS, dto, { officialNotes: trimmedOrNull }) as Partial<RequirementGroup>;
+      assertTotalsFitKind({ ...group, ...patch });
       if (Object.keys(patch).length) await em.getRepository(RequirementGroup).update({ id: groupId }, patch);
       return groupDto(await em.getRepository(RequirementGroup).findOneByOrFail({ id: groupId }));
     });
