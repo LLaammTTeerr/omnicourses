@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
+import { computed, watch } from 'vue';
 import { RouterView, useRoute, useRouter } from 'vue-router';
-import { useAdminAccess } from './admin/access.js';
+import { useGrantsFollowSession } from './admin/access.js';
 import { useAuth } from './auth/store.js';
 import { useMessages } from './locale.js';
-import { UNREAD_POLL_MS, useUnread } from './notifications/store.js';
+import { useUnreadPolling } from './notifications/store.js';
 import AppSidebar from './shell/AppSidebar.vue';
 import { SHELL_MESSAGES } from './shell/messages.js';
 import MobileBars from './shell/MobileBars.vue';
@@ -17,12 +17,10 @@ import ToastHost from './shell/ToastHost.vue';
 import TooltipHost from './shell/TooltipHost.vue';
 
 const auth = useAuth();
-const access = useAdminAccess();
 const route = useRoute();
 const router = useRouter();
 const sidebar = useSidebar();
 const toast = useToast();
-const unread = useUnread();
 const m = useMessages(SHELL_MESSAGES);
 useTheme();
 
@@ -41,35 +39,8 @@ watch(
   },
 );
 
-watch(
-  () => auth.user?.id,
-  (userId) => {
-    if (userId) void access.load();
-  },
-  { immediate: true },
-);
-watch(
-  () => route.fullPath,
-  () => {
-    if (auth.signedIn && access.retryable) void access.load();
-  },
-);
-
-watch(
-  () => route.fullPath,
-  () => {
-    if (auth.signedIn) void unread.refresh();
-  },
-  { immediate: true },
-);
-let unreadPoll: ReturnType<typeof setInterval> | undefined;
-onMounted(
-  () =>
-    (unreadPoll = setInterval(() => {
-      if (!document.hidden) void unread.refresh();
-    }, UNREAD_POLL_MS)),
-);
-onBeforeUnmount(() => clearInterval(unreadPoll));
+useGrantsFollowSession();
+useUnreadPolling();
 
 watch(
   () => auth.accountRestored,

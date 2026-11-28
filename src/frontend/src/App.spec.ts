@@ -4,10 +4,9 @@ import { nextTick } from 'vue';
 import { EVERY_GRANT, NO_GRANTS } from './admin/testing/fixtures.js';
 import App from './App.vue';
 import { useAuth } from './auth/store.js';
-import { authResult, session } from './auth/testing/fixtures.js';
+import { session } from './auth/testing/fixtures.js';
 import { useSidebar } from './shell/sidebar.js';
 import { useToast } from './shell/toast.js';
-import { UNREAD_POLL_MS } from './notifications/store.js';
 import { mockApi } from './testing/fetch.js';
 import { HEALTHY } from './testing/health.js';
 import { NOT_STARTED } from './onboarding/api.js';
@@ -65,27 +64,6 @@ describe('App shell', () => {
     const unknown = await render('/guides', true, { 'GET /admin/grants': () => new Response(null, { status: 503 }) });
     expect(unknown.w.find('[data-test="nav-admin"]').exists()).toBe(false);
     expect(unknown.w.findAll('.side .nav a')).toHaveLength(9);
-  });
-
-  it('asks for the grants again on the next page when the first request failed, so the entry appears without a reload', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    let down = true;
-    const { w, router } = await render('/guides', true, { 'GET /admin/grants': () => (down ? new Response(null, { status: 503 }) : Response.json(EVERY_GRANT)) });
-    expect(w.find('[data-test="nav-admin"]').exists()).toBe(false);
-    down = false;
-    await router.push('/privacy');
-    await flushPromises();
-    expect(w.get('[data-test="nav-admin"]').attributes('href')).toBe('/admin');
-    const asked = () => vi.mocked(fetch).mock.calls.filter(([url]) => String(url).endsWith('/admin/grants')).length;
-    const before = asked();
-    await router.push('/guides');
-    await flushPromises();
-    expect(asked()).toBe(before);
-  });
-
-  it('asks for no grants while nobody is signed in', async () => {
-    await render('/guides', false);
-    expect(vi.mocked(fetch).mock.calls.map(([url]) => String(url)).filter((url) => url.includes('/admin/'))).toEqual([]);
   });
 
   it('frames the privacy notice with the public header for a visitor, and links it from the footer', async () => {
@@ -165,18 +143,6 @@ describe('App shell', () => {
     expect(document.documentElement.dataset.theme).toBe(before === 'dark' ? 'light' : 'dark');
     expect(button.text()).not.toBe(label);
   });
-
-  it('stops asking for the grants on each page after three failures in a row (#160)', async () => {
-    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const { router } = await render('/guides', true, { 'GET /admin/grants': () => new Response(null, { status: 503 }) });
-    for (const path of ['/privacy', '/guides', '/privacy', '/guides', '/privacy', '/guides']) {
-      await router.push(path);
-      await flushPromises();
-    }
-    expect(vi.mocked(fetch).mock.calls.filter(([url]) => String(url).endsWith('/admin/grants'))).toHaveLength(3);
-    expect(logged.mock.calls.filter(([text]) => String(text).includes('administration grants'))).toHaveLength(3);
-  });
-
 });
 
 describe('the notification bell (F10)', () => {
@@ -187,11 +153,8 @@ describe('the notification bell (F10)', () => {
   afterEach(() => {
     wrapper?.unmount();
     wrapper = undefined;
-    vi.useRealTimers();
     vi.restoreAllMocks();
   });
-
-  const unreadReads = () => vi.mocked(fetch).mock.calls.filter(([url]) => String(url).endsWith('/notifications/unread-count')).length;
 
   it('shows the unread count on the Notifications entry, spoken as a count', async () => {
     const { w } = await render('/guides', true, { 'GET /notifications/unread-count': { unread: 3 } });
@@ -207,40 +170,5 @@ describe('the notification bell (F10)', () => {
     none.w.unmount();
     const many = await render('/guides', true, { 'GET /notifications/unread-count': { unread: 150 } });
     expect(many.w.get('.badge [aria-hidden="true"]').text()).toBe('99+');
-  });
-
-  it('reads the count again on each page and every minute while the tab is shown, and never while signed out', async () => {
-    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
-    const { router } = await render('/guides', true);
-    const first = unreadReads();
-    expect(first).toBe(1);
-    await router.push('/privacy');
-    await flushPromises();
-    expect(unreadReads()).toBe(first + 1);
-    vi.advanceTimersByTime(UNREAD_POLL_MS);
-    await flushPromises();
-    expect(unreadReads()).toBe(first + 2);
-    vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
-    vi.advanceTimersByTime(UNREAD_POLL_MS);
-    await flushPromises();
-    expect(unreadReads()).toBe(first + 2);
-    wrapper!.unmount();
-    wrapper = undefined;
-    vi.restoreAllMocks();
-
-    await render('/guides', false);
-    vi.advanceTimersByTime(UNREAD_POLL_MS);
-    await flushPromises();
-    expect(unreadReads()).toBe(0);
-  });
-
-  it('reads the count once when the student signs in and is sent on to the page they asked for', async () => {
-    const { w, router } = await render('/sign-in?redirect=/guides', false, { 'POST /auth/sign-in': authResult() });
-    await w.get('#sign-in-email').setValue('zz-student@example.com');
-    await w.get('#sign-in-password').setValue('zz-password');
-    await w.get('form').trigger('submit');
-    await flushPromises();
-    expect(router.currentRoute.value.path).toBe('/guides');
-    expect(unreadReads()).toBe(1);
   });
 });
