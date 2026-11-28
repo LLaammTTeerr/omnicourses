@@ -1,0 +1,17 @@
+  POST /api/auth/sign-up (no token) → 409 {"message":"An account with this email already exists","error":"Conflict","statusCode":409}
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-05T05:58:32.937Z","user":{"id":"80e1a854-268a-403f-a835-415d8985ba9e","email":"b2-s7@example.com","displayName":"Test Student","studentId":null,"className":null,"emailVerifiedAt":null,"createdAt":"2026-11-28T05:58:04.790Z"},"accountRestored":false}
+  PUT /api/users/me/onboarding → 200 {"program":"APCS","cohort":2024,"targetGraduationTerm":null,"creditsPerTerm":null,"internshipTerm":null,"finished":true}
+2026-11-28T05:58:41.384Z Q already existed
+  GET /api/users/me/transcript → 200
+ok   PERF-01a: the transcript has no row | observed: 0
+  GET /api/plans → 200
+  POST /api/plans → 201
+ok   PERF-01a: POST /api/plans "PERF-01" with the fixture 201 | observed: 201
+2026-11-28T05:58:41.857Z Q's plan PERF-01 = 22345876-2a6d-48d5-9cf5-f39af795d2da
+  GET /api/plans/22345876-2a6d-48d5-9cf5-f39af795d2da → 200
+ok   PERF-01: PERF-01a: GET /api/plans/{id} holds the fixture's terms and placements in order | observed: {"terms":11,"placements":46}
+  GET /api/programs/APCS/curricula/2024 → 200
+ok   PERF-01a: CS420 reads "offeringTerms": null | observed: null
+  GET /api/plans → 200
+2026-11-28T05:58:42.276Z Q has 1 plan(s): ["PERF-01"]
+2026-11-28T05:58:42.276Z All checks ok

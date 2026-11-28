@@ -1,0 +1,8 @@
+2026-11-28T05:51:11.108Z a-notif-01 d2; D = 2026-11-25 (Vietnam)
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-05T05:51:03.266Z","user":{"id":"c84ae892-7ab8-4b8d-b878-05538669d4d4","email":"b2-s9@example.com","displayName":"Test Student","studentId":null,"className":null,"emailVerifiedAt":null,"createdAt":"2026-11-25T13:17:32.909Z"},"accountRestored":false}
+  GET /api/notifications → 200 {9 notifications, nextBefore null}
+ok   NOTIF-01d: (2) on D+3: exactly one notification of E-d, registration_open, no registration_soon | observed: [{"kind":"registration_open","startsOn":"2026-11-28","readAt":null,"createdAt":"2026-11-27T17:00:00.099Z","id":"157b4061-02cf-4fbd-9e5c-faaf50e631eb"}]
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-05T05:51:10.151Z","user":{"id":"32addfef-209b-4eba-b728-dfacb9856ead","email":"b2-a1@example.com","displayName":"Test Student","studentId":null,"className":null,"emailVerifiedAt":null,"createdAt":"2026-11-21T09:18:47.737Z"},"accountRestored":false}
+  DELETE /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/calendar-events/63ec99b6-e70c-4cde-8479-76afbb837f74 → 204
+ok   NOTIF-01d: clean-up: E-d deleted, 204
+2026-11-28T05:51:18.582Z All checks ok
