@@ -305,3 +305,57 @@ Checked and true: the test counts (CI log of #239); all commits signed; openapi 
 ## (3) Verdict
 
 **not reached: 2 actionable items** (records sync; two doc-fact corrections). Both are small and records-only or docs-only. Once they are done, and with #244 landed, every remaining item needs a person's decision or approval, or has too little benefit. The code itself has converged.
+
+
+---
+
+## Re-check (2026-11-28, about 08:52 +0700)
+
+**What I looked at**
+- Stack tip: `refactor/cv-22-config-and-pins` at d43fd09. It is the same commit as on origin.
+- Records: `refactor/converge` at 11c3aa8, pushed.
+- All new commits are signed (G).
+- `node scripts/lint.mjs`: passed.
+- `openapi.json` and the migrations still have no diff against origin/main.
+- The user checkout is still main with only `goal.txt` untracked.
+
+### (a) The two actionable items
+
+| Item | Status | Evidence |
+|---|---|---|
+| 1. Records sync | **done** | **PROGRESS.md (11c3aa8):** stack 22 / #244 recorded. `config-deploy-ci.md` named. Line 58 now says "102 folder edges with the root (101 at the start)". The auth/users wording is now precise. "Next" calls the earlier stopping claim premature and lists what remains. "Nothing is building" is true now: every PR is pushed. **Saved files:** `converge/reviews/` holds folders 01–20 and 22 plus `adr-0020-review.md` (batch 21's review). `converge/briefs/` now has 01 and 21. **Issues:** #240–#242 say "#220 to #239, #243 and #244". #240 now holds the purge date, offered cohorts, unlocks, the figure the dashboard sums, test guides, and the deploy/CI points. #241 holds the borrowed dashboard helpers (`reducedMotion`) and indexing of the shared page. |
+| 2. Two doc facts | **done** | `design-differences.md:30` now says the dashboard reads the past-term audit (`fetchAuditAsOf`) when a past term is chosen (f888e0f). `AGENTS.md` says "TypeORM 1.1.2" (798a930). `repo-config.spec.ts:109-128` ("AGENTS.md stack line") now checks the stack line against the package versions (d43fd09). |
+
+Also done, from my list of wrappers: `curriculum-admin/admin-errors.ts` no longer re-exports `REFERENCES`. Its callers import from `references.ts` (6b90b80).
+
+### (b) The six false claims
+
+| # | Claim | Now |
+|---|---|---|
+| 1 | "Stopping conditions reached" / "Nothing is building" | **corrected.** "Next" calls it premature and gives the reason. "Nothing is building" is true again now that #244 is pushed. |
+| 2 | "Everything that waits on a person is in the issues" | **now true** for every item I listed (grep of the #240 and #241 bodies). |
+| 3 | "Folder edges the same (101)" | **now true**: PROGRESS says 102, and depgraph at d43fd09 gives 102. |
+| 4 | Issues say "#220 to #239" | **now true**: all three say "#220 to #239, #243 and #244". |
+| 5 | `auth <-> users` "type-only" | **now true.** PROGRESS:58 and ADR 0020:33 say each folder imports the other and no two files do. depgraph confirms the folder cycle and no file cycle. |
+| 6 | `design-differences.md:30` "no screen uses it yet" | **now true**: corrected in f888e0f. |
+
+### (c) Further items an agent could do safely now
+
+None found.
+- I looked again at the untaken survey findings and the new commits. The remaining items are the ones in 14.A (now all in #240–#242) and 14.B (too little benefit: the one-line helpers, `.avatar`, the two unpinned lock numbers, the unsure tests, FP-7, BD-6, T-3).
+- The five new commits are docs, one import-path change and one test. None of them opens new work.
+
+### CI (`gh pr checks`, read at 08:49 and again at 08:52)
+
+- At 08:49, backend and frontend were pending on #231–#239, #243 and #244. The other four checks passed.
+- At 08:52, all 6 of 6 checks passed on #231, #232, #233, #234, #235, #236, #237, #238, #239, #243 and #244.
+
+### New verdict
+
+**stopping condition of section 14 reached: every remaining item needs a person's decision or approval, or has too little benefit**
+
+What remains needs people:
+- Teammates' approvals, starting with #220.
+- Lâm: #240 and acceptance of ADR 0020.
+- Hoà: #241.
+- #242 waits for #166 and #77 to merge.
